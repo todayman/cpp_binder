@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace clang;
 
@@ -39,7 +40,31 @@ class FindNamedClassVisitor : public RecursiveASTVisitor<FindNamedClassVisitor>
     ASTContext * Context;
 };
 
-std::unordered_set<const clang::Type*> types;
+class WrappedType
+{
+    private:
+    const clang::Type * cpp_type;
+
+    protected:
+    explicit WrappedType(const clang::Type* t)
+        : cpp_type(t)
+    { }
+
+    static std::unordered_map<const clang::Type*, WrappedType*> type_map;
+
+    public:
+    WrappedType(const WrappedType&) = delete;
+    WrappedType(WrappedType&&) = delete;
+    WrappedType& operator=(const WrappedType&) = delete;
+    WrappedType& operator=(WrappedType&&) = delete;
+
+    static WrappedType * get(const clang::Type* cppType);
+
+    const clang::Type * cppType() const {
+        return cpp_type;
+    }
+};
+
 
 class FunctionVisitor : public RecursiveASTVisitor<FunctionVisitor>
 {
@@ -50,7 +75,7 @@ class FunctionVisitor : public RecursiveASTVisitor<FunctionVisitor>
         std::cout << "Got here!\n";
         QualType return_type = Declaration->getResultType();
         std::cout << "Found function with return type " << return_type.getAsString() << "\n";
-        types.insert(return_type.getTypePtr());
+        WrappedType::get(return_type.getTypePtr());
         functions.insert(Declaration);
         return true;
     }
