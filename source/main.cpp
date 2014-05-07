@@ -12,20 +12,18 @@
 
 #include "WrappedType.hpp"
 
-using namespace clang;
-
-class FindNamedClassVisitor : public RecursiveASTVisitor<FindNamedClassVisitor>
+class FindNamedClassVisitor : public clang::RecursiveASTVisitor<FindNamedClassVisitor>
 {
     public:
-    explicit FindNamedClassVisitor(ASTContext * Context)
+    explicit FindNamedClassVisitor(clang::ASTContext * Context)
         : Context(Context)
     { }
 
-    bool VisitCXXRecordDecl(CXXRecordDecl * Declaration)
+    bool VisitCXXRecordDecl(clang::CXXRecordDecl * Declaration)
     {
         if( Declaration->getQualifiedNameAsString() == "n::m::C" )
         {
-            FullSourceLoc FullLocation = Context->getFullLoc(Declaration->getLocStart());
+            clang::FullSourceLoc FullLocation = Context->getFullLoc(Declaration->getLocStart());
             if( FullLocation.isValid() )
             {
                 llvm::outs() << "Found declaration at "
@@ -37,17 +35,17 @@ class FindNamedClassVisitor : public RecursiveASTVisitor<FindNamedClassVisitor>
     }
 
     private:
-    ASTContext * Context;
+    clang::ASTContext * Context;
 };
 
-class FunctionVisitor : public RecursiveASTVisitor<FunctionVisitor>
+class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
     public:
-    std::set<FunctionDecl*> functions;
-    bool VisitFunctionDecl(FunctionDecl * Declaration)
+    std::set<clang::FunctionDecl*> functions;
+    bool VisitFunctionDecl(clang::FunctionDecl * Declaration)
     {
         std::cout << "Got here!\n";
-        QualType return_type = Declaration->getResultType();
+        clang::QualType return_type = Declaration->getResultType();
         std::cout << "Found function with return type " << return_type.getAsString() << "\n";
         WrappedType::get(return_type.getTypePtr());
         functions.insert(Declaration);
@@ -77,7 +75,7 @@ int main(int argc, const char **argv)
 
     std::string contents = readFile(argv[1]);
     std::vector<std::string> clang_args;
-    std::shared_ptr<ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, argv[1]));
+    std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, argv[1]));
 
     FunctionVisitor funcVisitor;
 
