@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <unordered_set>
 
 using namespace clang;
 
@@ -38,28 +39,20 @@ class FindNamedClassVisitor : public RecursiveASTVisitor<FindNamedClassVisitor>
     ASTContext * Context;
 };
 
-class FindNamedClassConsumer : public ASTConsumer
+std::unordered_set<const clang::Type*> types;
+
+class FunctionVisitor : public RecursiveASTVisitor<FunctionVisitor>
 {
     public:
-    explicit FindNamedClassConsumer(ASTContext * Context)
-        : Visitor(Context)
-    { }
-
-    virtual void HandleTranslationUnit(ASTContext &Context)
+    std::set<FunctionDecl*> functions;
+    bool VisitFunctionDecl(FunctionDecl * Declaration)
     {
-        Visitor.TraverseDecl(Context.getTranslationUnitDecl());
-    }
-
-    private:
-    FindNamedClassVisitor Visitor;
-};
-
-class FindNamedClassAction : public clang::ASTFrontendAction
-{
-    public:
-    virtual ASTConsumer * CreateASTConsumer(CompilerInstance& Compiler, llvm::StringRef)
-    {
-        return new FindNamedClassConsumer(&Compiler.getASTContext());
+        std::cout << "Got here!\n";
+        QualType return_type = Declaration->getResultType();
+        std::cout << "Found function with return type " << return_type.getAsString() << "\n";
+        types.insert(return_type.getTypePtr());
+        functions.insert(Declaration);
+        return true;
     }
 };
 
@@ -83,7 +76,9 @@ int main(int argc, const char **argv)
         std::string contents = readFile(argv[1]);
         std::vector<std::string> clang_args;
         std::shared_ptr<ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, argv[1]));
-        FindNamedClassConsumer consumer(&ast->getASTContext());
-        consumer.HandleTranslationUnit(ast->getASTContext());
+
+        FunctionVisitor funcVisitor;
+
+        funcVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
     }
 }
