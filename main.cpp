@@ -71,14 +71,16 @@ std::string readFile(const std::string& filename)
 
 int main(int argc, const char **argv)
 {
-    if( argc > 1 )
+    if( argc < 2 )
     {
-        std::string contents = readFile(argv[1]);
-        std::vector<std::string> clang_args;
-        std::shared_ptr<ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, argv[1]));
-
-        FunctionVisitor funcVisitor;
-
-        funcVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
+        return -1;
     }
+
+    std::string contents = readFile(argv[1]);
+    std::vector<std::string> clang_args;
+    std::shared_ptr<ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, argv[1]));
+
+    FunctionVisitor funcVisitor;
+
+    funcVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 }
