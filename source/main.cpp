@@ -1,3 +1,7 @@
+#include <fstream>
+#include <iostream>
+#include <memory>
+
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -6,11 +10,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
 
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <unordered_set>
-#include <unordered_map>
+#include "WrappedType.hpp"
 
 using namespace clang;
 
@@ -39,32 +39,6 @@ class FindNamedClassVisitor : public RecursiveASTVisitor<FindNamedClassVisitor>
     private:
     ASTContext * Context;
 };
-
-class WrappedType
-{
-    private:
-    const clang::Type * cpp_type;
-
-    protected:
-    explicit WrappedType(const clang::Type* t)
-        : cpp_type(t)
-    { }
-
-    static std::unordered_map<const clang::Type*, WrappedType*> type_map;
-
-    public:
-    WrappedType(const WrappedType&) = delete;
-    WrappedType(WrappedType&&) = delete;
-    WrappedType& operator=(const WrappedType&) = delete;
-    WrappedType& operator=(WrappedType&&) = delete;
-
-    static WrappedType * get(const clang::Type* cppType);
-
-    const clang::Type * cppType() const {
-        return cpp_type;
-    }
-};
-
 
 class FunctionVisitor : public RecursiveASTVisitor<FunctionVisitor>
 {
