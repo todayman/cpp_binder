@@ -20,7 +20,7 @@ find_library(DL_LIBRARY_PATH dl)
 find_library(NCURSES_LIBRARY_PATH ncursesw)
 
 add_compile_options(-std=c++11)
-add_executable(cpp_binder source/main.cpp source/WrappedType.cpp )
+add_executable(cpp_binder source/main.cpp source/WrappedType.cpp source/DOutput.cpp )
 
 target_link_libraries(cpp_binder ${CLANG_LIBRARY_PATH} )
 target_link_libraries(cpp_binder ${CLANG_TOOLING_LIBRARY_PATH} )

@@ -10,6 +10,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
 
+#include "DOutput.hpp"
 #include "WrappedType.hpp"
 
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
@@ -34,6 +35,41 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
             WrappedType::get(arg_type.getTypePtrOrNull());
         }
         return true;
+    }
+
+    void outputTranslatedFunctionDeclarations(DOutput& output)
+    {
+        for( const clang::FunctionDecl* cur_func : functions )
+        {
+            translateFunction(cur_func, output);
+        }
+    }
+
+    void translateFunction(const clang::FunctionDecl* cur_func, DOutput& output)
+    {
+        // TODO deal with qualifiers
+        clang::QualType qualified_return_type = cur_func->getResultType();
+        const WrappedType * return_type = WrappedType::get(qualified_return_type.getTypePtrOrNull());
+        return_type->translate(output);
+        output.putItem(cur_func->getName().str());
+
+        output.beginList();
+        for( clang::ParmVarDecl* const * iter = cur_func->param_begin();
+             iter != cur_func->param_end();
+             iter++ )
+        {
+            const clang::ParmVarDecl * arg = (*iter);
+            clang::QualType qualified_arg_type = arg->getType();
+            const WrappedType * arg_type = WrappedType::get(qualified_arg_type.getTypePtrOrNull());
+
+            output.listItem();
+            arg_type->translate(output);
+            output.putItem(arg->getName().str());
+        }
+
+        output.endList();
+
+        output.newline();
     }
 };
 
@@ -64,4 +100,10 @@ int main(int argc, const char **argv)
     FunctionVisitor funcVisitor;
 
     funcVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
+
+    // TODO force translation of all types
+
+    DOutput output;
+
+    funcVisitor.outputTranslatedFunctionDeclarations(output);
 }

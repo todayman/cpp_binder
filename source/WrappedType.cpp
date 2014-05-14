@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "DOutput.hpp"
 #include "WrappedType.hpp"
 
 std::unordered_map<const clang::Type*, WrappedType*> WrappedType::type_map;
@@ -34,8 +35,9 @@ class WrappedBasic : public WrappedType
         return true;
     }
 
-    std::string getTranslation() {
-        return names.at(d_type);
+    virtual void translate(DOutput& output) const
+    {
+        output.putItem(names.at(d_type));
     }
 };
 
