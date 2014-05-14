@@ -1,5 +1,5 @@
-#ifndef __OUTPUT_CONTEXT_HPP__
-#define __OUTPUT_CONTEXT_HPP__
+#ifndef __DOUTPUT_HPP__
+#define __DOUTPUT_HPP__
 
 #include <iostream>
 #include <string>
@@ -26,6 +26,7 @@ class DOutput
     void endList();
     void listItem();
     void newline();
+    void semicolon();
 };
 
-#endif // __OUTPUT_CONTEXT_HPP__
+#endif // __DOUTPUT_HPP__

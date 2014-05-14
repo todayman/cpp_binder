@@ -47,6 +47,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 
     void translateFunction(const clang::FunctionDecl* cur_func, DOutput& output)
     {
+        output.putItem("extern(C++)");
         // TODO deal with qualifiers
         clang::QualType qualified_return_type = cur_func->getResultType();
         const WrappedType * return_type = WrappedType::get(qualified_return_type.getTypePtrOrNull());
@@ -69,6 +70,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 
         output.endList();
 
+        output.semicolon();
         output.newline();
     }
 };

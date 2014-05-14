@@ -52,3 +52,8 @@ void DOutput::newline()
 {
     output << "\n";
 }
+
+void DOutput::semicolon()
+{
+    output << ";";
+}
