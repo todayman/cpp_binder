@@ -34,11 +34,6 @@ class WrappedBasic : public WrappedType
         return true;
     }
 
-    virtual bool shouldBeEmitted() override
-    {
-        return false;
-    }
-
     std::string getTranslation() {
         return names.at(d_type);
     }

@@ -33,8 +33,6 @@ class WrappedType
     // and collected all information needed to determine
     // how to write the D version of this type.
     virtual bool isTranslationFinal() = 0;
-
-    virtual bool shouldBeEmitted() = 0;
 };
 
 #endif // __WRAPPED_TYPE_H__
