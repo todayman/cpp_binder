@@ -12,32 +12,6 @@
 
 #include "WrappedType.hpp"
 
-class FindNamedClassVisitor : public clang::RecursiveASTVisitor<FindNamedClassVisitor>
-{
-    public:
-    explicit FindNamedClassVisitor(clang::ASTContext * Context)
-        : Context(Context)
-    { }
-
-    bool VisitCXXRecordDecl(clang::CXXRecordDecl * Declaration)
-    {
-        if( Declaration->getQualifiedNameAsString() == "n::m::C" )
-        {
-            clang::FullSourceLoc FullLocation = Context->getFullLoc(Declaration->getLocStart());
-            if( FullLocation.isValid() )
-            {
-                llvm::outs() << "Found declaration at "
-                    << FullLocation.getSpellingLineNumber() << ":"
-                    << FullLocation.getSpellingColumnNumber() << "\n";
-            }
-        }
-        return true;
-    }
-
-    private:
-    clang::ASTContext * Context;
-};
-
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
     public:
