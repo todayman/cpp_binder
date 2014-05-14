@@ -21,8 +21,18 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         std::cout << "Got here!\n";
         clang::QualType return_type = Declaration->getResultType();
         std::cout << "Found function with return type " << return_type.getAsString() << "\n";
-        WrappedType::get(return_type.getTypePtr());
+        WrappedType::get(return_type.getTypePtrOrNull());
         functions.insert(Declaration);
+
+        std::cout << "Function has arguments with types: \n";
+        for( clang::ParmVarDecl** iter = Declaration->param_begin();
+             iter != Declaration->param_end();
+             iter++ )
+        {
+            clang::QualType arg_type = (*iter)->getType();
+            std::cout << "\t" << arg_type.getAsString() << "\n";
+            WrappedType::get(arg_type.getTypePtrOrNull());
+        }
         return true;
     }
 };
