@@ -1,0 +1,98 @@
+#include <array>
+#include <string>
+#include <unordered_map>
+
+#include "DOutput.hpp"
+#include "cpp_type.hpp"
+using namespace cpp;
+
+std::unordered_map<const clang::Type*, Type*> Type::type_map;
+
+namespace cpp {
+    class Basic : public Type
+    {
+        public:
+        enum Kind {
+            Bool,
+            Byte,
+            UByte,
+            Int,
+            UInt,
+            Float,
+            Double,
+        };
+        static constexpr size_t MAX_KIND = Double + 1;
+        private:
+        Kind d_type;
+    
+        static const std::array<std::string, MAX_KIND> names;
+    
+        public:
+        Basic(const clang::Type* cpp_type, Kind d)
+            : Type(cpp_type), d_type(d)
+        { }
+    
+        virtual bool isTranslationFinal() override
+        {
+            return true;
+        }
+    
+        virtual void translate(DOutput& output) const
+        {
+            output.putItem(names.at(d_type));
+        }
+    };
+}
+
+template<>
+struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
+
+const std::array<std::string, Basic::MAX_KIND> Basic::names ({
+    "bool",
+    "byte",
+    "ubyte",
+    "int",
+    "uint",
+    "float",
+    "double",
+});
+
+// TODO move this out to configuration
+// C++ types in clang/AST/BuiltinTypes.def
+static const std::unordered_map<clang::BuiltinType::Kind, Basic::Kind> cpp_to_d_builtins = {
+    { clang::BuiltinType::Bool,   Basic::Bool },
+    { clang::BuiltinType::UChar,  Basic::UByte },
+    { clang::BuiltinType::Int,    Basic::Int },
+    { clang::BuiltinType::UInt,   Basic::UInt },
+    { clang::BuiltinType::Float,  Basic::Float },
+    { clang::BuiltinType::Double, Basic::Double },
+};
+
+// Types in clang/AST/BuiltinTypes.def
+static Type * makeBuiltin(const clang::BuiltinType* cppType)
+{
+    Basic::Kind d_kind = cpp_to_d_builtins.at(cppType->getKind());
+    return new Basic(cppType, d_kind);
+}
+
+
+Type * Type::get(const clang::Type* cppType)
+{
+    decltype(type_map)::iterator iter = type_map.find(cppType);
+    if( iter != type_map.end() )
+        return iter->second;
+
+    Type * result = nullptr;
+    // Builtin type ignores typdefs and qualifiers
+    if( cppType->isBuiltinType() )
+    {
+        result = makeBuiltin(cppType->getAs<clang::BuiltinType>());
+    }
+
+    if( result )
+        type_map.insert(std::make_pair(cppType, result));
+    else
+        throw std::runtime_error("No way to wrap type"); // TODO put type into exception
+
+    return result;
+}

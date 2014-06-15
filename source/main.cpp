@@ -12,7 +12,7 @@
 
 #include "cli.hpp"
 #include "DOutput.hpp"
-#include "WrappedType.hpp"
+#include "cpp_type.hpp"
 
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
@@ -23,7 +23,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         std::cout << "Got here!\n";
         clang::QualType return_type = Declaration->getResultType();
         std::cout << "Found function with return type " << return_type.getAsString() << "\n";
-        WrappedType::get(return_type.getTypePtrOrNull());
+        cpp::Type::get(return_type.getTypePtrOrNull());
         functions.insert(Declaration);
 
         std::cout << "Function has arguments with types: \n";
@@ -33,7 +33,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         {
             clang::QualType arg_type = (*iter)->getType();
             std::cout << "\t" << arg_type.getAsString() << "\n";
-            WrappedType::get(arg_type.getTypePtrOrNull());
+            cpp::Type::get(arg_type.getTypePtrOrNull());
         }
         return true;
     }
@@ -51,7 +51,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         output.putItem("extern(C++)");
         // TODO deal with qualifiers
         clang::QualType qualified_return_type = cur_func->getResultType();
-        const WrappedType * return_type = WrappedType::get(qualified_return_type.getTypePtrOrNull());
+        const cpp::Type * return_type = cpp::Type::get(qualified_return_type.getTypePtrOrNull());
         return_type->translate(output);
         output.putItem(cur_func->getName().str());
 
@@ -62,7 +62,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         {
             const clang::ParmVarDecl * arg = (*iter);
             clang::QualType qualified_arg_type = arg->getType();
-            const WrappedType * arg_type = WrappedType::get(qualified_arg_type.getTypePtrOrNull());
+            const cpp::Type * arg_type = cpp::Type::get(qualified_arg_type.getTypePtrOrNull());
 
             output.listItem();
             arg_type->translate(output);
