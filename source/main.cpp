@@ -95,9 +95,9 @@ int main(int argc, const char **argv)
     if( !parse_args(argc, argv, args) )
         return EXIT_FAILURE;
 
-    std::string contents = readFile(argv[1]);
+    std::string contents = readFile(args.header_files[0]);
     std::vector<std::string> clang_args;
-    std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, argv[1]));
+    std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, args.header_files[0]));
 
     FunctionVisitor funcVisitor;
 
