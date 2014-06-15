@@ -9,10 +9,17 @@ class DOutput;
 
 namespace cpp
 {
+    // This is a place for all of the different pieces of
+    // knowledge we need about each C++ type.  They all
+    // get landed here, and we basically use this as the value
+    // in a dictionary, where the C++ type is the key.
     class Type
     {
         private:
         const clang::Type * cpp_type;
+        //std::unorderd_map<std::strin
+        // Attributes! from config files or inferred
+        // Pointer to D type!
     
         protected:
         explicit Type(const clang::Type* t)
@@ -42,6 +49,14 @@ namespace cpp
         // The output is suitable for declaring a variable of this type,
         // not defining this type.
         virtual void translate(DOutput& output) const = 0;
+    };
+
+    // Same thing as Type, but for declarations of functions,
+    // classes, etc.
+    class Declaration
+    {
+        // Attributes!
+        // Pointer to D declaration!
     };
 }
 
