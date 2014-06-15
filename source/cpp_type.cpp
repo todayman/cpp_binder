@@ -9,7 +9,7 @@ using namespace cpp;
 std::unordered_map<const clang::Type*, Type*> Type::type_map;
 
 namespace cpp {
-    class Basic : public Type
+    class Builtin : public Type
     {
         public:
         enum Kind {
@@ -28,7 +28,7 @@ namespace cpp {
         static const std::array<std::string, MAX_KIND> names;
     
         public:
-        Basic(const clang::Type* cpp_type, Kind d)
+        Builtin(const clang::Type* cpp_type, Kind d)
             : Type(cpp_type), d_type(d)
         { }
     
@@ -47,7 +47,7 @@ namespace cpp {
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 
-const std::array<std::string, Basic::MAX_KIND> Basic::names ({
+const std::array<std::string, Builtin::MAX_KIND> Builtin::names ({
     "bool",
     "byte",
     "ubyte",
@@ -59,20 +59,20 @@ const std::array<std::string, Basic::MAX_KIND> Basic::names ({
 
 // TODO move this out to configuration
 // C++ types in clang/AST/BuiltinTypes.def
-static const std::unordered_map<clang::BuiltinType::Kind, Basic::Kind> cpp_to_d_builtins = {
-    { clang::BuiltinType::Bool,   Basic::Bool },
-    { clang::BuiltinType::UChar,  Basic::UByte },
-    { clang::BuiltinType::Int,    Basic::Int },
-    { clang::BuiltinType::UInt,   Basic::UInt },
-    { clang::BuiltinType::Float,  Basic::Float },
-    { clang::BuiltinType::Double, Basic::Double },
+static const std::unordered_map<clang::BuiltinType::Kind, Builtin::Kind> cpp_to_d_builtins = {
+    { clang::BuiltinType::Bool,   Builtin::Bool },
+    { clang::BuiltinType::UChar,  Builtin::UByte },
+    { clang::BuiltinType::Int,    Builtin::Int },
+    { clang::BuiltinType::UInt,   Builtin::UInt },
+    { clang::BuiltinType::Float,  Builtin::Float },
+    { clang::BuiltinType::Double, Builtin::Double },
 };
 
 // Types in clang/AST/BuiltinTypes.def
 static Type * makeBuiltin(const clang::BuiltinType* cppType)
 {
-    Basic::Kind d_kind = cpp_to_d_builtins.at(cppType->getKind());
-    return new Basic(cppType, d_kind);
+    Builtin::Kind d_kind = cpp_to_d_builtins.at(cppType->getKind());
+    return new Builtin(cppType, d_kind);
 }
 
 
