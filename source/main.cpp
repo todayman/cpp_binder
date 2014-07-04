@@ -14,19 +14,28 @@
 #include "DOutput.hpp"
 #include "cpp_type.hpp"
 
+const clang::SourceManager * source_manager = nullptr;
+
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
     public:
     std::set<clang::FunctionDecl*> functions;
     bool VisitFunctionDecl(clang::FunctionDecl * Declaration)
     {
-        std::cout << "Got here!\n";
+
         clang::QualType return_type = Declaration->getResultType();
-        std::cout << "Found function with return type " << return_type.getAsString() << "\n";
+        clang::SourceLocation source_loc = Declaration->getLocation();
+        clang::PresumedLoc presumed = source_manager->getPresumedLoc(source_loc);
+
+        std::cout << "Found function " << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
+        std::cout << "  with return type " << return_type.getAsString() << "\n";
+        // TODO could this really be NULL?
+        // under what circumstances is that the case, and do I have to
+        // worry about it?
         cpp::Type::get(return_type.getTypePtrOrNull());
         functions.insert(Declaration);
 
-        std::cout << "Function has arguments with types: \n";
+        std::cout << "  argument types:\n";
         for( clang::ParmVarDecl** iter = Declaration->param_begin();
              iter != Declaration->param_end();
              iter++ )
@@ -103,6 +112,7 @@ int main(int argc, const char **argv)
     clang_args.emplace_back("/usr/lib/clang/3.4.2");
 
     std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, args.header_files[0]));
+    source_manager = &ast->getSourceManager();
 
     FunctionVisitor funcVisitor;
 
