@@ -16,6 +16,17 @@ namespace cpp {
             : Type(cpp_type)
         { }
     };
+
+    class Pointer : public Type
+    {
+        public:
+        Pointer(const clang::Type* cpp_type)
+            : Type(cpp_type)
+        { }
+
+        // For now, query the cpp_type to get the pointer target
+        // then look that up in the map.
+    };
 }
 
 template<>
@@ -25,6 +36,19 @@ struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 static Type * makeBuiltin(const clang::BuiltinType* cppType)
 {
     return new Builtin(cppType);
+}
+
+static Type * makePointer(const clang::PointerType* cppType)
+{
+    Type * result = new Pointer(cppType);
+
+    // The result of getPointeeType might be NULL, but I can't
+    // deal with that anyway.
+    // We don't actually care about the result; we just want to
+    // make sure that it exists somewhere, so ignore the result.
+    (void)Type::get(cppType->getPointeeType().getTypePtr());
+
+    return result;
 }
 
 Type * Type::get(const clang::Type* cppType)
@@ -38,6 +62,10 @@ Type * Type::get(const clang::Type* cppType)
     if( cppType->isBuiltinType() )
     {
         result = makeBuiltin(cppType->getAs<clang::BuiltinType>());
+    }
+    else if( cppType->isPointerType() )
+    {
+        result = makePointer(cppType->getAs<clang::PointerType>());
     }
 
     if( result )
