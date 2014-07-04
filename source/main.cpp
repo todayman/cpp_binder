@@ -38,7 +38,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         return true;
     }
 
-    void outputTranslatedFunctionDeclarations(DOutput& output)
+    /*void outputTranslatedFunctionDeclarations(DOutput& output)
     {
         for( const clang::FunctionDecl* cur_func : functions )
         {
@@ -73,7 +73,7 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 
         output.semicolon();
         output.newline();
-    }
+    }*/
 };
 
 std::string readFile(const std::string& filename)
@@ -110,7 +110,7 @@ int main(int argc, const char **argv)
 
     // TODO force translation of all types
 
-    DOutput output;
+    //DOutput output;
 
-    funcVisitor.outputTranslatedFunctionDeclarations(output);
+    //funcVisitor.outputTranslatedFunctionDeclarations(output);
 }

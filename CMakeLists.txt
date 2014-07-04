@@ -19,7 +19,7 @@ find_library(PTHREADS_LIBRARY_PATH pthread)
 find_library(DL_LIBRARY_PATH dl)
 find_library(NCURSES_LIBRARY_PATH ncursesw)
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++11 -Wall -Wextra -pedantic)
 add_executable(cpp_binder source/main.cpp source/cpp_type.cpp source/DOutput.cpp source/cli.cpp)
 
 target_link_libraries(cpp_binder ${CLANG_LIBRARY_PATH} )
