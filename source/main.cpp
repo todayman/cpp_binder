@@ -20,6 +20,19 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
     public:
     std::set<clang::FunctionDecl*> functions;
+
+    bool TraverseFunctionDecl(clang::FunctionDecl * Declaration)
+    {
+        if( Declaration->getTemplatedKind() != clang::FunctionDecl::TK_NonTemplate ) {
+            std::cout << "Skipping templated function " << Declaration->getNameAsString() << "\n";
+        }
+        else {
+            WalkUpFromFunctionDecl(Declaration);
+        }
+
+        return true;
+    }
+
     bool VisitFunctionDecl(clang::FunctionDecl * Declaration)
     {
 
