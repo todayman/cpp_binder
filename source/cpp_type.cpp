@@ -71,7 +71,7 @@ Type * Type::get(const clang::Type* cppType)
     if( result )
         type_map.insert(std::make_pair(cppType, result));
     else
-        throw std::runtime_error("No way to wrap type"); // TODO put type into exception
+        throw NotWrappableException(cppType); // TODO put type into exception
 
     return result;
 }

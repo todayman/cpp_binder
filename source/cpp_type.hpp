@@ -47,6 +47,19 @@ namespace cpp
         // Attributes!
         // Pointer to D declaration!
     };
+
+    class NotWrappableException : public std::runtime_error
+    {
+        private:
+        //const clang::Type * type;
+
+        // TODO figure out how to print types as strings,
+        // so I can make sensible messages
+        public:
+        NotWrappableException(const clang::Type *)
+            : std::runtime_error("No way to wrap type.")
+        { }
+    };
 }
 
 #endif // __CPP_TYPE_HPP__
