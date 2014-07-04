@@ -15,21 +15,44 @@
 #include "cpp_type.hpp"
 
 const clang::SourceManager * source_manager = nullptr;
+using namespace clang;
 
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
     public:
     std::set<clang::FunctionDecl*> functions;
 
-    bool TraverseFunctionDecl(clang::FunctionDecl * Declaration)
+    bool TraverseDecl(clang::Decl * Declaration)
     {
-        if( Declaration->getTemplatedKind() != clang::FunctionDecl::TK_NonTemplate ) {
-            std::cout << "Skipping templated function " << Declaration->getNameAsString() << "\n";
+#define PRINT(X) std::cout << #X << " = " << clang::Decl::X << "\n"
+        if( Declaration->isTemplateDecl() ) {
+           std::cout << "Skipping templated declaration";
+            switch (Declaration->getKind()) {
+                case clang::Decl::Function:
+                case clang::Decl::Record:
+                case clang::Decl::CXXRecord:
+                case clang::Decl::CXXMethod:
+                case clang::Decl::ClassTemplate:
+                case clang::Decl::FunctionTemplate:
+                    // These ones have names, so we can print them out
+                    std::cout << " " << static_cast<clang::NamedDecl*>(Declaration)->getNameAsString();
+                    break;
+                default:
+                    std::cout << " kind = " << Declaration->getKind();
+                    break;
+            }
+            std::cout << ". \n";
         }
         else {
-            WalkUpFromFunctionDecl(Declaration);
+            //std::cout << "kind = " << Declaration->getKind() << "\n";
+            RecursiveASTVisitor<FunctionVisitor>::TraverseDecl(Declaration);
         }
 
+        return true;
+    }
+    bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
+    {
+        std::cout << "Skipping partially specialized template declaration " << declaration->getNameAsString() << ".\n";
         return true;
     }
 
