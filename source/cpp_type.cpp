@@ -13,6 +13,7 @@ namespace cpp {
     {
         public:
         enum Kind {
+            Void,
             Bool,
             Byte,
             UByte,
@@ -48,6 +49,7 @@ template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 
 const std::array<std::string, Builtin::MAX_KIND> Builtin::names ({
+    "void",
     "bool",
     "byte",
     "ubyte",
@@ -60,6 +62,7 @@ const std::array<std::string, Builtin::MAX_KIND> Builtin::names ({
 // TODO move this out to configuration
 // C++ types in clang/AST/BuiltinTypes.def
 static const std::unordered_map<clang::BuiltinType::Kind, Builtin::Kind> cpp_to_d_builtins = {
+    { clang::BuiltinType::Void,   Builtin::Void },
     { clang::BuiltinType::Bool,   Builtin::Bool },
     { clang::BuiltinType::UChar,  Builtin::UByte },
     { clang::BuiltinType::Int,    Builtin::Int },

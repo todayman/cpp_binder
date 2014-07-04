@@ -84,6 +84,7 @@ Or maybe this will get good enough that the first pass can be written in C++ and
 ------
 
 TODO allow configuration of how to parse the C++, i.e. command line flags to `clang`.
+`clang` does not appear to auto-detect the right value for its `-resource-dir` option.
 
 ## One-and-a-half Phase
 

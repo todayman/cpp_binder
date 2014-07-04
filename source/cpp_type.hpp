@@ -17,7 +17,6 @@ namespace cpp
     {
         private:
         const clang::Type * cpp_type;
-        //std::unorderd_map<std::strin
         // Attributes! from config files or inferred
         // Pointer to D type!
     
