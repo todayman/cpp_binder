@@ -86,20 +86,34 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         std::cout << "Found function ";
         printPresumedLocation(Declaration);
         std::cout << "  with return type " << return_type.getAsString() << "\n";
-        // TODO could this really be NULL?
-        // under what circumstances is that the case, and do I have to
-        // worry about it?
-        cpp::Type::get(return_type.getTypePtrOrNull());
-        functions.insert(Declaration);
+        try {
+            // TODO could this really be NULL?
+            // under what circumstances is that the case, and do I have to
+            // worry about it?
+            cpp::Type::get(return_type.getTypePtrOrNull());
 
-        std::cout << "  argument types:\n";
-        for( clang::ParmVarDecl** iter = Declaration->param_begin();
-             iter != Declaration->param_end();
-             iter++ )
+            std::cout << "  argument types:\n";
+            for( clang::ParmVarDecl** iter = Declaration->param_begin();
+                 iter != Declaration->param_end();
+                 iter++ )
+            {
+                clang::QualType arg_type = (*iter)->getType();
+                std::cout << "\t" << arg_type.getAsString() << "\n";
+                cpp::Type::get(arg_type.getTypePtrOrNull());
+            }
+            functions.insert(Declaration);
+        }
+        catch( cpp::NotWrappableException& e)
         {
-            clang::QualType arg_type = (*iter)->getType();
-            std::cout << "\t" << arg_type.getAsString() << "\n";
-            cpp::Type::get(arg_type.getTypePtrOrNull());
+            // We don't wrap rvalue refs, so if that's the type, then we just
+            // skip this declaration entirely
+            if( !e.getType()->isRValueReferenceType() )
+            {
+                throw;
+            }
+            else {
+                std::cout << "Skipping an rvalue ref\n";
+            }
         }
         return true;
     }

@@ -98,6 +98,16 @@ static Type * makeFunction(const clang::FunctionType* cppType)
     return result;
 }
 
+static Type * makeReference(const clang::ReferenceType* cppType)
+{
+    Type * result = new Type(cppType, Type::Reference);
+
+    // TODO deal with QualType::getTypePtr being null
+    (void)Type::get(cppType->getPointeeType().getTypePtr());
+
+    return result;
+}
+
 Type * Type::get(const clang::Type* cppType)
 {
     decltype(type_map)::iterator iter = type_map.find(cppType);
@@ -135,6 +145,14 @@ Type * Type::get(const clang::Type* cppType)
     else if( cppType->isFunctionType() )
     {
         result = makeFunction(cppType->getAs<clang::FunctionType>());
+    }
+    else if( cppType->isReferenceType() )
+    {
+        if( cppType->isLValueReferenceType() )
+        {
+            result = makeReference(cppType->getAs<clang::ReferenceType>());
+        }
+        // Don't translate rvalue refs
     }
 
     if( result )

@@ -19,6 +19,7 @@ namespace cpp
         enum Kind {
             Builtin,
             Pointer,
+            Reference,
             Record,
             Union,
             Array,
@@ -30,12 +31,12 @@ namespace cpp
         Kind kind;
         // Attributes! from config files or inferred
         // Pointer to D type!
-    
+
         public:
         explicit Type(const clang::Type* t, Kind k)
             : cpp_type(t), kind(k)
         { }
-    
+
         protected:
         static std::unordered_map<const clang::Type*, Type*> type_map;
         static Type * makeRecord(const clang::Type * type, const clang::RecordType* cppType);
@@ -46,9 +47,9 @@ namespace cpp
         Type(Type&&) = delete;
         Type& operator=(const Type&) = delete;
         Type& operator=(Type&&) = delete;
-    
+
         static Type * get(const clang::Type* cppType);
-    
+
         const clang::Type * cppType() const {
             return cpp_type;
         }
@@ -66,14 +67,18 @@ namespace cpp
     class NotWrappableException : public std::runtime_error
     {
         private:
-        //const clang::Type * type;
+        const clang::Type * type;
 
         // TODO figure out how to print types as strings,
         // so I can make sensible messages
         public:
-        NotWrappableException(const clang::Type *)
-            : std::runtime_error("No way to wrap type.")
+        NotWrappableException(const clang::Type * t)
+            : std::runtime_error("No way to wrap type."), type(t)
         { }
+
+        const clang::Type * getType() const {
+            return type;
+        }
     };
 }
 
