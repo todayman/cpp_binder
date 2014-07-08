@@ -11,83 +11,18 @@ using namespace cpp;
 
 std::unordered_map<const clang::Type*, Type*> Type::type_map;
 
-namespace cpp {
-    class Builtin : public Type
-    {
-        public:
-        Builtin(const clang::Type* cpp_type)
-            : Type(cpp_type)
-        { }
-    };
-
-    class Pointer : public Type
-    {
-        public:
-        Pointer(const clang::PointerType* cpp_type)
-            : Type(cpp_type)
-        { }
-
-        // For now, query the cpp_type to get the pointer target
-        // then look that up in the map.
-    };
-
-    class Record : public Type
-    {
-        public:
-        Record(const clang::RecordType* cpp_type)
-            : Type(cpp_type)
-        { }
-
-        // For now, query the cpp_type to get the pointer target
-        // then look that up in the map.
-    };
-
-    class Union : public Type
-    {
-        public:
-        Union(const clang::RecordType* cpp_type)
-            : Type(cpp_type)
-        { }
-
-        // For now, query the cpp_type to get the pointer target
-        // then look that up in the map.
-    };
-
-    class Array : public Type
-    {
-        public:
-        Array(const clang::ArrayType* cpp_type)
-            : Type(cpp_type)
-        { }
-
-        // For now, query the cpp_type to get the pointer target
-        // then look that up in the map.
-    };
-
-    class Function : public Type
-    {
-        public:
-        Function(const clang::FunctionType* cpp_type)
-            : Type(cpp_type)
-        { }
-
-        // For now, query the cpp_type to get the return type and args
-        // then look that up in the map.
-    };
-}
-
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 
 // Types in clang/AST/BuiltinTypes.def
 static Type * makeBuiltin(const clang::BuiltinType* cppType)
 {
-    return new Builtin(cppType);
+    return new Type(cppType, Type::Builtin);
 }
 
 static Type * makePointer(const clang::PointerType* cppType)
 {
-    Type * result = new Pointer(cppType);
+    Type * result = new Type(cppType, Type::Pointer);
 
     // The result of getPointeeType might be NULL, but I can't
     // deal with that anyway.
@@ -122,7 +57,7 @@ static void traverseClangRecord(const clang::RecordType * cppType)
 // than the RecordType *
 Type * Type::makeRecord(const clang::Type* type, const clang::RecordType* cppType)
 {
-    Type * result = new Record(cppType);
+    Type * result = new Type(cppType, Type::Record);
     // FIXME inserting this twice,
     // but I need it here other wise I recurse infinitely when
     // structures contain a pointer to themselves
@@ -135,7 +70,7 @@ Type * Type::makeRecord(const clang::Type* type, const clang::RecordType* cppTyp
 
 Type * Type::makeUnion(const clang::Type* type, const clang::RecordType* cppType)
 {
-    Type * result = new Union(cppType);
+    Type * result = new Type(cppType, Type::Union);
     type_map.insert(std::make_pair(type, result));
 
     traverseClangRecord(cppType);
@@ -145,7 +80,7 @@ Type * Type::makeUnion(const clang::Type* type, const clang::RecordType* cppType
 
 static Type * makeArray(const clang::ArrayType* cppType)
 {
-    Type * result = new Array(cppType);
+    Type * result = new Type(cppType, Type::Array);
 
     // TODO deal with QualType::getTypePtr being null
     (void)Type::get(cppType->getElementType().getTypePtr());
@@ -154,7 +89,7 @@ static Type * makeArray(const clang::ArrayType* cppType)
 
 static Type * makeFunction(const clang::FunctionType* cppType)
 {
-    Type * result = new Function(cppType);
+    Type * result = new Type(cppType, Type::Function);
 
     // TODO deal with QualType::getTypePtr being null
     (void)Type::get(cppType->getResultType().getTypePtr());

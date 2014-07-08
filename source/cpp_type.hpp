@@ -15,16 +15,28 @@ namespace cpp
     // in a dictionary, where the C++ type is the key.
     class Type
     {
+        public:
+        enum Kind {
+            Builtin,
+            Pointer,
+            Record,
+            Union,
+            Array,
+            Function,
+        };
+
         private:
         const clang::Type * cpp_type;
+        Kind kind;
         // Attributes! from config files or inferred
         // Pointer to D type!
     
-        protected:
-        explicit Type(const clang::Type* t)
-            : cpp_type(t)
+        public:
+        explicit Type(const clang::Type* t, Kind k)
+            : cpp_type(t), kind(k)
         { }
     
+        protected:
         static std::unordered_map<const clang::Type*, Type*> type_map;
         static Type * makeRecord(const clang::Type * type, const clang::RecordType* cppType);
         static Type * makeUnion(const clang::Type * type, const clang::RecordType* cppType);
@@ -40,6 +52,7 @@ namespace cpp
         const clang::Type * cppType() const {
             return cpp_type;
         }
+
     };
 
     // Same thing as Type, but for declarations of functions,
