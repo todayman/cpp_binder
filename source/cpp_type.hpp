@@ -26,7 +26,9 @@ namespace cpp
         { }
     
         static std::unordered_map<const clang::Type*, Type*> type_map;
-    
+        static Type * makeRecord(const clang::Type * type, const clang::RecordType* cppType);
+        static Type * makeUnion(const clang::Type * type, const clang::RecordType* cppType);
+
         public:
         Type(const Type&) = delete;
         Type(Type&&) = delete;

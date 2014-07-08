@@ -15,7 +15,14 @@
 #include "cpp_type.hpp"
 
 const clang::SourceManager * source_manager = nullptr;
-using namespace clang;
+
+void printPresumedLocation(const clang::NamedDecl* Declaration)
+{
+    clang::SourceLocation source_loc = Declaration->getLocation();
+    clang::PresumedLoc presumed = source_manager->getPresumedLoc(source_loc);
+
+    std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
+}
 
 class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 {
@@ -24,7 +31,9 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 
     bool TraverseDecl(clang::Decl * Declaration)
     {
-#define PRINT(X) std::cout << #X << " = " << clang::Decl::X << "\n"
+        std::cout << " kind = " << Declaration->getKind() << "\n";
+#define PRINT(x) std::cout << #x << " = " << clang::Decl::x << "\n"
+        PRINT(Function);
         if( Declaration->isTemplateDecl() ) {
            std::cout << "Skipping templated declaration";
             switch (Declaration->getKind()) {
@@ -38,13 +47,11 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
                     std::cout << " " << static_cast<clang::NamedDecl*>(Declaration)->getNameAsString();
                     break;
                 default:
-                    std::cout << " kind = " << Declaration->getKind();
                     break;
             }
             std::cout << ". \n";
         }
         else {
-            //std::cout << "kind = " << Declaration->getKind() << "\n";
             RecursiveASTVisitor<FunctionVisitor>::TraverseDecl(Declaration);
         }
 
@@ -55,15 +62,29 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         std::cout << "Skipping partially specialized template declaration " << declaration->getNameAsString() << ".\n";
         return true;
     }
+    bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
+    {
+        std::cout << "Skipping specialized template declaration " << declaration->getNameAsString() << ".\n";
+        return true;
+    }
+    bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration)
+    {
+        const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
+        if( !parent_decl->isTemplateDecl() && !parent_decl->getDescribedClassTemplate() )
+        {
+            RecursiveASTVisitor<FunctionVisitor>::TraverseCXXMethodDecl(Declaration);
+        }
+
+        return true;
+    }
 
     bool VisitFunctionDecl(clang::FunctionDecl * Declaration)
     {
 
         clang::QualType return_type = Declaration->getResultType();
-        clang::SourceLocation source_loc = Declaration->getLocation();
-        clang::PresumedLoc presumed = source_manager->getPresumedLoc(source_loc);
 
-        std::cout << "Found function " << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
+        std::cout << "Found function ";
+        printPresumedLocation(Declaration);
         std::cout << "  with return type " << return_type.getAsString() << "\n";
         // TODO could this really be NULL?
         // under what circumstances is that the case, and do I have to
