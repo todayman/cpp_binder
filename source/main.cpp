@@ -31,9 +31,8 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
 
     bool TraverseDecl(clang::Decl * Declaration)
     {
-        std::cout << " kind = " << Declaration->getKind() << "\n";
-#define PRINT(x) std::cout << #x << " = " << clang::Decl::x << "\n"
-        PRINT(Function);
+        if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
+            return true;
         if( Declaration->isTemplateDecl() ) {
            std::cout << "Skipping templated declaration";
             switch (Declaration->getKind()) {
@@ -67,12 +66,23 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         std::cout << "Skipping specialized template declaration " << declaration->getNameAsString() << ".\n";
         return true;
     }
+
     bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration)
     {
         const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
-        if( !parent_decl->isTemplateDecl() && !parent_decl->getDescribedClassTemplate() )
+        if( !hasTemplateParent(parent_decl) )
         {
             RecursiveASTVisitor<FunctionVisitor>::TraverseCXXMethodDecl(Declaration);
+        }
+
+        return true;
+    }
+    bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration)
+    {
+        const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
+        if( !hasTemplateParent(parent_decl) )
+        {
+            RecursiveASTVisitor<FunctionVisitor>::TraverseCXXConstructorDecl(Declaration);
         }
 
         return true;
@@ -107,53 +117,20 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
         {
             // We don't wrap rvalue refs, so if that's the type, then we just
             // skip this declaration entirely
-            if( !e.getType()->isRValueReferenceType() )
+            if( e.getType()->isRValueReferenceType() )
             {
-                throw;
+                std::cout << "Skipping an rvalue ref\n";
+            }
+            else if( e.getType()->isInstantiationDependentType() )
+            {
+                std::cout << "Skipping a " << Declaration->getNameAsString() << " becuase it references a dependent type.\n";
             }
             else {
-                std::cout << "Skipping an rvalue ref\n";
+                throw;
             }
         }
         return true;
     }
-
-    /*void outputTranslatedFunctionDeclarations(DOutput& output)
-    {
-        for( const clang::FunctionDecl* cur_func : functions )
-        {
-            translateFunction(cur_func, output);
-        }
-    }
-
-    void translateFunction(const clang::FunctionDecl* cur_func, DOutput& output)
-    {
-        output.putItem("extern(C++)");
-        // TODO deal with qualifiers
-        clang::QualType qualified_return_type = cur_func->getResultType();
-        const cpp::Type * return_type = cpp::Type::get(qualified_return_type.getTypePtrOrNull());
-        return_type->translate(output);
-        output.putItem(cur_func->getName().str());
-
-        output.beginList();
-        for( clang::ParmVarDecl* const * iter = cur_func->param_begin();
-             iter != cur_func->param_end();
-             iter++ )
-        {
-            const clang::ParmVarDecl * arg = (*iter);
-            clang::QualType qualified_arg_type = arg->getType();
-            const cpp::Type * arg_type = cpp::Type::get(qualified_arg_type.getTypePtrOrNull());
-
-            output.listItem();
-            arg_type->translate(output);
-            output.putItem(arg->getName().str());
-        }
-
-        output.endList();
-
-        output.semicolon();
-        output.newline();
-    }*/
 };
 
 std::string readFile(const std::string& filename)

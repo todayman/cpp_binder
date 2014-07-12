@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include <clang/AST/Decl.h>
+#include <clang/AST/DeclCXX.h>
 #include <clang/Basic/SourceManager.h>
 
 #include "DOutput.hpp"
@@ -13,6 +14,30 @@ std::unordered_map<const clang::Type*, Type*> Type::type_map;
 
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
+
+bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
+{
+    while(!parent_record->isTemplateDecl() && !parent_record->getDescribedClassTemplate())
+    {
+        const clang::DeclContext * parent_context = parent_record->getParent();
+        if( parent_context->isRecord() )
+        {
+            const clang::TagDecl * parent_decl = clang::TagDecl::castFromDeclContext(parent_context);
+            if( parent_decl->getKind() == clang::Decl::CXXRecord )
+            {
+                parent_record = static_cast<const clang::CXXRecordDecl*>(parent_decl);
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+    return true;
+}
 
 // Types in clang/AST/BuiltinTypes.def
 static Type * makeBuiltin(const clang::BuiltinType* cppType)

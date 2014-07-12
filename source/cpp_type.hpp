@@ -82,4 +82,6 @@ namespace cpp
     };
 }
 
+bool hasTemplateParent(const clang::CXXRecordDecl * parent_record);
+
 #endif // __CPP_TYPE_HPP__
