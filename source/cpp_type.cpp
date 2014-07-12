@@ -182,10 +182,6 @@ Type * Type::get(const clang::Type* cppType)
         {
             result = makeUnion(cppType, recordType);
         }
-        else if( recordType->isEnumeralType() )
-        {
-            std::cout << "Found enum!\n";
-        }
     }
     else if( cppType->isArrayType() )
     {
@@ -201,7 +197,10 @@ Type * Type::get(const clang::Type* cppType)
         {
             result = makeReference(cppType->getAs<clang::ReferenceType>());
         }
-        // Don't translate rvalue refs
+        else if( cppType->isRValueReferenceType() )
+        {
+            throw SkipRValueRef(cppType->getAs<clang::RValueReferenceType>());
+        }
     }
     else if( cppType->getAs<clang::TypedefType>() )
     {
@@ -215,6 +214,14 @@ Type * Type::get(const clang::Type* cppType)
     else if( cppType->isEnumeralType() )
     {
         result = makeEnum(cppType->getAs<clang::EnumType>());
+    }
+    else if( cppType->isInstantiationDependentType() )
+    {
+        throw SkipTemplate(cppType);
+    }
+    else if( cppType->isMemberPointerType() )
+    {
+        throw SkipMemberPointer(cppType->getAs<clang::MemberPointerType>());
     }
     else {
         std::cout << "type class: " << cppType->getTypeClass() << "\n";

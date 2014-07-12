@@ -67,6 +67,11 @@ namespace cpp
         // Pointer to D declaration!
     };
 
+    // Catching this type directly is probably programmer error -
+    // we didn't match all the types.
+    // Catching a "Skip" subclass means that we (temporarily)
+    // aren't translating that type, but should continue with the
+    // other parts of the translation.
     class NotWrappableException : public std::runtime_error
     {
         private:
@@ -81,6 +86,53 @@ namespace cpp
 
         const clang::Type * getType() const {
             return type;
+        }
+    };
+
+    class SkipUnwrappableDeclaration : public NotWrappableException
+    {
+        public:
+        SkipUnwrappableDeclaration(const clang::Type* t)
+            : NotWrappableException(t)
+        { }
+    };
+
+    class SkipRValueRef : public SkipUnwrappableDeclaration
+    {
+        public:
+        SkipRValueRef(const clang::RValueReferenceType* t)
+            : SkipUnwrappableDeclaration(t)
+        { }
+
+        virtual const char * what() const noexcept override
+        {
+            return "Skipping declaration due to rvalue reference.";
+        }
+    };
+
+    class SkipTemplate : public SkipUnwrappableDeclaration
+    {
+        public:
+        SkipTemplate(const clang::Type* t)
+            : SkipUnwrappableDeclaration(t)
+        { }
+
+        virtual const char * what() const noexcept override
+        {
+            return "Skipping declaration since it is dependent on a template.";
+        }
+    };
+
+    class SkipMemberPointer : public SkipUnwrappableDeclaration
+    {
+        public:
+        SkipMemberPointer(const clang::MemberPointerType* t)
+            : SkipUnwrappableDeclaration(t)
+        { }
+
+        virtual const char * what() const noexcept override
+        {
+            return "Skipping declaration due to a C++ member pointer.";
         }
     };
 }

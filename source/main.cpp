@@ -113,21 +113,9 @@ class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
             }
             functions.insert(Declaration);
         }
-        catch( cpp::NotWrappableException& e)
+        catch( cpp::SkipUnwrappableDeclaration& e)
         {
-            // We don't wrap rvalue refs, so if that's the type, then we just
-            // skip this declaration entirely
-            if( e.getType()->isRValueReferenceType() )
-            {
-                std::cout << "Skipping an rvalue ref\n";
-            }
-            else if( e.getType()->isInstantiationDependentType() )
-            {
-                std::cout << "Skipping a " << Declaration->getNameAsString() << " becuase it references a dependent type.\n";
-            }
-            else {
-                throw;
-            }
+            std::cout << "WARNING: " << e.what() << "\n";
         }
         return true;
     }
