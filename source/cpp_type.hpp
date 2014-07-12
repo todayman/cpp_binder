@@ -24,6 +24,9 @@ namespace cpp
             Union,
             Array,
             Function,
+            Typedef,
+            Vector, // MMX, SSE, etc
+            Enum,
         };
 
         private:

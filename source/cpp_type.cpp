@@ -133,6 +133,26 @@ static Type * makeReference(const clang::ReferenceType* cppType)
     return result;
 }
 
+static Type * makeTypedef(const clang::TypedefType* cppType)
+{
+    Type * result = new Type(cppType, Type::Typedef);
+
+    // TODO deal with QualType::getTypePtr being null
+    (void)Type::get(cppType->desugar().getTypePtr());
+
+    return result;
+}
+
+static Type * makeVector(const clang::VectorType* cppType)
+{
+    return new Type(cppType, Type::Vector);
+}
+
+static Type * makeEnum(const clang::EnumType* cppType)
+{
+    return new Type(cppType, Type::Enum);
+}
+
 Type * Type::get(const clang::Type* cppType)
 {
     decltype(type_map)::iterator iter = type_map.find(cppType);
@@ -162,6 +182,10 @@ Type * Type::get(const clang::Type* cppType)
         {
             result = makeUnion(cppType, recordType);
         }
+        else if( recordType->isEnumeralType() )
+        {
+            std::cout << "Found enum!\n";
+        }
     }
     else if( cppType->isArrayType() )
     {
@@ -178,6 +202,39 @@ Type * Type::get(const clang::Type* cppType)
             result = makeReference(cppType->getAs<clang::ReferenceType>());
         }
         // Don't translate rvalue refs
+    }
+    else if( cppType->getAs<clang::TypedefType>() )
+    {
+        const clang::TypedefType * type = cppType->getAs<clang::TypedefType>();
+        result = makeTypedef(type);
+    }
+    else if( cppType->isVectorType() )
+    {
+        result = makeVector(cppType->getAs<clang::VectorType>());
+    }
+    else if( cppType->isEnumeralType() )
+    {
+        result = makeEnum(cppType->getAs<clang::EnumType>());
+    }
+    else {
+        std::cout << "type class: " << cppType->getTypeClass() << "\n";
+        std::cout << "type class name: " << cppType->getTypeClassName() << "\n";
+#define PRINT(x) std::cout << #x << ": " << clang::Type::x << "\n"
+        std::cout << "attributed type: " << cppType->getAs<clang::AttributedType>() << "\n";
+        std::cout << "dependent: " << cppType->isDependentType() << "\n";
+        std::cout << "attributed: " << cppType->getAs<clang::AttributedType>() << "\n";
+        std::cout << "integer: " << cppType->isFundamentalType() << "\n";
+        std::cout << "atomic: " << cppType->isAtomicType() << "\n";
+        std::cout << "array: " << cppType->isArrayType() << "\n";
+        std::cout << "specifer: " << cppType->isSpecifierType() << "\n";
+        std::cout << "elaborated specifer: " << cppType->isElaboratedTypeSpecifier() << "\n";
+        std::cout << "constant size: " << cppType->isConstantSizeType() << "\n";
+        std::cout << "vector: " << cppType->isVectorType() << "\n";
+        std::cout << "ext vector: " << cppType->isExtVectorType() << "\n";
+        std::cout << "placeholder: " << cppType->isPlaceholderType() << "\n";
+        std::cout << "object: " << cppType->isObjectType() << "\n";
+        std::cout << "enumeral: " << cppType->isEnumeralType() << "\n";
+        cppType->dump();
     }
 
     if( result )
