@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "clang/AST/Type.h"
+#include "clang/AST/Decl.h"
 
 class DOutput;
 
@@ -17,6 +18,7 @@ namespace cpp
     {
         public:
         enum Kind {
+            Invalid,
             Builtin,
             Pointer,
             Reference,
@@ -36,16 +38,19 @@ namespace cpp
         // Pointer to D type!
 
         public:
+        explicit Type(const clang::Type* t)
+            : cpp_type(t), kind(Invalid)
+        { }
         explicit Type(const clang::Type* t, Kind k)
             : cpp_type(t), kind(k)
         { }
 
         protected:
-        static std::unordered_map<const clang::Type*, Type*> type_map;
         static Type * makeRecord(const clang::Type * type, const clang::RecordType* cppType);
         static Type * makeUnion(const clang::Type * type, const clang::RecordType* cppType);
 
         public:
+        static std::unordered_map<const clang::Type*, Type*> type_map;
         Type(const Type&) = delete;
         Type(Type&&) = delete;
         Type& operator=(const Type&) = delete;
@@ -57,6 +62,10 @@ namespace cpp
             return cpp_type;
         }
 
+        void setKind(Kind k) {
+            kind = k;
+        }
+
     };
 
     // Same thing as Type, but for declarations of functions,
@@ -65,6 +74,27 @@ namespace cpp
     {
         // Attributes!
         // Pointer to D declaration!
+        public:
+        virtual const clang::Decl* decl() = 0;
+        const std::string name() {
+            return _name;
+        }
+        protected:
+        std::string _name;
+    };
+
+    class TypedefDeclaration : public Declaration
+    {
+        private:
+        const clang::TypedefDecl* _decl;
+
+        public:
+        TypedefDeclaration(const clang::TypedefDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
     };
 
     // Catching this type directly is probably programmer error -

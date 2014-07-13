@@ -17,6 +17,10 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
+ASTVisitor::ASTVisitor()
+    : type_in_progress(nullptr)
+{ }
+
 bool ASTVisitor::TraverseDecl(clang::Decl * Declaration)
 {
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
@@ -79,6 +83,26 @@ bool ASTVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declarati
     return true;
 }
 
+void ASTVisitor::maybeInsertType(clang::QualType qType)
+{
+    // TODO could this really be NULL?
+    // under what circumstances is that the case, and do I have to
+    // worry about it?
+    const clang::Type * cppType = qType.getTypePtr();
+    decltype(Type::type_map)::iterator iter = Type::type_map.find(cppType);
+    if( iter != Type::type_map.end() ) {
+        return;
+    }
+
+    Type * old_type = type_in_progress;
+    type_in_progress = new Type(cppType, Type::Invalid);
+    Type::type_map.insert(std::make_pair(cppType, type_in_progress));
+
+    TraverseType(qType);
+
+    type_in_progress = old_type;
+}
+
 bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
 {
     clang::QualType return_type = Declaration->getResultType();
@@ -87,10 +111,7 @@ bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
     printPresumedLocation(Declaration);
     std::cout << "  with return type " << return_type.getAsString() << "\n";
     try {
-        // TODO could this really be NULL?
-        // under what circumstances is that the case, and do I have to
-        // worry about it?
-        cpp::Type::get(return_type.getTypePtrOrNull());
+        maybeInsertType(return_type);
 
         std::cout << "  argument types:\n";
         for( clang::ParmVarDecl** iter = Declaration->param_begin();
@@ -99,7 +120,7 @@ bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
         {
             clang::QualType arg_type = (*iter)->getType();
             std::cout << "\t" << arg_type.getAsString() << "\n";
-            cpp::Type::get(arg_type.getTypePtrOrNull());
+            maybeInsertType(arg_type);
         }
         functions.insert(Declaration);
     }
@@ -107,5 +128,28 @@ bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
     {
         std::cout << "WARNING: " << e.what() << "\n";
     }
+    return true;
+}
+
+bool ASTVisitor::VisitTypedefDecl(clang::TypedefDecl * decl)
+{
+    //assert(output_type == nullptr);
+    std::cout << "name = " << decl->getNameAsString() << "\n";
+    Super::VisitTypedefDecl(decl);
+
+
+    return true;
+}
+
+bool ASTVisitor::VisitBuiltinType(clang::BuiltinType *)
+{
+    if( type_in_progress )
+    {
+        type_in_progress->setKind(Type::Builtin);
+    }
+    else {
+        std::cerr << "Visiting builtin without building a type!\n";
+    }
+
     return true;
 }
