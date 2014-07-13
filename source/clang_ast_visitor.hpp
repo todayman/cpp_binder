@@ -12,11 +12,23 @@ extern const clang::SourceManager * source_manager;
 
 namespace cpp {
 
-    class ASTVisitor : public clang::RecursiveASTVisitor<ASTVisitor>
+    class TypeVisitor : public clang::RecursiveASTVisitor<TypeVisitor>
     {
         private:
+        // The TypeVisitor does not own this pointer
         Type * type_in_progress;
 
+        public:
+        typedef clang::RecursiveASTVisitor<TypeVisitor> Super;
+
+        // Pass in the Type object that this visitor should fill in.
+        TypeVisitor(Type * make_here);
+
+        bool VisitBuiltinType(clang::BuiltinType * type);
+    };
+
+    class ASTVisitor : public clang::RecursiveASTVisitor<ASTVisitor>
+    {
         public:
         typedef clang::RecursiveASTVisitor<ASTVisitor> Super;
 
@@ -34,7 +46,6 @@ namespace cpp {
         bool VisitFunctionDecl(clang::FunctionDecl * Declaration);
 
         bool VisitTypedefDecl(clang::TypedefDecl * decl);
-        bool VisitBuiltinType(clang::BuiltinType * type);
     };
 } // namespace cpp
 

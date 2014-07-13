@@ -17,8 +17,24 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
+TypeVisitor::TypeVisitor(Type * make_here)
+    : type_in_progress(make_here)
+{ }
+
+bool TypeVisitor::VisitBuiltinType(clang::BuiltinType *)
+{
+    if( type_in_progress )
+    {
+        type_in_progress->setKind(Type::Builtin);
+    }
+    else {
+        std::cerr << "Visiting builtin without building a type!\n";
+    }
+
+    return true;
+}
+
 ASTVisitor::ASTVisitor()
-    : type_in_progress(nullptr)
 { }
 
 bool ASTVisitor::TraverseDecl(clang::Decl * Declaration)
@@ -94,13 +110,11 @@ void ASTVisitor::maybeInsertType(clang::QualType qType)
         return;
     }
 
-    Type * old_type = type_in_progress;
-    type_in_progress = new Type(cppType, Type::Invalid);
-    Type::type_map.insert(std::make_pair(cppType, type_in_progress));
+    Type * new_type = new Type(cppType, Type::Invalid);
+    Type::type_map.insert(std::make_pair(cppType, new_type));
 
-    TraverseType(qType);
-
-    type_in_progress = old_type;
+    TypeVisitor type_visitor(new_type);
+    type_visitor.TraverseType(qType);
 }
 
 bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
@@ -141,15 +155,3 @@ bool ASTVisitor::VisitTypedefDecl(clang::TypedefDecl * decl)
     return true;
 }
 
-bool ASTVisitor::VisitBuiltinType(clang::BuiltinType *)
-{
-    if( type_in_progress )
-    {
-        type_in_progress->setKind(Type::Builtin);
-    }
-    else {
-        std::cerr << "Visiting builtin without building a type!\n";
-    }
-
-    return true;
-}
