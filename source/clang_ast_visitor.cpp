@@ -17,7 +17,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
-bool FunctionVisitor::TraverseDecl(clang::Decl * Declaration)
+bool ASTVisitor::TraverseDecl(clang::Decl * Declaration)
 {
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
         return true;
@@ -39,47 +39,47 @@ bool FunctionVisitor::TraverseDecl(clang::Decl * Declaration)
         std::cout << ". \n";
     }
     else {
-        RecursiveASTVisitor<FunctionVisitor>::TraverseDecl(Declaration);
+        RecursiveASTVisitor<ASTVisitor>::TraverseDecl(Declaration);
     }
 
     return true;
 }
 
-bool FunctionVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
+bool ASTVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
 {
     std::cout << "Skipping partially specialized template declaration " << declaration->getNameAsString() << ".\n";
     return true;
 }
 
-bool FunctionVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
+bool ASTVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
 {
     std::cout << "Skipping specialized template declaration " << declaration->getNameAsString() << ".\n";
     return true;
 }
 
-bool FunctionVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration)
+bool ASTVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration)
 {
     const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
     if( !hasTemplateParent(parent_decl) )
     {
-        RecursiveASTVisitor<FunctionVisitor>::TraverseCXXMethodDecl(Declaration);
+        RecursiveASTVisitor<ASTVisitor>::TraverseCXXMethodDecl(Declaration);
     }
 
     return true;
 }
 
-bool FunctionVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration)
+bool ASTVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration)
 {
     const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
     if( !hasTemplateParent(parent_decl) )
     {
-        RecursiveASTVisitor<FunctionVisitor>::TraverseCXXConstructorDecl(Declaration);
+        RecursiveASTVisitor<ASTVisitor>::TraverseCXXConstructorDecl(Declaration);
     }
 
     return true;
 }
 
-bool FunctionVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
+bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
 {
     clang::QualType return_type = Declaration->getResultType();
 

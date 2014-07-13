@@ -12,7 +12,7 @@ extern const clang::SourceManager * source_manager;
 
 namespace cpp {
 
-    class FunctionVisitor : public clang::RecursiveASTVisitor<FunctionVisitor>
+    class ASTVisitor : public clang::RecursiveASTVisitor<ASTVisitor>
     {
         public:
         std::set<clang::FunctionDecl*> functions;

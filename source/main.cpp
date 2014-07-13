@@ -46,7 +46,7 @@ int main(int argc, const char **argv)
     std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, args.header_files[0]));
     source_manager = &ast->getSourceManager();
 
-    cpp::FunctionVisitor funcVisitor;
+    cpp::ASTVisitor funcVisitor;
 
     funcVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 
