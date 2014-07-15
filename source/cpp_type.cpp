@@ -10,7 +10,7 @@
 #include "cpp_type.hpp"
 using namespace cpp;
 
-std::unordered_map<const clang::Type*, Type*> Type::type_map;
+std::unordered_map<const clang::Type*, std::shared_ptr<Type>> Type::type_map;
 
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
@@ -58,7 +58,6 @@ static Type * makePointer(const clang::PointerType* cppType)
     return result;
 }
 
-extern clang::SourceManager * source_manager;
 static void traverseClangRecord(const clang::RecordType * cppType)
 {
     const clang::RecordDecl * decl = cppType->getDecl();
@@ -86,7 +85,7 @@ Type * Type::makeRecord(const clang::Type* type, const clang::RecordType* cppTyp
     // FIXME inserting this twice,
     // but I need it here other wise I recurse infinitely when
     // structures contain a pointer to themselves
-    type_map.insert(std::make_pair(type, result));
+    type_map.insert(std::make_pair(type, std::shared_ptr<Type>(result)));
 
     traverseClangRecord(cppType);
 
@@ -96,7 +95,7 @@ Type * Type::makeRecord(const clang::Type* type, const clang::RecordType* cppTyp
 Type * Type::makeUnion(const clang::Type* type, const clang::RecordType* cppType)
 {
     Type * result = new Type(cppType, Type::Union);
-    type_map.insert(std::make_pair(type, result));
+    type_map.insert(std::make_pair(type, std::shared_ptr<Type>(result)));
 
     traverseClangRecord(cppType);
 
@@ -157,7 +156,7 @@ Type * Type::get(const clang::Type* cppType)
 {
     decltype(type_map)::iterator iter = type_map.find(cppType);
     if( iter != type_map.end() ) {
-        return iter->second;
+        return iter->second.get();
     }
 
     Type * result = nullptr;
@@ -245,7 +244,7 @@ Type * Type::get(const clang::Type* cppType)
     }
 
     if( result )
-        type_map.insert(std::make_pair(cppType, result));
+        type_map.insert(std::make_pair(cppType, std::shared_ptr<Type>(result)));
     else {
         throw NotWrappableException(cppType);
     }

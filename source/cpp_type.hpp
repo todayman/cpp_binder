@@ -1,6 +1,7 @@
 #ifndef __CPP_TYPE_HPP__
 #define __CPP_TYPE_HPP__
 
+#include <memory>
 #include <unordered_map>
 
 #include "clang/AST/Type.h"
@@ -38,9 +39,6 @@ namespace cpp
         // Pointer to D type!
 
         public:
-        explicit Type(const clang::Type* t)
-            : cpp_type(t), kind(Invalid)
-        { }
         explicit Type(const clang::Type* t, Kind k)
             : cpp_type(t), kind(k)
         { }
@@ -50,7 +48,7 @@ namespace cpp
         static Type * makeUnion(const clang::Type * type, const clang::RecordType* cppType);
 
         public:
-        static std::unordered_map<const clang::Type*, Type*> type_map;
+        static std::unordered_map<const clang::Type*, std::shared_ptr<Type>> type_map;
         Type(const Type&) = delete;
         Type(Type&&) = delete;
         Type& operator=(const Type&) = delete;
