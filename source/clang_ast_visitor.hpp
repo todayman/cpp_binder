@@ -20,8 +20,6 @@ namespace cpp {
 
         std::set<clang::FunctionDecl*> functions;
 
-        void maybeInsertType(clang::QualType qType);
-
         bool TraverseDecl(clang::Decl * Declaration);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
         bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);

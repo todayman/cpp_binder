@@ -51,6 +51,8 @@ namespace cpp
         Type& operator=(const Type&) = delete;
         Type& operator=(Type&&) = delete;
 
+        static std::shared_ptr<Type> get(clang::QualType qType);
+
         const clang::Type * cppType() const {
             return cpp_type;
         }
@@ -225,7 +227,5 @@ namespace cpp
         }
     };
 }
-
-bool hasTemplateParent(const clang::CXXRecordDecl * parent_record);
 
 #endif // __CPP_TYPE_HPP__

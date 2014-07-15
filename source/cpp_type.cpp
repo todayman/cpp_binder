@@ -15,28 +15,21 @@ std::unordered_map<const clang::Type*, std::shared_ptr<Type>> Type::type_map;
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 
-bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
+std::shared_ptr<Type> Type::get(clang::QualType qType)
 {
-    while(!parent_record->isTemplateDecl() && !parent_record->getDescribedClassTemplate())
-    {
-        const clang::DeclContext * parent_context = parent_record->getParent();
-        if( parent_context->isRecord() )
-        {
-            const clang::TagDecl * parent_decl = clang::TagDecl::castFromDeclContext(parent_context);
-            if( parent_decl->getKind() == clang::Decl::CXXRecord )
-            {
-                parent_record = static_cast<const clang::CXXRecordDecl*>(parent_decl);
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else {
-            return false;
-        }
+    // TODO could this really be NULL?
+    // under what circumstances is that the case, and do I have to
+    // worry about it?
+    const clang::Type * cppType = qType.getTypePtr();
+    decltype(type_map)::iterator iter = type_map.find(cppType);
+    if( iter != Type::type_map.end() ) {
+        return iter->second;
     }
-    return true;
+
+    TypeVisitor type_visitor;
+    type_visitor.TraverseType(qType);
+
+    return type_map.find(cppType)->second;
 }
 
 TypeVisitor::TypeVisitor()

@@ -17,6 +17,30 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
+bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
+{
+    while(!parent_record->isTemplateDecl() && !parent_record->getDescribedClassTemplate())
+    {
+        const clang::DeclContext * parent_context = parent_record->getParent();
+        if( parent_context->isRecord() )
+        {
+            const clang::TagDecl * parent_decl = clang::TagDecl::castFromDeclContext(parent_context);
+            if( parent_decl->getKind() == clang::Decl::CXXRecord )
+            {
+                parent_record = static_cast<const clang::CXXRecordDecl*>(parent_decl);
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+    return true;
+}
+
 ASTVisitor::ASTVisitor()
 { }
 
@@ -82,21 +106,6 @@ bool ASTVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declarati
     return true;
 }
 
-void ASTVisitor::maybeInsertType(clang::QualType qType)
-{
-    // TODO could this really be NULL?
-    // under what circumstances is that the case, and do I have to
-    // worry about it?
-    const clang::Type * cppType = qType.getTypePtr();
-    decltype(Type::type_map)::iterator iter = Type::type_map.find(cppType);
-    if( iter != Type::type_map.end() ) {
-        return;
-    }
-
-    TypeVisitor type_visitor;
-    type_visitor.TraverseType(qType);
-}
-
 bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
 {
     clang::QualType return_type = Declaration->getResultType();
@@ -105,7 +114,7 @@ bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
     printPresumedLocation(Declaration);
     std::cout << "  with return type " << return_type.getAsString() << "\n";
     try {
-        maybeInsertType(return_type);
+        Type::get(return_type);
 
         std::cout << "  argument types:\n";
         for( clang::ParmVarDecl** iter = Declaration->param_begin();
@@ -114,7 +123,7 @@ bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
         {
             clang::QualType arg_type = (*iter)->getType();
             std::cout << "\t" << arg_type.getAsString() << "\n";
-            maybeInsertType(arg_type);
+            Type::get(arg_type);
         }
         functions.insert(Declaration);
     }
