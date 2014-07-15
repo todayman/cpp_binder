@@ -39,215 +39,167 @@ bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
     return true;
 }
 
-// Types in clang/AST/BuiltinTypes.def
-static Type * makeBuiltin(const clang::BuiltinType* cppType)
+TypeVisitor::TypeVisitor()
+    : clang::RecursiveASTVisitor<TypeVisitor>(),
+    type_to_traverse(nullptr), type_in_progress(nullptr)
+{ }
+
+bool TypeVisitor::TraverseType(clang::QualType type)
 {
-    return new Type(cppType, Type::Builtin);
+    type_to_traverse = type.getTypePtrOrNull();
+    if( !type_to_traverse )
+        return false;
+    if( Type::type_map.find(type_to_traverse) != Type::type_map.end() )
+        return true;
+
+    return Super::TraverseType(type);
 }
 
-static Type * makePointer(const clang::PointerType* cppType)
+void TypeVisitor::allocateType(const clang::Type * t, Type::Kind k)
 {
-    Type * result = new Type(cppType, Type::Pointer);
-
-    // The result of getPointeeType might be NULL, but I can't
-    // deal with that anyway.
-    // We don't actually care about the result; we just want to
-    // make sure that it exists somewhere, so ignore the result.
-    (void)Type::get(cppType->getPointeeType().getTypePtr());
-
-    return result;
+    type_in_progress = std::make_shared<Type>(t, k);
+    Type::type_map.insert(std::make_pair(t, type_in_progress));
 }
 
-static void traverseClangRecord(const clang::RecordType * cppType)
+#define WALK_UP_METHOD(KIND) \
+bool TypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
+{ \
+    allocateType(type, Type::KIND); \
+    return Super::WalkUpFrom##KIND##Type(type); \
+}
+WALK_UP_METHOD(Builtin);
+WALK_UP_METHOD(Pointer);
+bool TypeVisitor::WalkUpFromLValueReferenceType( clang::LValueReferenceType* type)
 {
+    allocateType(type, Type::Reference);
+    return Super::WalkUpFromLValueReferenceType(type);
+}
+
+bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
+{
+    if( type->isStructureType() || type->isClassType() )
+    {
+        allocateType(type, Type::Record);
+    }
+    else if( type->isUnionType() )
+    {
+        allocateType(type, Type::Union);
+    }
+    return Super::WalkUpFromRecordType(type);
+}
+WALK_UP_METHOD(Array);
+WALK_UP_METHOD(Function);
+WALK_UP_METHOD(Typedef);
+WALK_UP_METHOD(Vector);
+WALK_UP_METHOD(Enum);
+
+bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* cppType)
+{
+    throw SkipRValueRef(cppType);
+}
+
+bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* cppType)
+{
+    throw SkipMemberPointer(cppType);
+}
+
+bool TypeVisitor::WalkUpFromType(clang::Type* type)
+{
+    if( !type_in_progress )
+        throw NotWrappableException(type);
+
+    if( type->isInstantiationDependentType() )
+        throw SkipTemplate(type);
+
+    return Super::WalkUpFromType(type);
+}
+
+bool TypeVisitor::VisitPointerType(clang::PointerType* cppType)
+{
+    TypeVisitor pointeeVisitor;
+    return pointeeVisitor.TraverseType(cppType->getPointeeType());
+}
+
+bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
+{
+    bool continue_traversal = true;
     const clang::RecordDecl * decl = cppType->getDecl();
-
     // Recurse down all of the fields of the record
     if( !decl->field_empty() )
     {
         clang::RecordDecl::field_iterator end = decl->field_end();
+        TypeVisitor field_visitor;
         for( clang::RecordDecl::field_iterator iter = decl->field_begin();
-                iter != end; ++iter )
+                iter != end && continue_traversal; ++iter )
         {
-            // Apparently QualType::getTypePtr can be null,
-            // but I don't know how to deal with it.
-            const clang::Type * field_type = iter->getType().getTypePtr();
-            (void)Type::get(field_type);
+            field_visitor.reset();
+            continue_traversal = field_visitor.TraverseType(iter->getType());
         }
     }
+
+    return continue_traversal;
 }
 
-// Need to pass the Type * here because it's actually different
-// than the RecordType *
-Type * Type::makeRecord(const clang::Type* type, const clang::RecordType* cppType)
+bool TypeVisitor::VisitArrayType(clang::ArrayType* cppType)
 {
-    Type * result = new Type(cppType, Type::Record);
-    // FIXME inserting this twice,
-    // but I need it here other wise I recurse infinitely when
-    // structures contain a pointer to themselves
-    type_map.insert(std::make_pair(type, std::shared_ptr<Type>(result)));
-
-    traverseClangRecord(cppType);
-
-    return result;
+    TypeVisitor element_visitor;
+    return element_visitor.TraverseType(cppType->getElementType());
 }
 
-Type * Type::makeUnion(const clang::Type* type, const clang::RecordType* cppType)
+bool TypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
 {
-    Type * result = new Type(cppType, Type::Union);
-    type_map.insert(std::make_pair(type, std::shared_ptr<Type>(result)));
+    bool continue_traversal = true;
+    TypeVisitor arg_visitor; // Also visits return type
+    continue_traversal = arg_visitor.TraverseType(cppType->getResultType());
 
-    traverseClangRecord(cppType);
-
-    return result;
-}
-
-static Type * makeArray(const clang::ArrayType* cppType)
-{
-    Type * result = new Type(cppType, Type::Array);
-
-    // TODO deal with QualType::getTypePtr being null
-    (void)Type::get(cppType->getElementType().getTypePtr());
-    return result;
-}
-
-static Type * makeFunction(const clang::FunctionType* cppType)
-{
-    Type * result = new Type(cppType, Type::Function);
-
-    // TODO deal with QualType::getTypePtr being null
-    (void)Type::get(cppType->getResultType().getTypePtr());
     // TODO get all the arguments
 
-    return result;
+    return continue_traversal;
 }
 
-static Type * makeReference(const clang::ReferenceType* cppType)
+bool TypeVisitor::VisitLValueReferenceType(clang::LValueReferenceType* cppType)
 {
-    Type * result = new Type(cppType, Type::Reference);
-
-    // TODO deal with QualType::getTypePtr being null
-    (void)Type::get(cppType->getPointeeType().getTypePtr());
-
-    return result;
+    TypeVisitor target_visitor;
+    return target_visitor.TraverseType(cppType->getPointeeType());
 }
 
-static Type * makeTypedef(const clang::TypedefType* cppType)
+bool TypeVisitor::VisitTypedefType(clang::TypedefType* cppType)
 {
-    Type * result = new Type(cppType, Type::Typedef);
-
-    // TODO deal with QualType::getTypePtr being null
-    (void)Type::get(cppType->desugar().getTypePtr());
-
-    return result;
+    TypeVisitor real_visitor;
+    return real_visitor.TraverseType(cppType->desugar());
 }
 
-static Type * makeVector(const clang::VectorType* cppType)
+bool TypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
-    return new Type(cppType, Type::Vector);
+    return TraverseType(type->getNamedType());
 }
 
-static Type * makeEnum(const clang::EnumType* cppType)
+bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
 {
-    return new Type(cppType, Type::Enum);
+    return TraverseType(type->getDecayedType());
 }
 
-Type * Type::get(const clang::Type* cppType)
+bool TypeVisitor::WalkUpFromParenType(clang::ParenType* type)
 {
-    decltype(type_map)::iterator iter = type_map.find(cppType);
-    if( iter != type_map.end() ) {
-        return iter->second.get();
-    }
+    return TraverseType(type->getInnerType());
+}
 
-    Type * result = nullptr;
-    // Builtin type ignores typdefs and qualifiers
-    if( cppType->isBuiltinType() )
-    {
-        result = makeBuiltin(cppType->getAs<clang::BuiltinType>());
-    }
-    else if( cppType->isPointerType() )
-    {
-        result = makePointer(cppType->getAs<clang::PointerType>());
-    }
-    else if( cppType->isRecordType() )
-    {
-        // these are structs, classes, AND unions and enums?
-        const clang::RecordType * recordType = cppType->getAs<clang::RecordType>();
-        if( recordType->isStructureType() || recordType->isClassType() )
-        {
-            result = makeRecord(cppType, recordType);
-        }
-        else if( recordType->isUnionType() )
-        {
-            result = makeUnion(cppType, recordType);
-        }
-    }
-    else if( cppType->isArrayType() )
-    {
-        result = makeArray(cppType->getAsArrayTypeUnsafe());
-    }
-    else if( cppType->isFunctionType() )
-    {
-        result = makeFunction(cppType->getAs<clang::FunctionType>());
-    }
-    else if( cppType->isReferenceType() )
-    {
-        if( cppType->isLValueReferenceType() )
-        {
-            result = makeReference(cppType->getAs<clang::ReferenceType>());
-        }
-        else if( cppType->isRValueReferenceType() )
-        {
-            throw SkipRValueRef(cppType->getAs<clang::RValueReferenceType>());
-        }
-    }
-    else if( cppType->getAs<clang::TypedefType>() )
-    {
-        const clang::TypedefType * type = cppType->getAs<clang::TypedefType>();
-        result = makeTypedef(type);
-    }
-    else if( cppType->isVectorType() )
-    {
-        result = makeVector(cppType->getAs<clang::VectorType>());
-    }
-    else if( cppType->isEnumeralType() )
-    {
-        result = makeEnum(cppType->getAs<clang::EnumType>());
-    }
-    else if( cppType->isInstantiationDependentType() )
-    {
-        throw SkipTemplate(cppType);
-    }
-    else if( cppType->isMemberPointerType() )
-    {
-        throw SkipMemberPointer(cppType->getAs<clang::MemberPointerType>());
-    }
-    else {
-        std::cout << "type class: " << cppType->getTypeClass() << "\n";
-        std::cout << "type class name: " << cppType->getTypeClassName() << "\n";
-#define PRINT(x) std::cout << #x << ": " << clang::Type::x << "\n"
-        std::cout << "attributed type: " << cppType->getAs<clang::AttributedType>() << "\n";
-        std::cout << "dependent: " << cppType->isDependentType() << "\n";
-        std::cout << "attributed: " << cppType->getAs<clang::AttributedType>() << "\n";
-        std::cout << "integer: " << cppType->isFundamentalType() << "\n";
-        std::cout << "atomic: " << cppType->isAtomicType() << "\n";
-        std::cout << "array: " << cppType->isArrayType() << "\n";
-        std::cout << "specifer: " << cppType->isSpecifierType() << "\n";
-        std::cout << "elaborated specifer: " << cppType->isElaboratedTypeSpecifier() << "\n";
-        std::cout << "constant size: " << cppType->isConstantSizeType() << "\n";
-        std::cout << "vector: " << cppType->isVectorType() << "\n";
-        std::cout << "ext vector: " << cppType->isExtVectorType() << "\n";
-        std::cout << "placeholder: " << cppType->isPlaceholderType() << "\n";
-        std::cout << "object: " << cppType->isObjectType() << "\n";
-        std::cout << "enumeral: " << cppType->isEnumeralType() << "\n";
-        cppType->dump();
-    }
+bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
+{
+    return TraverseType(type->getUnderlyingType());
+}
 
-    if( result )
-        type_map.insert(std::make_pair(cppType, std::shared_ptr<Type>(result)));
-    else {
-        throw NotWrappableException(cppType);
-    }
+bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
+{
+    throw SkipTemplate(type);
+}
 
-    return result;
+bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
+{
+    throw SkipTemplate(type);
+}
+
+bool TypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
+{
+    throw SkipTemplate(type);
 }
