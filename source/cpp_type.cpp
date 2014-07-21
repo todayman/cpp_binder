@@ -29,6 +29,7 @@ std::shared_ptr<Type> Type::get(clang::QualType qType)
     TypeVisitor type_visitor;
     type_visitor.TraverseType(qType);
 
+    assert( type_map.find(cppType) != type_map.end() );
     return type_map.find(cppType)->second;
 }
 
