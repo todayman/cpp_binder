@@ -131,35 +131,6 @@ namespace cpp
         bool VisitTypedefType(clang::TypedefType* cppType);
     };
 
-    // Same thing as Type, but for declarations of functions,
-    // classes, etc.
-    class Declaration
-    {
-        // Attributes!
-        // Pointer to D declaration!
-        public:
-        virtual const clang::Decl* decl() = 0;
-        const std::string name() {
-            return _name;
-        }
-        protected:
-        std::string _name;
-    };
-
-    class TypedefDeclaration : public Declaration
-    {
-        private:
-        const clang::TypedefDecl* _decl;
-
-        public:
-        TypedefDeclaration(const clang::TypedefDecl* d)
-            : _decl(d)
-        { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
-    };
-
     // Catching this type directly is probably programmer error -
     // we didn't match all the types.
     // Catching a "Skip" subclass means that we (temporarily)
