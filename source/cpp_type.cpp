@@ -96,6 +96,16 @@ bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* cppType)
     throw SkipMemberPointer(cppType);
 }
 
+bool TypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* cppType)
+{
+    throw SkipTemplate(cppType);
+}
+
+bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* cppType)
+{
+    throw SkipTemplate(cppType);
+}
+
 bool TypeVisitor::WalkUpFromType(clang::Type* type)
 {
     if( !type_in_progress )
@@ -164,22 +174,38 @@ bool TypeVisitor::VisitTypedefType(clang::TypedefType* cppType)
 
 bool TypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
-    return TraverseType(type->getNamedType());
+    bool result = TraverseType(type->getNamedType());
+    // TODO nullptr
+    std::shared_ptr<Type> t = Type::type_map.find(type->getNamedType().getTypePtr())->second;
+    Type::type_map.insert(std::make_pair(type, t));
+    return result;
 }
 
 bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
 {
-    return TraverseType(type->getDecayedType());
+    bool result = TraverseType(type->getDecayedType());
+    // TODO nullptr
+    std::shared_ptr<Type> t = Type::type_map.find(type->getDecayedType().getTypePtr())->second;
+    Type::type_map.insert(std::make_pair(type, t));
+    return result;
 }
 
 bool TypeVisitor::WalkUpFromParenType(clang::ParenType* type)
 {
-    return TraverseType(type->getInnerType());
+    bool result = TraverseType(type->getInnerType());
+    // TODO nullptr
+    std::shared_ptr<Type> t = Type::type_map.find(type->getInnerType().getTypePtr())->second;
+    Type::type_map.insert(std::make_pair(type, t));
+    return result;
 }
 
 bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 {
-    return TraverseType(type->getUnderlyingType());
+    bool result = TraverseType(type->getUnderlyingType());
+    // TODO nullptr
+    std::shared_ptr<Type> t = Type::type_map.find(type->getUnderlyingType().getTypePtr())->second;
+    Type::type_map.insert(std::make_pair(type, t));
+    return result;
 }
 
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)

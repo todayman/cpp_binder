@@ -115,6 +115,8 @@ namespace cpp
         // These are here for throwing non-fatal errors
         bool WalkUpFromRValueReferenceType(clang::RValueReferenceType*);
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
+        bool WalkUpFromDependentNameType(clang::DependentNameType* type);
+        bool WalkUpFromPackExpansionType(clang::PackExpansionType* cppType);
 
         // By the time this method is called, we should know what kind
         // of type it is.  If we don't, then we don't wrap that type.
