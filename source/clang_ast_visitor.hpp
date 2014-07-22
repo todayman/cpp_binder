@@ -17,7 +17,7 @@ namespace cpp {
     // TODO invalid decl class used to fill in things that are unwrappable,
     // so we know to properly deal with that later (i.e. leaving vtable entries,
     // exposing all of one class except for a non-virtual method, or something)
-    class ASTVisitor : public clang::RecursiveASTVisitor<ASTVisitor>
+    class DeclVisitor : public clang::RecursiveASTVisitor<DeclVisitor>
     {
         private:
         template<class SourceType, class TargetType>
@@ -34,9 +34,9 @@ namespace cpp {
 
         bool TraverseDeclContext(clang::DeclContext * cpp_context);
         public:
-        typedef clang::RecursiveASTVisitor<ASTVisitor> Super;
+        typedef clang::RecursiveASTVisitor<DeclVisitor> Super;
 
-        ASTVisitor();
+        DeclVisitor();
 
         bool TraverseType(clang::QualType type)
         {

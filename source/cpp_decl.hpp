@@ -24,7 +24,7 @@ namespace cpp
             _name = name;
         }
 
-        friend class ASTVisitor;
+        friend class DeclVisitor;
     };
 
 #define DECLARATION_CLASS_2(C, D) \

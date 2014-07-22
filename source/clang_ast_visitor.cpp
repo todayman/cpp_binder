@@ -5,9 +5,12 @@
 #include "clang/Basic/SourceManager.h"
 
 #include "cpp_type.hpp"
+#include "cpp_decl.hpp"
 #include "clang_ast_visitor.hpp"
 
 using namespace cpp;
+
+std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> DeclVisitor::declarations;
 
 void printPresumedLocation(const clang::NamedDecl* Declaration)
 {
@@ -41,15 +44,41 @@ bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
     return true;
 }
 
-ASTVisitor::ASTVisitor()
+DeclVisitor::DeclVisitor()
+    : Super(), decl_in_progress(nullptr)
 { }
 
-bool ASTVisitor::TraverseDecl(clang::Decl * Declaration)
+bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl)
+{
+    bool result = true;
+    if( declarations.find(cppDecl) == declarations.end() )
+    {
+        DeclVisitor next_visitor;
+        result = next_visitor.TraverseDecl(cppDecl);
+    }
+
+    return result;
+}
+
+bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context)
+{
+    bool result = true;
+    clang::DeclContext::decl_iterator end = context->decls_end();
+    for( clang::DeclContext::decl_iterator iter = context->decls_begin();
+         iter != end && result;
+         ++iter )
+    {
+        result = registerDeclaration(*iter);
+    }
+    return result;
+}
+
+bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 {
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
         return true;
     if( Declaration->isTemplateDecl() ) {
-       std::cout << "Skipping templated declaration";
+       //std::cout << "Skipping templated declaration";
         switch (Declaration->getKind()) {
             case clang::Decl::Function:
             case clang::Decl::Record:
@@ -58,89 +87,205 @@ bool ASTVisitor::TraverseDecl(clang::Decl * Declaration)
             case clang::Decl::ClassTemplate:
             case clang::Decl::FunctionTemplate:
                 // These ones have names, so we can print them out
-                std::cout << " " << static_cast<clang::NamedDecl*>(Declaration)->getNameAsString();
+                //std::cout << " " << static_cast<clang::NamedDecl*>(Declaration)->getNameAsString();
                 break;
             default:
                 break;
         }
-        std::cout << ". \n";
+        //std::cout << ".\n";
     }
     else {
-        RecursiveASTVisitor<ASTVisitor>::TraverseDecl(Declaration);
-    }
-
-    return true;
-}
-
-bool ASTVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
-{
-    std::cout << "Skipping partially specialized template declaration " << declaration->getNameAsString() << ".\n";
-    return true;
-}
-
-bool ASTVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
-{
-    std::cout << "Skipping specialized template declaration " << declaration->getNameAsString() << ".\n";
-    return true;
-}
-
-bool ASTVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration)
-{
-    const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
-    if( !hasTemplateParent(parent_decl) )
-    {
-        RecursiveASTVisitor<ASTVisitor>::TraverseCXXMethodDecl(Declaration);
-    }
-
-    return true;
-}
-
-bool ASTVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration)
-{
-    const clang::CXXRecordDecl * parent_decl = Declaration->getParent();
-    if( !hasTemplateParent(parent_decl) )
-    {
-        RecursiveASTVisitor<ASTVisitor>::TraverseCXXConstructorDecl(Declaration);
-    }
-
-    return true;
-}
-
-bool ASTVisitor::VisitFunctionDecl(clang::FunctionDecl * Declaration)
-{
-    clang::QualType return_type = Declaration->getResultType();
-
-    std::cout << "Found function ";
-    printPresumedLocation(Declaration);
-    std::cout << "  with return type " << return_type.getAsString() << "\n";
-    try {
-        Type::get(return_type);
-
-        std::cout << "  argument types:\n";
-        for( clang::ParmVarDecl** iter = Declaration->param_begin();
-             iter != Declaration->param_end();
-             iter++ )
-        {
-            clang::QualType arg_type = (*iter)->getType();
-            std::cout << "\t" << arg_type.getAsString() << "\n";
-            Type::get(arg_type);
+        try {
+            RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
         }
-        functions.insert(Declaration);
+        catch( cpp::SkipUnwrappableDeclaration& e)
+        {
+            //std::cout << "WARNING: " << e.what() << "\n";
+        }
     }
-    catch( cpp::SkipUnwrappableDeclaration& e)
-    {
-        std::cout << "WARNING: " << e.what() << "\n";
-    }
+
     return true;
 }
 
-bool ASTVisitor::VisitTypedefDecl(clang::TypedefDecl * decl)
+bool DeclVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
 {
-    //assert(output_type == nullptr);
-    std::cout << "name = " << decl->getNameAsString() << "\n";
-    Super::VisitTypedefDecl(decl);
+    //std::cout << "Skipping partially specialized template declaration " << declaration->getNameAsString() << ".\n";
+    // TODO throw non-fatal exception
+    return true;
+}
 
+/*bool DeclVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
+{
+    //std::cout << "Skipping specialized template declaration " << declaration->getNameAsString() << ".\n";
+    // TODO throw non-fatal exception
+    return true;
+}*/
+
+bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
+{
+    const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
+    if( hasTemplateParent(parent_decl) )
+    {
+        return true;
+    }
+
+    if( !WalkUpFromCXXMethodDecl(cppDecl) ) return false;
+
+    // Notice that we don't traverse the body of the function
+    clang::QualType return_type = cppDecl->getResultType();
+    Type::get(return_type);
+
+    for( clang::ParmVarDecl** iter = cppDecl->param_begin();
+         iter != cppDecl->param_end();
+         iter++ )
+    {
+        registerDeclaration(*iter);
+    }
+
+    allocateDeclaration<clang::CXXMethodDecl, MethodDeclaration>(cppDecl);
 
     return true;
 }
 
+bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
+{
+    const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
+    if( !hasTemplateParent(parent_decl) )
+    {
+        RecursiveASTVisitor<DeclVisitor>::TraverseCXXConstructorDecl(cppDecl);
+    }
+
+    return true;
+}
+
+bool DeclVisitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl)
+{
+    const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
+    if( !hasTemplateParent(parent_decl) )
+    {
+        RecursiveASTVisitor<DeclVisitor>::TraverseCXXDestructorDecl(cppDecl);
+    }
+
+    return true;
+}
+
+bool DeclVisitor::WalkUpFromDecl(clang::Decl* cppDecl)
+{
+    if( !decl_in_progress )
+        throw 5;
+    return Super::WalkUpFromDecl(cppDecl);
+}
+
+bool DeclVisitor::TraverseFunctionDecl(clang::FunctionDecl * cppDecl)
+{
+    if( !WalkUpFromFunctionDecl(cppDecl) ) return false;
+    // Notice that we don't traverse the body of the function
+    // Traverse the argument declarations
+    for( clang::ParmVarDecl** iter = cppDecl->param_begin();
+         iter != cppDecl->param_end();
+         iter++ )
+    {
+        registerDeclaration(*iter);
+    }
+
+    return true;
+}
+
+bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl)
+{
+    return TraverseDeclContext(cppDecl);
+}
+
+bool DeclVisitor::TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl)
+{
+    return TraverseDeclContext(cppDecl);
+}
+
+bool DeclVisitor::TraverseEnumDecl(clang::EnumDecl* cppDecl)
+{
+    bool result = true;
+    result = WalkUpFromEnumDecl(cppDecl);
+    for( clang::EnumDecl::enumerator_iterator iter = cppDecl->enumerator_begin();
+         result && iter != cppDecl->enumerator_end();
+         ++iter)
+    {
+        result = registerDeclaration(*iter);
+    }
+    return result;
+}
+
+bool DeclVisitor::TraverseVarDecl(clang::VarDecl* cppDecl)
+{
+    return WalkUpFromVarDecl(cppDecl);
+}
+
+bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
+{
+    // This could be a method or a regular function
+    if( !decl_in_progress )
+        allocateDeclaration<clang::FunctionDecl, FunctionDeclaration>(cppDecl);
+    return Super::WalkUpFromFunctionDecl(cppDecl);
+}
+
+bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
+{
+    // This could be a method or a regular function
+    if( !decl_in_progress )
+        allocateDeclaration<clang::VarDecl, VariableDeclaration>(cppDecl);
+    return Super::WalkUpFromVarDecl(cppDecl);
+}
+
+#define WALK_UP(C, D)\
+bool DeclVisitor::WalkUpFrom##C##Decl(clang::C##Decl* cppDecl) \
+{ \
+    allocateDeclaration<clang::C##Decl, D##Declaration>(cppDecl); \
+    return Super::WalkUpFrom##C##Decl(cppDecl); \
+}
+WALK_UP(Typedef, Typedef)
+WALK_UP(Namespace, Namespace)
+WALK_UP(CXXMethod, Method)
+WALK_UP(CXXConstructor, Constructor)
+WALK_UP(CXXDestructor, Destructor)
+WALK_UP(ParmVar, Argument)
+WALK_UP(Enum, Enum)
+WALK_UP(EnumConstant, EnumConstant)
+
+bool DeclVisitor::VisitParmVarDecl(clang::ParmVarDecl* cppDecl)
+{
+    return TraverseType(cppDecl->getType());
+}
+
+bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
+{
+    if( cppDecl->isUnion() )
+    {
+        decl_in_progress = std::make_shared<UnionDeclaration>(cppDecl);
+    }
+    else if( cppDecl->isStruct() || cppDecl->isClass() )
+    {
+        decl_in_progress = std::make_shared<RecordDeclaration>(cppDecl);
+    }
+    else {
+        throw 6;
+    }
+
+    return Super::WalkUpFromRecordDecl(cppDecl);
+}
+
+bool DeclVisitor::VisitFunctionDecl(clang::FunctionDecl* cppDecl)
+{
+    return TraverseType(cppDecl->getResultType());
+}
+
+bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)
+{
+    // TODO This can be null, but I'm not dealing with it
+    clang::QualType undertype = cppDecl->getUnderlyingType();
+    return TraverseType(undertype);
+}
+
+bool DeclVisitor::VisitNamedDecl(clang::NamedDecl* cppDecl)
+{
+    decl_in_progress->setName(cppDecl->getNameAsString());
+    return true;
+}
