@@ -123,9 +123,6 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     if( !WalkUpFromCXXMethodDecl(cppDecl) ) return false;
 
     // Notice that we don't traverse the body of the function
-    clang::QualType return_type = cppDecl->getResultType();
-    Type::get(return_type);
-
     bool result = true;
     for( clang::ParmVarDecl** iter = cppDecl->param_begin();
          result && iter != cppDecl->param_end();
@@ -133,8 +130,6 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     {
         result = registerDeclaration(*iter);
     }
-
-    if( result ) allocateDeclaration<clang::CXXMethodDecl, MethodDeclaration>(cppDecl);
 
     return result;
 }
