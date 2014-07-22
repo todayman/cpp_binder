@@ -13,7 +13,7 @@
 #include "cli.hpp"
 #include "DOutput.hpp"
 #include "cpp_type.hpp"
-#include "clang_ast_visitor.hpp"
+#include "cpp_decl.hpp"
 
 const clang::SourceManager * source_manager = nullptr;
 

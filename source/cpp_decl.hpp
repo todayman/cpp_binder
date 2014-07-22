@@ -4,6 +4,7 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 
+#include "cpp_type.hpp"
 #include "cpp_exception.hpp"
 
 namespace cpp
@@ -121,6 +122,32 @@ DECLARATION_CLASS_2(Var, Variable);
         bool VisitTypedefDecl(clang::TypedefDecl * decl);
         bool VisitParmVarDecl(clang::ParmVarDecl* cppDecl);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
+    };
+
+    class SkipUnwrappableDeclaration : public NotWrappableException
+    {
+        public:
+        SkipUnwrappableDeclaration(clang::Decl*)
+        { }
+    };
+
+    class SkipDeclarationBecauseType : public SkipUnwrappableDeclaration
+    {
+        // I'm not actually sure what the rules are here about
+        // the lifetime of the cause, but I'm going to try this
+        // until I find out it's completely broken. FIXME?
+        private:
+        const SkipUnwrappableType& cause;
+
+        public:
+        SkipDeclarationBecauseType(clang::Decl * cppDecl, SkipUnwrappableType& c)
+            : SkipUnwrappableDeclaration(cppDecl), cause(c)
+        { }
+
+        const SkipUnwrappableType& getCause() const
+        {
+            return cause;
+        }
     };
 
 } // namespace cpp

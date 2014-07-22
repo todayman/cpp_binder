@@ -6,7 +6,6 @@
 
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
-#include "clang_ast_visitor.hpp"
 
 using namespace cpp;
 
@@ -100,7 +99,7 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
         }
         catch( cpp::SkipUnwrappableType& e)
         {
-            //std::cout << "WARNING: " << e.what() << "\n";
+            throw SkipDeclarationBecauseType(Declaration, e);
         }
     }
 
@@ -109,17 +108,9 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 
 bool DeclVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
 {
-    //std::cout << "Skipping partially specialized template declaration " << declaration->getNameAsString() << ".\n";
-    // TODO throw non-fatal exception
+    throw SkipUnwrappableDeclaration(declaration);
     return true;
 }
-
-/*bool DeclVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
-{
-    //std::cout << "Skipping specialized template declaration " << declaration->getNameAsString() << ".\n";
-    // TODO throw non-fatal exception
-    return true;
-}*/
 
 bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
 {
@@ -172,7 +163,7 @@ bool DeclVisitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl)
 bool DeclVisitor::WalkUpFromDecl(clang::Decl* cppDecl)
 {
     if( !decl_in_progress )
-        throw 5;
+        throw SkipUnwrappableDeclaration(cppDecl);
     return Super::WalkUpFromDecl(cppDecl);
 }
 
@@ -229,7 +220,7 @@ bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 
 bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
 {
-    // This could be a method or a regular function
+    // This could be an instance variable or a global
     if( !decl_in_progress )
         allocateDeclaration<clang::VarDecl, VariableDeclaration>(cppDecl);
     return Super::WalkUpFromVarDecl(cppDecl);
@@ -266,7 +257,7 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
         decl_in_progress = std::make_shared<RecordDeclaration>(cppDecl);
     }
     else {
-        throw 6;
+        throw SkipUnwrappableDeclaration(cppDecl);
     }
 
     return Super::WalkUpFromRecordDecl(cppDecl);
