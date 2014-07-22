@@ -98,7 +98,7 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
         try {
             RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
         }
-        catch( cpp::SkipUnwrappableDeclaration& e)
+        catch( cpp::SkipUnwrappableType& e)
         {
             //std::cout << "WARNING: " << e.what() << "\n";
         }

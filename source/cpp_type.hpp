@@ -153,19 +153,19 @@ namespace cpp
         }
     };
 
-    class SkipUnwrappableDeclaration : public NotWrappableException
+    class SkipUnwrappableType : public NotWrappableException
     {
         public:
-        SkipUnwrappableDeclaration(const clang::Type* t)
+        SkipUnwrappableType(const clang::Type* t)
             : NotWrappableException(t)
         { }
     };
 
-    class SkipRValueRef : public SkipUnwrappableDeclaration
+    class SkipRValueRef : public SkipUnwrappableType
     {
         public:
         SkipRValueRef(const clang::RValueReferenceType* t)
-            : SkipUnwrappableDeclaration(t)
+            : SkipUnwrappableType(t)
         { }
 
         virtual const char * what() const noexcept override
@@ -174,11 +174,11 @@ namespace cpp
         }
     };
 
-    class SkipTemplate : public SkipUnwrappableDeclaration
+    class SkipTemplate : public SkipUnwrappableType
     {
         public:
         SkipTemplate(const clang::Type* t)
-            : SkipUnwrappableDeclaration(t)
+            : SkipUnwrappableType(t)
         { }
 
         virtual const char * what() const noexcept override
@@ -187,11 +187,11 @@ namespace cpp
         }
     };
 
-    class SkipMemberPointer : public SkipUnwrappableDeclaration
+    class SkipMemberPointer : public SkipUnwrappableType
     {
         public:
         SkipMemberPointer(const clang::MemberPointerType* t)
-            : SkipUnwrappableDeclaration(t)
+            : SkipUnwrappableType(t)
         { }
 
         virtual const char * what() const noexcept override
