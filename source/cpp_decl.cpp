@@ -126,16 +126,17 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     clang::QualType return_type = cppDecl->getResultType();
     Type::get(return_type);
 
+    bool result = true;
     for( clang::ParmVarDecl** iter = cppDecl->param_begin();
-         iter != cppDecl->param_end();
+         result && iter != cppDecl->param_end();
          iter++ )
     {
-        registerDeclaration(*iter);
+        result = registerDeclaration(*iter);
     }
 
-    allocateDeclaration<clang::CXXMethodDecl, MethodDeclaration>(cppDecl);
+    if( result ) allocateDeclaration<clang::CXXMethodDecl, MethodDeclaration>(cppDecl);
 
-    return true;
+    return result;
 }
 
 bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
