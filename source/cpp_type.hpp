@@ -8,6 +8,8 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 
+#include "cpp_exception.hpp"
+
 class DOutput;
 
 namespace cpp
@@ -133,17 +135,6 @@ namespace cpp
 
     // Catching this type directly is probably programmer error -
     // we didn't match all the types.
-    // Catching a "Skip" subclass means that we (temporarily)
-    // aren't translating that type, but should continue with the
-    // other parts of the translation.
-    class NotWrappableException : public std::runtime_error
-    {
-        public:
-        NotWrappableException()
-            : std::runtime_error("No way to wrap this thing!")
-        { }
-    };
-
     class FatalTypeNotWrappable : public NotWrappableException
     {
         private:
@@ -159,6 +150,9 @@ namespace cpp
         }
     };
 
+    // Catching a "Skip" subclass means that we (temporarily)
+    // aren't translating that type, but should continue with the
+    // other parts of the translation.
     class SkipUnwrappableType : public NotWrappableException
     {
         private:
