@@ -138,14 +138,20 @@ namespace cpp
     // other parts of the translation.
     class NotWrappableException : public std::runtime_error
     {
+        public:
+        NotWrappableException()
+            : std::runtime_error("No way to wrap this thing!")
+        { }
+    };
+
+    class FatalTypeNotWrappable : public NotWrappableException
+    {
         private:
         const clang::Type * type;
 
-        // TODO figure out how to print types as strings,
-        // so I can make sensible messages
         public:
-        NotWrappableException(const clang::Type * t)
-            : std::runtime_error("No way to wrap type."), type(t)
+        FatalTypeNotWrappable(const clang::Type* t)
+            : NotWrappableException(), type(t)
         { }
 
         const clang::Type * getType() const {
@@ -155,10 +161,19 @@ namespace cpp
 
     class SkipUnwrappableType : public NotWrappableException
     {
+        private:
+        const clang::Type * type;
+
+        // TODO figure out how to print types as strings,
+        // so I can make sensible messages
         public:
         SkipUnwrappableType(const clang::Type* t)
-            : NotWrappableException(t)
+            : NotWrappableException(), type(t)
         { }
+
+        const clang::Type * getType() const {
+            return type;
+        }
     };
 
     class SkipRValueRef : public SkipUnwrappableType
@@ -170,7 +185,7 @@ namespace cpp
 
         virtual const char * what() const noexcept override
         {
-            return "Skipping declaration due to rvalue reference.";
+            return "Skipping type due to rvalue reference.";
         }
     };
 
@@ -183,7 +198,7 @@ namespace cpp
 
         virtual const char * what() const noexcept override
         {
-            return "Skipping declaration since it is dependent on a template.";
+            return "Skipping type since it is dependent on a template.";
         }
     };
 
@@ -196,7 +211,7 @@ namespace cpp
 
         virtual const char * what() const noexcept override
         {
-            return "Skipping declaration due to a C++ member pointer.";
+            return "Skipping type due to a C++ member pointer.";
         }
     };
 }

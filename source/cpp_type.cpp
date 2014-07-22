@@ -111,7 +111,7 @@ bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* cppType)
 bool TypeVisitor::WalkUpFromType(clang::Type* type)
 {
     if( !type_in_progress )
-        throw NotWrappableException(type);
+        throw FatalTypeNotWrappable(type);
 
     if( type->isInstantiationDependentType() )
         throw SkipTemplate(type);
