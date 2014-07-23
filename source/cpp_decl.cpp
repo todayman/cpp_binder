@@ -99,7 +99,13 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
         }
         catch( cpp::SkipUnwrappableType& e)
         {
-            throw SkipDeclarationBecauseType(Declaration, e);
+            if( decl_in_progress )
+            {
+                decl_in_progress->markUnwrappable();
+            }
+            else {
+                allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
+            }
         }
     }
 
@@ -108,7 +114,7 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 
 bool DeclVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
 {
-    throw SkipUnwrappableDeclaration(declaration);
+    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(declaration);
     return true;
 }
 
@@ -117,21 +123,35 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
     if( hasTemplateParent(parent_decl) )
     {
+        decl_in_progress->markUnwrappable();
         return true;
     }
 
-    if( !WalkUpFromCXXMethodDecl(cppDecl) ) return false;
-
-    // Notice that we don't traverse the body of the function
     bool result = true;
-    for( clang::ParmVarDecl** iter = cppDecl->param_begin();
-         result && iter != cppDecl->param_end();
-         iter++ )
-    {
-        result = registerDeclaration(*iter);
-    }
+    try {
+        if( !WalkUpFromCXXMethodDecl(cppDecl) )
+        {
+            decl_in_progress->markUnwrappable();
+            return false;
+        }
 
-    return result;
+        // Notice that we don't traverse the body of the function
+        for( clang::ParmVarDecl** iter = cppDecl->param_begin();
+             result && iter != cppDecl->param_end();
+             iter++ )
+        {
+            result = registerDeclaration(*iter);
+        }
+
+        return result;
+    }
+    catch( SkipUnwrappableDeclaration& e )
+    {
+        // If we can't wrap the return type or any of the arguments,
+        // then we cannot wrap the method declaration
+        decl_in_progress->markUnwrappable();
+        return result;
+    }
 }
 
 bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
@@ -206,6 +226,19 @@ bool DeclVisitor::TraverseVarDecl(clang::VarDecl* cppDecl)
     return WalkUpFromVarDecl(cppDecl);
 }
 
+// TODO wrap these as public imports / aliases?
+bool DeclVisitor::TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl)
+{
+    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
+    return true;
+}
+
+bool DeclVisitor::TraverseEmptyDecl(clang::EmptyDecl* cppDecl)
+{
+    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
+    return true;
+}
+
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {
     // This could be a method or a regular function
@@ -253,6 +286,7 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
         decl_in_progress = std::make_shared<RecordDeclaration>(cppDecl);
     }
     else {
+        // There's no logic to deal with these; we shouldn't reach here.
         throw SkipUnwrappableDeclaration(cppDecl);
     }
 
@@ -266,7 +300,6 @@ bool DeclVisitor::VisitFunctionDecl(clang::FunctionDecl* cppDecl)
 
 bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)
 {
-    // TODO This can be null, but I'm not dealing with it
     clang::QualType undertype = cppDecl->getUnderlyingType();
     return TraverseType(undertype);
 }

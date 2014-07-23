@@ -13,6 +13,9 @@ namespace cpp
     // classes, etc.
     class Declaration
     {
+        // We still want to know about things we can't wrap,
+        // like templates, but they'll get skipped later on
+        bool is_wrappable;
         // Attributes!
         // Pointer to D declaration!
         public:
@@ -28,6 +31,19 @@ namespace cpp
         }
 
         friend class DeclVisitor;
+
+        void markUnwrappable() {
+            is_wrappable = false;
+        }
+
+        public:
+        explicit Declaration()
+            : is_wrappable(true)
+        { }
+
+        bool isWrappable() const noexcept {
+            return is_wrappable;
+        }
     };
 
 #define DECLARATION_CLASS_2(C, D) \
@@ -59,6 +75,21 @@ DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
 DECLARATION_CLASS_2(ParmVar, Argument);
 DECLARATION_CLASS_2(Var, Variable);
+    class UnwrappableDeclaration : public Declaration \
+    {
+        private:
+        const clang::Decl* _decl;
+
+        public:
+        UnwrappableDeclaration(const clang::Decl* d)
+            : _decl(d)
+        {
+            markUnwrappable();
+        }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+    };
 
     // TODO invalid decl class used to fill in things that are unwrappable,
     // so we know to properly deal with that later (i.e. leaving vtable entries,
@@ -102,6 +133,9 @@ DECLARATION_CLASS_2(Var, Variable);
         //bool TraverseEnumConstantDecl(clang::EnumConstantDecl* cppDecl);
         // TODO handle constexpr
         bool TraverseVarDecl(clang::VarDecl* cppDecl);
+        bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl);
+        // FIXME I have no idea what this is.
+        bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
 
         bool WalkUpFromDecl(clang::Decl* cppDecl);
         bool WalkUpFromTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
@@ -129,25 +163,6 @@ DECLARATION_CLASS_2(Var, Variable);
         public:
         SkipUnwrappableDeclaration(clang::Decl*)
         { }
-    };
-
-    class SkipDeclarationBecauseType : public SkipUnwrappableDeclaration
-    {
-        // I'm not actually sure what the rules are here about
-        // the lifetime of the cause, but I'm going to try this
-        // until I find out it's completely broken. FIXME?
-        private:
-        const SkipUnwrappableType& cause;
-
-        public:
-        SkipDeclarationBecauseType(clang::Decl * cppDecl, SkipUnwrappableType& c)
-            : SkipUnwrappableDeclaration(cppDecl), cause(c)
-        { }
-
-        const SkipUnwrappableType& getCause() const
-        {
-            return cause;
-        }
     };
 
 } // namespace cpp
