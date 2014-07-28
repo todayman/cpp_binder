@@ -1,5 +1,3 @@
-#include <fstream>
-#include <iostream>
 #include <memory>
 
 #include "clang/AST/ASTConsumer.h"
@@ -14,21 +12,9 @@
 #include "DOutput.hpp"
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
+#include "configuration.hpp"
 
 const clang::SourceManager * source_manager = nullptr;
-
-std::string readFile(const std::string& filename)
-{
-    std::ifstream input(filename.c_str());
-    size_t length;
-    input.seekg(0, std::ios::end);
-    length = input.tellg();
-    input.seekg(0, std::ios::beg);
-    std::string result;
-    result.resize(length);
-    input.read(&result[0], length);
-    return result;
-}
 
 int main(int argc, const char **argv)
 {
@@ -50,9 +36,19 @@ int main(int argc, const char **argv)
 
     declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 
+    try {
+        parseAndApplyConfiguration(args.config_files, ast->getASTContext());
+    }
+    catch(ConfigurationException& exc)
+    {
+        std::cerr << "ERROR: " << exc.what() << "\n";
+        return EXIT_FAILURE;
+    }
     // TODO force translation of all types
 
     //DOutput output;
 
     //funcVisitor.outputTranslatedFunctionDeclarations(output);
+    
+    return EXIT_SUCCESS;
 }
