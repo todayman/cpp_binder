@@ -103,6 +103,7 @@ The list of attributes is:
 on declarations:
 
  - `name`: the fully qualified name of the declared thing.
+            This is inherited from the key of the dictionary containing this dictionary.
  - `bound`: whether this declaration should generate a D binding.
             This is true by default, but could be set to false so as to only
             expose part of the C++ content to D.
@@ -121,7 +122,7 @@ on types:
     The value is a dictionary with at least a `name` field.  Acceptable `name`s are `struct`, `class`, `interface`, and `replace`.
     For `replace`, there must be another key, `d_type`, specifying the type to use in D.
     More details on these strategies are in the next section.
-    Hopefully these can be left out and automagically determinied someday.
+    Hopefully these can be left out and automagically determined someday.
 
 Some of these attributes, namely `target_module`, may be applied to all declarations by including an entry without a `name` attribute.
 
