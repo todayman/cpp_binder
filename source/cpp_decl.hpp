@@ -7,6 +7,26 @@
 #include "cpp_type.hpp"
 #include "cpp_exception.hpp"
 
+enum Visibility
+{
+    UNSET = 0,
+    PRIVATE,
+    PACKAGE,
+    PROTECTED,
+    PUBLIC,
+    EXPORT,
+};
+
+enum Strategy
+{
+    UNKNOWN = 0,
+    REPLACE,
+    STRUCT,
+    INTERFACE,
+    CLASS,
+    OPAQUE_CLASS,
+};
+
 namespace cpp
 {
     // Same thing as Type, but for declarations of functions,
@@ -18,6 +38,13 @@ namespace cpp
         bool is_wrappable;
         // Attributes!
         // Pointer to D declaration!
+        std::string target_name;
+        bool should_bind;
+        std::string target_module;
+        Visibility visibility;
+        std::string remove_prefix;
+        Strategy strategy;
+
         public:
         virtual const clang::Decl* decl() = 0;
         const std::string name() {
@@ -43,6 +70,63 @@ namespace cpp
 
         bool isWrappable() const noexcept {
             return is_wrappable;
+        }
+
+        void setNameAttribute(std::string name)
+        {
+            target_name = name;
+        }
+
+        void shouldBind(bool decision)
+        {
+            should_bind = decision;
+        }
+
+        void setTargetModule(std::string target)
+        {
+            target_module = target;
+        }
+
+        void setVisibility(Visibility vis)
+        {
+            visibility = vis;
+        }
+
+        void removePrefix(std::string prefix)
+        {
+            remove_prefix = prefix;
+        }
+
+        void chooseReplaceStrategy(std::string replacement)
+        {
+            strategy = REPLACE;
+            target_name = replacement;
+        }
+
+        struct DontSetUnknown : public std::runtime_error
+        {
+            DontSetUnknown()
+                : std::runtime_error("Cannot set the strategy to unknown.")
+            { }
+        };
+
+        struct UseReplaceMethod : public std::runtime_error
+        {
+            UseReplaceMethod()
+                : std::runtime_error("Don't use setStrategy(REPLACE), use setReplaceStrategy(name)")
+            { }
+        };
+
+        void setStrategy(Strategy s)
+        {
+            if( s == UNKNOWN )
+            {
+                throw DontSetUnknown();
+            }
+            if( s == REPLACE ) {
+                throw UseReplaceMethod();
+            }
+            strategy = s;
         }
     };
 
