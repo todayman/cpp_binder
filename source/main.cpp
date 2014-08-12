@@ -32,7 +32,7 @@ int main(int argc, const char **argv)
     std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, args.header_files[0]));
     source_manager = &ast->getSourceManager();
 
-    cpp::DeclVisitor declVisitor;
+    cpp::DeclVisitor declVisitor(&ast->getASTContext().getPrintingPolicy());
 
     declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 
@@ -49,6 +49,6 @@ int main(int argc, const char **argv)
     //DOutput output;
 
     //funcVisitor.outputTranslatedFunctionDeclarations(output);
-    
+
     return EXIT_SUCCESS;
 }

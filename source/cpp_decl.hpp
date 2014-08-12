@@ -17,16 +17,6 @@ enum Visibility
     EXPORT,
 };
 
-enum Strategy
-{
-    UNKNOWN = 0,
-    REPLACE,
-    STRUCT,
-    INTERFACE,
-    CLASS,
-    OPAQUE_CLASS,
-};
-
 namespace cpp
 {
     // Same thing as Type, but for declarations of functions,
@@ -38,12 +28,10 @@ namespace cpp
         bool is_wrappable;
         // Attributes!
         // Pointer to D declaration!
-        std::string target_name;
         bool should_bind;
         std::string target_module;
         Visibility visibility;
         std::string remove_prefix;
-        Strategy strategy;
 
         public:
         virtual const clang::Decl* decl() = 0;
@@ -72,11 +60,6 @@ namespace cpp
             return is_wrappable;
         }
 
-        void setNameAttribute(std::string name)
-        {
-            target_name = name;
-        }
-
         void shouldBind(bool decision)
         {
             should_bind = decision;
@@ -97,39 +80,35 @@ namespace cpp
             remove_prefix = prefix;
         }
 
-        void chooseReplaceStrategy(std::string replacement)
-        {
-            strategy = REPLACE;
-            target_name = replacement;
-        }
-
-        struct DontSetUnknown : public std::runtime_error
-        {
-            DontSetUnknown()
-                : std::runtime_error("Cannot set the strategy to unknown.")
-            { }
-        };
-
-        struct UseReplaceMethod : public std::runtime_error
-        {
-            UseReplaceMethod()
-                : std::runtime_error("Don't use setStrategy(REPLACE), use setReplaceStrategy(name)")
-            { }
-        };
-
-        void setStrategy(Strategy s)
-        {
-            if( s == UNKNOWN )
-            {
-                throw DontSetUnknown();
-            }
-            if( s == REPLACE ) {
-                throw UseReplaceMethod();
-            }
-            strategy = s;
-        }
+        virtual std::shared_ptr<Type> getType() = 0;
     };
 
+    struct NotTypeDecl : public std::runtime_error
+    {
+        NotTypeDecl()
+            : std::runtime_error("Operation is only valid on Type declarations.")
+        { }
+    };
+
+#define DECLARATION_CLASS_TYPE(C, D) \
+    class D##Declaration : public Declaration \
+    { \
+        private: \
+        const clang::C##Decl* _decl; \
+\
+        public: \
+        D##Declaration(const clang::C##Decl* d) \
+            : _decl(d) \
+        { } \
+        virtual const clang::Decl* decl() override { \
+            return _decl; \
+        } \
+\
+        virtual std::shared_ptr<Type> getType() override \
+        { \
+            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0)); \
+        }\
+    }
 #define DECLARATION_CLASS_2(C, D) \
     class D##Declaration : public Declaration \
     { \
@@ -143,17 +122,22 @@ namespace cpp
         virtual const clang::Decl* decl() override { \
             return _decl; \
         } \
+\
+        virtual std::shared_ptr<Type> getType() override \
+        { \
+            throw NotTypeDecl(); \
+        } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
 DECLARATION_CLASS(Function);
 DECLARATION_CLASS(Namespace);
-DECLARATION_CLASS(Record);
-DECLARATION_CLASS(Typedef);
+DECLARATION_CLASS_TYPE(Record, Record);
+DECLARATION_CLASS_TYPE(Typedef, Typedef);
 DECLARATION_CLASS(Enum);
 DECLARATION_CLASS(Field);
 DECLARATION_CLASS(EnumConstant); // TODO change this to a generic constant class
 
-DECLARATION_CLASS_2(Record, Union);
+DECLARATION_CLASS_TYPE(Record, Union);
 DECLARATION_CLASS_2(CXXMethod, Method);
 DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
@@ -172,6 +156,11 @@ DECLARATION_CLASS_2(Var, Variable);
         }
         virtual const clang::Decl* decl() override {
             return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() override
+        {
+            throw NotTypeDecl();
         }
     };
 
@@ -192,16 +181,17 @@ DECLARATION_CLASS_2(Var, Variable);
         static std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> declarations;
 
         std::shared_ptr<Declaration> decl_in_progress;
+        const clang::PrintingPolicy* print_policy;
 
         bool TraverseDeclContext(clang::DeclContext * cpp_context);
         public:
         typedef clang::RecursiveASTVisitor<DeclVisitor> Super;
 
-        DeclVisitor();
+        explicit DeclVisitor(const clang::PrintingPolicy* pp);
 
         bool TraverseType(clang::QualType type)
         {
-            Type::get(type);
+            Type::get(type, print_policy);
             return true;
         }
 

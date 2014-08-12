@@ -43,8 +43,8 @@ bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
     return true;
 }
 
-DeclVisitor::DeclVisitor()
-    : Super(), decl_in_progress(nullptr)
+DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
+    : Super(), decl_in_progress(nullptr), print_policy(pp)
 { }
 
 bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl)
@@ -52,7 +52,7 @@ bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl)
     bool result = true;
     if( declarations.find(cppDecl) == declarations.end() )
     {
-        DeclVisitor next_visitor;
+        DeclVisitor next_visitor(print_policy);
         result = next_visitor.TraverseDecl(cppDecl);
     }
 

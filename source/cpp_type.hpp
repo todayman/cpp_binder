@@ -10,7 +10,15 @@
 
 #include "cpp_exception.hpp"
 
-class DOutput;
+enum Strategy
+{
+    UNKNOWN = 0,
+    REPLACE,
+    STRUCT,
+    INTERFACE,
+    CLASS,
+    OPAQUE_CLASS,
+};
 
 namespace cpp
 {
@@ -40,8 +48,11 @@ namespace cpp
         Kind kind;
         // Attributes! from config files or inferred
         // Pointer to D type!
+        Strategy strategy;
+        std::string target_name;
 
         static std::unordered_map<const clang::Type*, std::shared_ptr<Type>> type_map;
+        static std::unordered_map<std::string, std::shared_ptr<Type>> type_by_name;
 
         public:
         explicit Type(const clang::Type* t, Kind k)
@@ -53,7 +64,8 @@ namespace cpp
         Type& operator=(const Type&) = delete;
         Type& operator=(Type&&) = delete;
 
-        static std::shared_ptr<Type> get(clang::QualType qType);
+        static std::shared_ptr<Type> get(clang::QualType qType, const clang::PrintingPolicy* pp = nullptr);
+        static std::shared_ptr<Type> getByName(const std::string& name);
 
         const clang::Type * cppType() const {
             return cpp_type;
@@ -64,6 +76,38 @@ namespace cpp
         }
 
         friend class TypeVisitor;
+
+        void chooseReplaceStrategy(std::string replacement)
+        {
+            strategy = REPLACE;
+            target_name = replacement;
+        }
+
+        struct DontSetUnknown : public std::runtime_error
+        {
+            DontSetUnknown()
+                : std::runtime_error("Cannot set the strategy to unknown.")
+            { }
+        };
+
+        struct UseReplaceMethod : public std::runtime_error
+        {
+            UseReplaceMethod()
+                : std::runtime_error("Don't use setStrategy(REPLACE), use setReplaceStrategy(name)")
+            { }
+        };
+
+        void setStrategy(Strategy s)
+        {
+            if( s == UNKNOWN )
+            {
+                throw DontSetUnknown();
+            }
+            if( s == REPLACE ) {
+                throw UseReplaceMethod();
+            }
+            strategy = s;
+        }
     };
 
     class TypeVisitor : public clang::RecursiveASTVisitor<TypeVisitor>
@@ -72,13 +116,14 @@ namespace cpp
         // The TypeVisitor does not own this pointer
         const clang::Type * type_to_traverse;
         std::shared_ptr<Type> type_in_progress;
+        const clang::PrintingPolicy* printPolicy; // Used for generating names of the type
 
         void allocateType(const clang::Type * t, Type::Kind k);
         public:
         typedef clang::RecursiveASTVisitor<TypeVisitor> Super;
 
         // Pass in the Type object that this visitor should fill in.
-        TypeVisitor();
+        explicit TypeVisitor(const clang::PrintingPolicy* s);
 
         std::shared_ptr<Type> getType() {
             return type_in_progress;
@@ -125,6 +170,7 @@ namespace cpp
         // So throw an error.
         bool WalkUpFromType(clang::Type * type);
 
+        bool VisitBuiltinType(clang::BuiltinType* cppType);
         bool VisitPointerType(clang::PointerType* cppType);
         bool VisitRecordType(clang::RecordType* cppType);
         bool VisitArrayType(clang::ArrayType * cppType);

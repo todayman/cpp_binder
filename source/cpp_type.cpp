@@ -11,11 +11,12 @@
 using namespace cpp;
 
 std::unordered_map<const clang::Type*, std::shared_ptr<Type>> Type::type_map;
+std::unordered_map<std::string, std::shared_ptr<Type>> Type::type_by_name;
 
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 
-std::shared_ptr<Type> Type::get(clang::QualType qType)
+std::shared_ptr<Type> Type::get(clang::QualType qType, const clang::PrintingPolicy* printPolicy)
 {
     // TODO could this really be NULL?
     // under what circumstances is that the case, and do I have to
@@ -26,7 +27,7 @@ std::shared_ptr<Type> Type::get(clang::QualType qType)
         return iter->second;
     }
 
-    TypeVisitor type_visitor;
+    TypeVisitor type_visitor(printPolicy);
     type_visitor.TraverseType(qType);
 
     if( type_map.find(cppType) == type_map.end() )
@@ -34,9 +35,21 @@ std::shared_ptr<Type> Type::get(clang::QualType qType)
     return type_map.find(cppType)->second;
 }
 
-TypeVisitor::TypeVisitor()
+std::shared_ptr<Type> Type::getByName(const std::string& name)
+{
+    decltype(type_by_name)::iterator iter = type_by_name.find(name);
+    if( iter != Type::type_by_name.end() ) {
+        return iter->second;
+    }
+    else {
+        return std::shared_ptr<Type>();
+    }
+}
+
+TypeVisitor::TypeVisitor(const clang::PrintingPolicy* pp)
     : clang::RecursiveASTVisitor<TypeVisitor>(),
-    type_to_traverse(nullptr), type_in_progress(nullptr)
+    type_to_traverse(nullptr), type_in_progress(nullptr),
+    printPolicy(pp)
 { }
 
 bool TypeVisitor::TraverseType(clang::QualType type)
@@ -119,9 +132,17 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
     return Super::WalkUpFromType(type);
 }
 
+bool TypeVisitor::VisitBuiltinType(clang::BuiltinType* cppType)
+{
+    assert(printPolicy != nullptr);
+    std::string name = cppType->getName(*printPolicy);
+    Type::type_by_name.insert(std::make_pair(name, type_in_progress));
+    return true;
+}
+
 bool TypeVisitor::VisitPointerType(clang::PointerType* cppType)
 {
-    TypeVisitor pointeeVisitor;
+    TypeVisitor pointeeVisitor(printPolicy);
     return pointeeVisitor.TraverseType(cppType->getPointeeType());
 }
 
@@ -133,7 +154,7 @@ bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
     if( !decl->field_empty() )
     {
         clang::RecordDecl::field_iterator end = decl->field_end();
-        TypeVisitor field_visitor;
+        TypeVisitor field_visitor(printPolicy);
         for( clang::RecordDecl::field_iterator iter = decl->field_begin();
                 iter != end && continue_traversal; ++iter )
         {
@@ -147,14 +168,14 @@ bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
 
 bool TypeVisitor::VisitArrayType(clang::ArrayType* cppType)
 {
-    TypeVisitor element_visitor;
+    TypeVisitor element_visitor(printPolicy);
     return element_visitor.TraverseType(cppType->getElementType());
 }
 
 bool TypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
 {
     bool continue_traversal = true;
-    TypeVisitor arg_visitor; // Also visits return type
+    TypeVisitor arg_visitor(printPolicy); // Also visits return type
     continue_traversal = arg_visitor.TraverseType(cppType->getResultType());
 
     // TODO get all the arguments
@@ -164,13 +185,13 @@ bool TypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
 
 bool TypeVisitor::VisitLValueReferenceType(clang::LValueReferenceType* cppType)
 {
-    TypeVisitor target_visitor;
+    TypeVisitor target_visitor(printPolicy);
     return target_visitor.TraverseType(cppType->getPointeeType());
 }
 
 bool TypeVisitor::VisitTypedefType(clang::TypedefType* cppType)
 {
-    TypeVisitor real_visitor;
+    TypeVisitor real_visitor(printPolicy);
     return real_visitor.TraverseType(cppType->desugar());
 }
 
