@@ -107,7 +107,6 @@ static void readStrategyConfiguration(const yajl_val_s& container, std::shared_p
 
 static void applyConfigFromFile(const std::string& filename, clang::ASTContext& ast)
 {
-    std::cout << "applying from file\n";
     std::string config_contents = readFile(filename);
     constexpr size_t BUFFER_SIZE = 512;
     char error_buffer[BUFFER_SIZE];
@@ -130,7 +129,6 @@ static void applyConfigFromFile(const std::string& filename, clang::ASTContext& 
 
 static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast)
 {
-    std::cout << "applying to object map\n";
     for( size_t idx = 0; idx < obj.u.object.len; ++idx )
     {
         std::string name = obj.u.object.keys[idx];
@@ -155,11 +153,9 @@ static cpp::Declaration* getDecl(clang::Decl*)
 
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast)
 {
-    std::cout << "applying to object\n";
     assert(YAJL_IS_OBJECT(&obj));
     // Find the thing to add attributes
     clang::IdentifierInfo& id_info = ast.Idents.get(name);
-    std::cout << "id token kind: " << id_info.getTokenID() << "\n";
     clang::DeclarationName decl_name = ast.DeclarationNames.getIdentifier(&id_info);
     clang::DeclContextLookupResult lookup_result = ast.getTranslationUnitDecl()->lookup(decl_name);
 
@@ -264,16 +260,11 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         }
     }
     else {
-        std::cout << "Found no matching declarations.  Searching for a type\n";
-        //clang::ASTContext::GetBuiltinTypeError err;
-        //bool requires_int_const;
-        //clang::QualType qt = clang::ASTContext::DecodeTypeFromStr(name.c_str(), ast, err, requires_int_const, true);
         std::shared_ptr<cpp::Type> type = cpp::Type::getByName(name);
         if( !type )
         {
             throw 10;
         }
-        std::cout << "Found type " << name << "\n";
 
         for( size_t idx = 0; idx < obj.u.object.len; ++idx )
         {
@@ -299,7 +290,6 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
 
 static void readStrategyConfiguration(const yajl_val_s& container, std::shared_ptr<cpp::Type> type)
 {
-    std::cout << "parsing strategy\n";
     for( size_t idx = 0; idx < container.u.object.len; ++idx )
     {
         if( std::string("name") == container.u.object.keys[idx] )
