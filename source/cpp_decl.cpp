@@ -279,11 +279,11 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
 {
     if( cppDecl->isUnion() )
     {
-        decl_in_progress = std::make_shared<UnionDeclaration>(cppDecl);
+        allocateDeclaration<clang::RecordDecl, UnionDeclaration>(cppDecl);
     }
     else if( cppDecl->isStruct() || cppDecl->isClass() )
     {
-        decl_in_progress = std::make_shared<RecordDeclaration>(cppDecl);
+        allocateDeclaration<clang::RecordDecl, RecordDeclaration>(cppDecl);
     }
     else {
         // There's no logic to deal with these; we shouldn't reach here.
