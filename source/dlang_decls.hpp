@@ -74,46 +74,14 @@ namespace dlang
         // These return weak pointers because every package is owned by its
         // parent, and the root package owns all the top level packages.
         // Not entirely sure that's the right choice, though.
-        template<typename ConstIterator>
-        std::weak_ptr<Package> packageForName(ConstIterator start, ConstIterator finish)
+        template<typename Result, typename ConstIterator>
+        std::weak_ptr<Result> findForName(ConstIterator start, ConstIterator finish)
         {
             ConstIterator end_of_first_element;
             auto search_result = findChild(start, finish, end_of_first_element);
             if( search_result == children.end() )
             {
-                return std::weak_ptr<dlang::Package>();
-            }
-
-            std::shared_ptr<Package> subpackage = std::dynamic_pointer_cast<Package>(search_result->second);
-            if( end_of_first_element != finish )
-            {
-                if( subpackage )
-                {
-                    return subpackage->packageForName(end_of_first_element + 1, finish);
-                }
-                else
-                {
-                    return std::weak_ptr<Package>();
-                }
-            }
-            else
-            {
-                return std::weak_ptr<Package>(subpackage);
-            }
-        }
-        std::weak_ptr<Package> packageForName(const std::string& path)
-        {
-            return packageForName(begin(path), end(path));
-        }
-
-        template<typename ConstIterator>
-        std::weak_ptr<Module> moduleForName(ConstIterator start, ConstIterator finish)
-        {
-            ConstIterator end_of_first_element;
-            auto search_result = findChild(start, finish, end_of_first_element);
-            if( search_result == children.end() )
-            {
-                return std::weak_ptr<dlang::Module>();
+                return std::weak_ptr<Result>();
             }
 
             if( end_of_first_element != finish )
@@ -123,20 +91,26 @@ namespace dlang
                 std::shared_ptr<Package> subpackage = std::dynamic_pointer_cast<Package>(search_result->second);
                 if( subpackage )
                 {
-                    return subpackage->moduleForName(end_of_first_element + 1, finish);
+                    return subpackage->findForName<Result>(end_of_first_element + 1, finish);
                 }
-                else // otherwise return null
+                else
                 {
-                    return std::weak_ptr<Module>();
+                    return std::weak_ptr<Result>();
                 }
             }
-            else {
-                return std::weak_ptr<Module>(std::dynamic_pointer_cast<Module>(search_result->second));
+            else
+            {
+                return std::weak_ptr<Result>(std::dynamic_pointer_cast<Result>(search_result->second));
             }
         }
+        std::weak_ptr<Package> packageForName(const std::string& path)
+        {
+            return findForName<Package>(begin(path), end(path));
+        }
+
         std::weak_ptr<Module> moduleForName(const std::string& path)
         {
-            return moduleForName(begin(path), end(path));
+            return findForName<Module>(begin(path), end(path));
         }
     };
 
