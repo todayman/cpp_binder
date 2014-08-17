@@ -36,6 +36,8 @@ int main(int argc, const char **argv)
 
     declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 
+    cpp::DeclVisitor::enableDeclarationsInFiles(args.header_files);
+
     try {
         parseAndApplyConfiguration(args.config_files, ast->getASTContext());
     }

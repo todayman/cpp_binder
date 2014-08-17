@@ -53,7 +53,8 @@ namespace cpp
 
         public:
         explicit Declaration()
-            : is_wrappable(true)
+            : is_wrappable(true), should_bind(false), target_module(""),
+              visibility(UNSET), remove_prefix("")
         { }
 
         bool isWrappable() const noexcept {
@@ -230,6 +231,8 @@ DECLARATION_CLASS_2(Var, Variable);
         bool VisitTypedefDecl(clang::TypedefDecl * decl);
         bool VisitParmVarDecl(clang::ParmVarDecl* cppDecl);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
+
+        static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
     };
 
     class SkipUnwrappableDeclaration : public NotWrappableException

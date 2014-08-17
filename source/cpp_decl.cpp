@@ -309,3 +309,52 @@ bool DeclVisitor::VisitNamedDecl(clang::NamedDecl* cppDecl)
     decl_in_progress->setName(cppDecl->getNameAsString());
     return true;
 }
+
+class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
+{
+    public:
+    std::shared_ptr<cpp::Declaration> maybe_emits;
+    std::set<std::string> filenames;
+
+    template<typename ConstIterator>
+    FilenameVisitor(ConstIterator firstFile, ConstIterator lastFile)
+        : filenames(firstFile, lastFile)
+    { }
+
+    bool WalkUpFromNamedDecl(clang::NamedDecl* cppDecl)
+    {
+        clang::SourceLocation source_loc = cppDecl->getLocation();
+        clang::PresumedLoc presumed = source_manager->getPresumedLoc(source_loc);
+
+        if( presumed.getFilename() )
+        {
+            std::string this_filename = presumed.getFilename();
+            if( filenames.count(this_filename) > 0 )
+            {
+                std::cout << "Will bind " << cppDecl->getNameAsString() << "\n";
+                maybe_emits->shouldBind(true);
+            }
+        }
+
+        return false;
+    }
+
+    bool WalkUpFromDecl(clang::Decl*)
+    {
+        return false;
+    }
+};
+void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& filename_vec)
+{
+    // There's no easy way to tell if a Decl is a NamedDecl,
+    // so we have this special visitor that does work in WalkUpFromNamedDecl,
+    // then aborts the traversal, and just aborts everything else
+    FilenameVisitor visitor(begin(filename_vec), end(filename_vec));
+
+    for( auto decl_pair : DeclVisitor::declarations )
+    {
+        clang::Decl * cppDecl = decl_pair.first;
+        visitor.maybe_emits = decl_pair.second;
+        visitor.TraverseDecl(cppDecl);
+    }
+}
