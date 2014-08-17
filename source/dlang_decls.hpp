@@ -103,14 +103,10 @@ namespace dlang
                 return std::weak_ptr<Result>(std::dynamic_pointer_cast<Result>(search_result->second));
             }
         }
-        std::weak_ptr<Package> packageForName(const std::string& path)
+        template<typename Result>
+        std::weak_ptr<Result> findForName(const std::string& path)
         {
-            return findForName<Package>(begin(path), end(path));
-        }
-
-        std::weak_ptr<Module> moduleForName(const std::string& path)
-        {
-            return findForName<Module>(begin(path), end(path));
+            return findForName<Result>(begin(path), end(path));
         }
     };
 
