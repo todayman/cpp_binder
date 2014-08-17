@@ -55,6 +55,7 @@ namespace cpp
         static std::unordered_map<std::string, std::shared_ptr<Type>> type_by_name;
 
         public:
+        static void printTypeNames();
         explicit Type(const clang::Type* t, Kind k)
             : cpp_type(t), kind(k)
         { }

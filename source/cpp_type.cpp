@@ -13,6 +13,13 @@ using namespace cpp;
 std::unordered_map<const clang::Type*, std::shared_ptr<Type>> Type::type_map;
 std::unordered_map<std::string, std::shared_ptr<Type>> Type::type_by_name;
 
+void Type::printTypeNames()
+{
+    for( auto p : type_by_name )
+    {
+        std::cout << p.first << "\n";
+    }
+}
 template<>
 struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
 
