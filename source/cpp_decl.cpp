@@ -344,6 +344,7 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
         return false;
     }
 };
+
 void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& filename_vec)
 {
     // There's no easy way to tell if a Decl is a NamedDecl,

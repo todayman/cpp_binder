@@ -19,6 +19,9 @@ enum Visibility
 
 namespace cpp
 {
+    class DeclarationVisitor;
+    class ConstDeclarationVisitor;
+
     // Same thing as Type, but for declarations of functions,
     // classes, etc.
     class Declaration
@@ -82,6 +85,9 @@ namespace cpp
         }
 
         virtual std::shared_ptr<Type> getType() = 0;
+
+        virtual void visit(DeclarationVisitor * visitor) = 0;
+        virtual void visit(ConstDeclarationVisitor * visitor) const = 0;
     };
 
     struct NotTypeDecl : public std::runtime_error
@@ -89,6 +95,41 @@ namespace cpp
         NotTypeDecl()
             : std::runtime_error("Operation is only valid on Type declarations.")
         { }
+    };
+
+#define FORALL_DECLARATIONS(func) \
+func(Function)      \
+func(Namespace)     \
+func(Record)        \
+func(Typedef)       \
+func(Enum)          \
+func(Field)         \
+func(EnumConstant)  \
+func(Union)         \
+func(Method)        \
+func(Constructor)   \
+func(Destructor)    \
+func(Argument)      \
+func(Variable)
+
+#define FORWARD_DECL(x) class x##Declaration;
+    FORALL_DECLARATIONS(FORWARD_DECL)
+#undef FORWARD_DECL
+
+    class DeclarationVisitor
+    {
+        public:
+#define VISITOR_METHOD(X) virtual void visit##X(X##Declaration* node) = 0;
+        FORALL_DECLARATIONS(VISITOR_METHOD)
+#undef VISITOR_METHOD
+    };
+
+    class ConstDeclarationVisitor
+    {
+        public:
+#define VISITOR_METHOD(X) virtual void visit##X(const X##Declaration* node) = 0;
+        FORALL_DECLARATIONS(VISITOR_METHOD)
+#undef VISITOR_METHOD
     };
 
 #define DECLARATION_CLASS_TYPE(C, D) \
@@ -109,6 +150,15 @@ namespace cpp
         { \
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0)); \
         }\
+\
+        virtual void visit(DeclarationVisitor * visitor) \
+        { \
+            visitor->visit##D(this); \
+        } \
+        virtual void visit(ConstDeclarationVisitor * visitor) const \
+        { \
+            visitor->visit##D(this); \
+        } \
     }
 #define DECLARATION_CLASS_2(C, D) \
     class D##Declaration : public Declaration \
@@ -128,6 +178,15 @@ namespace cpp
         { \
             throw NotTypeDecl(); \
         } \
+\
+        virtual void visit(DeclarationVisitor * visitor) \
+        { \
+            visitor->visit##D(this); \
+        } \
+        virtual void visit(ConstDeclarationVisitor * visitor) const \
+        { \
+            visitor->visit##D(this); \
+        } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
 DECLARATION_CLASS(Function);
@@ -144,7 +203,8 @@ DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
 DECLARATION_CLASS_2(ParmVar, Argument);
 DECLARATION_CLASS_2(Var, Variable);
-    class UnwrappableDeclaration : public Declaration \
+
+    class UnwrappableDeclaration : public Declaration
     {
         private:
         const clang::Decl* _decl;
