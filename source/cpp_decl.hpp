@@ -63,6 +63,10 @@ namespace cpp
               visibility(UNSET), remove_prefix("")
         { }
 
+        const std::string& getName() const {
+            return _name;
+        }
+
         bool isWrappable() const noexcept {
             return is_wrappable;
         }
@@ -72,9 +76,19 @@ namespace cpp
             should_bind = decision;
         }
 
+        bool getShouldBind() const
+        {
+            return should_bind;
+        }
+
         void setTargetModule(std::string target)
         {
             target_module = target;
+        }
+
+        const std::string& getTargetModule()
+        {
+            return target_module;
         }
 
         void setVisibility(Visibility vis)
