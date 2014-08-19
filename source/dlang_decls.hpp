@@ -32,6 +32,14 @@ namespace dlang
     class DeclarationContainer
     {
         std::vector<std::shared_ptr<Declaration>> children;
+
+        public:
+        DeclarationContainer() = default;
+
+        void insert(std::shared_ptr<Declaration> decl)
+        {
+            children.push_back(decl);
+        }
     };
 
     // Needs to be separate from declarations for builtins like int that don't have declarations
@@ -49,6 +57,11 @@ namespace dlang
     class Module : public DeclarationContainer, public FileDir
     {
         std::string name;
+
+        public:
+        explicit Module(std::string n)
+            : DeclarationContainer(), FileDir(), name(n)
+        { }
     };
 
     class Package : public FileDir
@@ -71,6 +84,11 @@ namespace dlang
             return children.find(std::string(start, end_of_first_element));
         }
         public:
+        Package() = default;
+        explicit Package(std::string n)
+            : name(n), children()
+        { }
+
         // These return weak pointers because every package is owned by its
         // parent, and the root package owns all the top level packages.
         // Not entirely sure that's the right choice, though.
@@ -107,6 +125,60 @@ namespace dlang
         std::weak_ptr<Result> findForName(const std::string& path)
         {
             return findForName<Result>(begin(path), end(path));
+        }
+
+        template<typename ConstIterator>
+        Module& getOrCreateModulePath(ConstIterator start, ConstIterator finish)
+        {
+            ConstIterator end_of_first_element;
+            auto search_result = findChild(start, finish, end_of_first_element);
+            std::string name(start, finish);
+            if( search_result == children.end() )
+            {
+                // Create
+                if( end_of_first_element == finish )
+                {
+                    std::shared_ptr<Module> mod = std::make_shared<Module>(name);
+                    std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(mod);
+                    children.insert(std::make_pair(name, result));
+                    return *mod;
+                }
+                else {
+                    std::shared_ptr<Package> package = std::make_shared<Package>(name);
+                    std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(package);
+                    children.insert(std::make_pair(name, result));
+                    return package->getOrCreateModulePath(end_of_first_element + 1, finish);
+                }
+            }
+
+            // Entry exists, and this is not the end of the path
+            if( end_of_first_element != finish )
+            {
+                // This means that there are more letters after the dot,
+                // so the current name is a package name, so recurse
+                std::shared_ptr<Package> subpackage = std::dynamic_pointer_cast<Package>(search_result->second);
+                if( subpackage )
+                {
+                    return subpackage->getOrCreateModulePath(end_of_first_element + 1, finish);
+                }
+                else
+                {
+                    // This is a module, but expected a package name
+                    throw 13; // TODO
+                }
+            }
+            else
+            {
+                std::shared_ptr<Package> package = std::make_shared<Package>(name);
+                std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(package);
+                children.insert(std::make_pair(name, result));
+                return package->getOrCreateModulePath(end_of_first_element + 1, finish);
+            }
+        }
+
+        Module& getOrCreateModulePath(const std::string& path)
+        {
+            return getOrCreateModulePath(begin(path), end(path));
         }
     };
 

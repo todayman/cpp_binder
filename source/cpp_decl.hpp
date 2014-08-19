@@ -86,7 +86,7 @@ namespace cpp
             target_module = target;
         }
 
-        const std::string& getTargetModule()
+        const std::string& getTargetModule() const
         {
             return target_module;
         }
