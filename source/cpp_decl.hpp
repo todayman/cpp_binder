@@ -1,6 +1,9 @@
 #ifndef __CPP_DECL_HPP__
 #define __CPP_DECL_HPP__
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 
@@ -240,6 +243,7 @@ DECLARATION_CLASS_2(Var, Variable);
         bool registerDeclaration(clang::Decl* cppDecl);
 
         static std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> declarations;
+        static std::unordered_set<std::shared_ptr<Declaration>> free_declarations;
 
         std::shared_ptr<Declaration> decl_in_progress;
         const clang::PrintingPolicy* print_policy;
@@ -293,6 +297,15 @@ DECLARATION_CLASS_2(Var, Variable);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
 
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
+
+        static const std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>>& getDeclarations()
+        {
+            return declarations;
+        }
+        static const std::unordered_set<std::shared_ptr<Declaration>>& getFreeDeclarations()
+        {
+            return free_declarations;
+        }
     };
 
     class SkipUnwrappableDeclaration : public NotWrappableException

@@ -10,6 +10,7 @@
 using namespace cpp;
 
 std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> DeclVisitor::declarations;
+std::unordered_set<std::shared_ptr<Declaration>> DeclVisitor::free_declarations;
 
 void printPresumedLocation(const clang::NamedDecl* Declaration)
 {
@@ -200,7 +201,18 @@ bool DeclVisitor::TraverseFunctionDecl(clang::FunctionDecl * cppDecl)
 
 bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl)
 {
-    return TraverseDeclContext(cppDecl);
+    bool result = TraverseDeclContext(cppDecl);
+    clang::DeclContext::decl_iterator end = cppDecl->decls_end();
+    for( clang::DeclContext::decl_iterator iter = cppDecl->decls_begin();
+         iter != end && result;
+         ++iter )
+    {
+        // TODO do I need to check that declarations.find() returns a valid result?
+        // I think it throws an exception, or produces an UnwrappableDeclaration,
+        // but I should double check.
+        free_declarations.insert(declarations.find(*iter)->second);
+    }
+    return result;
 }
 
 bool DeclVisitor::TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl)
