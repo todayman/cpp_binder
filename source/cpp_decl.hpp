@@ -89,8 +89,8 @@ namespace cpp
 
         virtual std::shared_ptr<Type> getType() = 0;
 
-        virtual void visit(DeclarationVisitor * visitor) = 0;
-        virtual void visit(ConstDeclarationVisitor * visitor) const = 0;
+        virtual void visit(DeclarationVisitor& visitor) = 0;
+        virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
     };
 
     struct NotTypeDecl : public std::runtime_error
@@ -122,7 +122,7 @@ func(Variable)
     class DeclarationVisitor
     {
         public:
-#define VISITOR_METHOD(X) virtual void visit##X(X##Declaration* node) = 0;
+#define VISITOR_METHOD(X) virtual void visit##X(X##Declaration& node) = 0;
         FORALL_DECLARATIONS(VISITOR_METHOD)
 #undef VISITOR_METHOD
     };
@@ -130,7 +130,7 @@ func(Variable)
     class ConstDeclarationVisitor
     {
         public:
-#define VISITOR_METHOD(X) virtual void visit##X(const X##Declaration* node) = 0;
+#define VISITOR_METHOD(X) virtual void visit##X(const X##Declaration& node) = 0;
         FORALL_DECLARATIONS(VISITOR_METHOD)
 #undef VISITOR_METHOD
     };
@@ -154,13 +154,13 @@ func(Variable)
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0)); \
         }\
 \
-        virtual void visit(DeclarationVisitor * visitor) \
+        virtual void visit(DeclarationVisitor& visitor) override \
         { \
-            visitor->visit##D(this); \
+            visitor.visit##D(*this); \
         } \
-        virtual void visit(ConstDeclarationVisitor * visitor) const \
+        virtual void visit(ConstDeclarationVisitor& visitor) const override \
         { \
-            visitor->visit##D(this); \
+            visitor.visit##D(*this); \
         } \
     }
 #define DECLARATION_CLASS_2(C, D) \
@@ -182,13 +182,13 @@ func(Variable)
             throw NotTypeDecl(); \
         } \
 \
-        virtual void visit(DeclarationVisitor * visitor) \
+        virtual void visit(DeclarationVisitor& visitor) override \
         { \
-            visitor->visit##D(this); \
+            visitor.visit##D(*this); \
         } \
-        virtual void visit(ConstDeclarationVisitor * visitor) const \
+        virtual void visit(ConstDeclarationVisitor& visitor) const override \
         { \
-            visitor->visit##D(this); \
+            visitor.visit##D(*this); \
         } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
@@ -225,6 +225,15 @@ DECLARATION_CLASS_2(Var, Variable);
         virtual std::shared_ptr<Type> getType() override
         {
             throw NotTypeDecl();
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitUnwrappable(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitUnwrappable(*this);
         }
     };
 
