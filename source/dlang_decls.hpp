@@ -143,4 +143,6 @@ namespace dlang
     extern std::shared_ptr<Package> rootPackage;
 } // namespace dlang
 
+void populateDAST();
+
 #endif // __DLANG_DECLS_HPP__

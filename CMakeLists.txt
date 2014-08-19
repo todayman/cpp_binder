@@ -21,7 +21,7 @@ find_library(NCURSES_LIBRARY_PATH ncursesw)
 find_library(YAJL_LIBRARY_PATH yajl)
 
 add_compile_options(-std=c++11 -Wall -Wextra -pedantic)
-add_executable(cpp_binder source/main.cpp source/cpp_type.cpp source/DOutput.cpp source/cli.cpp source/cpp_decl.cpp source/configuration.cpp source/dlang_decls.cpp)
+add_executable(cpp_binder source/main.cpp source/cpp_type.cpp source/DOutput.cpp source/cli.cpp source/cpp_decl.cpp source/configuration.cpp source/dlang_decls.cpp source/translate.cpp)
 
 target_link_libraries(cpp_binder ${CLANG_LIBRARY_PATH} )
 target_link_libraries(cpp_binder ${CLANG_TOOLING_LIBRARY_PATH} )
