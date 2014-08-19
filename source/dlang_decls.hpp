@@ -208,6 +208,9 @@ namespace dlang
         struct Parameter {
             std::string name;
             std::shared_ptr<Type> type;
+            Parameter(std::string n, std::shared_ptr<Type> t)
+                : name(n), type(t)
+            { }
         };
         std::vector<Parameter> arguments;
     };

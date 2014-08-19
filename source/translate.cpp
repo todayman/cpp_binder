@@ -7,6 +7,12 @@ std::shared_ptr<dlang::Type> translateType(clang::QualType);
 
 std::unordered_set<std::shared_ptr<cpp::Declaration>> translated;
 
+std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
+{
+    // TODO write
+    return std::shared_ptr<dlang::Type>();
+}
+
 class TranslateArgument : public cpp::ConstDeclarationVisitor
 {
     public:
@@ -39,8 +45,21 @@ class TranslatorVisitor : public cpp::ConstDeclarationVisitor
         {
             d_decl->name = cppDecl.getName();
         }
+        else
+        {
+            throw 12;
+        }
 
         d_decl->return_type = translateType(cppDecl.getReturnType());
+
+        for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
+             arg_iter != arg_end;
+             ++arg_iter )
+        {
+            d_decl->arguments.emplace_back(arg_iter->getName(), translateType(arg_iter->getType()));
+        }
+
+        dlang::rootPackage->getOrCreateModulePath(cppDecl.getTargetModule()).insert(d_decl);
     }
 
     virtual void visitNamespace(const cpp::NamespaceDeclaration& cppDecl) override
