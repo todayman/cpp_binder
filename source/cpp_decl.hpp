@@ -253,6 +253,41 @@ DECLARATION_CLASS_2(Var, Variable);
             // TODO changes to getReturnType in clang 3.5
             return Type::get(_decl->getResultType());
         }
+
+        struct arg_iterator
+        {
+            private:
+            clang::FunctionDecl::param_const_iterator cpp_iter;
+
+            public:
+            explicit arg_iterator(clang::FunctionDecl::param_const_iterator i)
+                : cpp_iter(i)
+            { }
+
+            void operator++() {
+                cpp_iter++;
+            }
+
+            bool operator==(const arg_iterator& other) {
+                return cpp_iter == other.cpp_iter;
+            }
+
+            bool operator!=(const arg_iterator& other) {
+                return cpp_iter != other.cpp_iter;
+            }
+
+            std::shared_ptr<ArgumentDeclaration> operator->();
+        };
+
+        virtual arg_iterator getArgumentBegin() const
+        {
+            return arg_iterator(_decl->param_begin());
+        }
+
+        virtual arg_iterator getArgumentEnd() const
+        {
+            return arg_iterator(_decl->param_end());
+        }
     };
 
     class UnwrappableDeclaration : public Declaration
