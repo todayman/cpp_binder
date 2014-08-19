@@ -192,7 +192,6 @@ func(Variable)
         } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
-DECLARATION_CLASS(Function);
 DECLARATION_CLASS(Namespace);
 DECLARATION_CLASS_TYPE(Record, Record);
 DECLARATION_CLASS_TYPE(Typedef, Typedef);
@@ -206,6 +205,40 @@ DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
 DECLARATION_CLASS_2(ParmVar, Argument);
 DECLARATION_CLASS_2(Var, Variable);
+
+    class FunctionDeclaration : public Declaration
+    {
+        private:
+        const clang::FunctionDecl* _decl;
+
+        public:
+        FunctionDeclaration(const clang::FunctionDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() override
+        {
+            throw NotTypeDecl();
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitFunction(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitFunction(*this);
+        }
+
+        virtual std::shared_ptr<Type> getReturnType() const
+        {
+            // TODO changes to getReturnType in clang 3.5
+            return Type::get(_decl->getResultType());
+        }
+    };
 
     class UnwrappableDeclaration : public Declaration
     {
