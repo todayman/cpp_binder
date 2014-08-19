@@ -127,7 +127,8 @@ func(Method)        \
 func(Constructor)   \
 func(Destructor)    \
 func(Argument)      \
-func(Variable)
+func(Variable)      \
+func(Unwrappable)
 
 #define FORWARD_DECL(x) class x##Declaration;
     FORALL_DECLARATIONS(FORWARD_DECL)
