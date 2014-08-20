@@ -303,7 +303,11 @@ DECLARATION_CLASS_2(Var, Variable);
                 return cpp_iter != other.cpp_iter;
             }
 
-            std::shared_ptr<ArgumentDeclaration> operator->();
+            std::shared_ptr<ArgumentDeclaration> operator*();
+            std::shared_ptr<ArgumentDeclaration> operator->()
+            {
+                return operator*();
+            }
         };
 
         virtual arg_iterator getArgumentBegin() const

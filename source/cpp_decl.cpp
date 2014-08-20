@@ -20,7 +20,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
-std::shared_ptr<cpp::ArgumentDeclaration> cpp::FunctionDeclaration::arg_iterator::operator->()
+std::shared_ptr<cpp::ArgumentDeclaration> cpp::FunctionDeclaration::arg_iterator::operator*()
 {
     return std::dynamic_pointer_cast<cpp::ArgumentDeclaration>(DeclVisitor::getDeclarations().find(*cpp_iter)->second);
 }
