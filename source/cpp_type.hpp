@@ -76,6 +76,11 @@ namespace cpp
             kind = k;
         }
 
+        Kind getKind() const
+        {
+            return kind;
+        }
+
         friend class TypeVisitor;
 
         void chooseReplaceStrategy(std::string replacement)
@@ -108,6 +113,26 @@ namespace cpp
                 throw UseReplaceMethod();
             }
             strategy = s;
+        }
+
+        Strategy getStrategy() const
+        {
+            return strategy;
+        }
+
+        struct WrongStrategy : public std::runtime_error
+        {
+            WrongStrategy()
+                : std::runtime_error("That operation is only valid for types with a different translation strategy.")
+            { }
+        };
+        const std::string& getReplacement() const
+        {
+            if( strategy != REPLACE )
+            {
+                throw WrongStrategy();
+            }
+            return target_name;
         }
     };
 

@@ -47,6 +47,17 @@ namespace dlang
     // Needs to be separate from declarations for builtins like int that don't have declarations
     class Type
     {
+        public:
+        virtual ~Type() = default;
+    };
+
+    class StringType : public Type
+    {
+        public:
+        std::string name;
+        explicit StringType(std::string n)
+            : name(n)
+        { }
     };
 
     // Need a superclass for Module and Package to use Composite pattern

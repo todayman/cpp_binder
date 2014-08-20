@@ -8,11 +8,7 @@ std::shared_ptr<dlang::Type> translateType(clang::QualType);
 
 std::unordered_map<cpp::Declaration*, std::shared_ptr<dlang::Declaration>> translated;
 
-std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
-{
-    // TODO write
-    return std::shared_ptr<dlang::Type>();
-}
+std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType);
 
 #define CHECK_FOR_DECL(x) \
         auto search = translated.find(static_cast<cpp::Declaration*>(&cppDecl)); \
@@ -248,7 +244,77 @@ void populateDAST()
     }
 }
 
-// Assigns each declaration to an
-void assignDeclarationModules()
+std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
+std::unordered_map<std::string, std::shared_ptr<dlang::Type>> types_by_name;
+std::unordered_map<std::shared_ptr<cpp::Type>, std::shared_ptr<dlang::Type>> resolved_replacements;
+
+void determineStrategy(std::shared_ptr<cpp::Type> cppType)
 {
+    switch( cppType->getKind() )
+    {
+        case cpp::Type::Invalid:
+            throw 16;
+            break;
+        case cpp::Type::Builtin:
+        case cpp::Type::Pointer:
+        case cpp::Type::Reference:
+        case cpp::Type::Typedef:
+        case cpp::Type::Enum:
+        case cpp::Type::Function:
+            cppType->chooseReplaceStrategy(""); // FIXME empty string means resolve to an actual AST type, not a string?
+            break;
+
+        case cpp::Type::Record:
+            break;
+        case cpp::Type::Union:
+            break;
+        case cpp::Type::Array:
+            break;
+        case cpp::Type::Vector:
+            throw 17;
+    }
+}
+
+
+void replaceType(std::shared_ptr<cpp::Type> cppType)
+{
+    std::shared_ptr<dlang::Type> result;
+    const std::string& replacement_name = cppType->getReplacement();
+    if( replacement_name.size() > 0 )
+    {
+        auto search_result = types_by_name.find(replacement_name);
+        if( search_result == types_by_name.end() )
+        {
+            result = std::shared_ptr<dlang::Type>(new dlang::StringType(replacement_name));
+            types_by_name.insert(std::make_pair(replacement_name, result));
+        }
+        else
+        {
+            result = search_result->second;
+        }
+    }
+}
+
+std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
+{
+    switch( cppType->getStrategy() )
+    {
+        case UNKNOWN:
+            determineStrategy(cppType);
+            translateType(cppType);
+            break;
+        case REPLACE:
+            replaceType(cppType);
+            break;
+        case STRUCT:
+            break;
+        case INTERFACE:
+            break;
+        case CLASS:
+            break;
+        case OPAQUE_CLASS:
+            break;
+    }
+
+    return std::shared_ptr<dlang::Type>();
 }
