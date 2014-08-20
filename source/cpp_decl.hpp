@@ -86,6 +86,10 @@ namespace cpp
             target_module = target;
         }
 
+        bool isTargetModuleSet() const
+        {
+            return target_module.size() > 0;
+        }
         const std::string& getTargetModule() const
         {
             return target_module;

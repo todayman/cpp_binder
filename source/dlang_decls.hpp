@@ -62,6 +62,11 @@ namespace dlang
         explicit Module(std::string n)
             : DeclarationContainer(), FileDir(), name(n)
         { }
+
+        const std::string& getName() const
+        {
+            return name;
+        }
     };
 
     class Package : public FileDir

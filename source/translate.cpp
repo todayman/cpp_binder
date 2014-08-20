@@ -5,7 +5,7 @@
 
 std::shared_ptr<dlang::Type> translateType(clang::QualType);
 
-std::unordered_map<std::shared_ptr<cpp::Declaration>, std::shared_ptr<dlang::Declaration>> translated;
+std::unordered_map<cpp::Declaration*, std::shared_ptr<dlang::Declaration>> translated;
 
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
 {
@@ -35,13 +35,29 @@ class TranslateArgument : public cpp::ConstDeclarationVisitor
     }
 };
 
+#define CHECK_FOR_DECL(x) \
+        auto search = translated.find(static_cast<cpp::Declaration*>(&cppDecl)); \
+        if( search != translated.end() ) \
+        { \
+            return std::dynamic_pointer_cast<dlang::x>(search->second); \
+        }
+// ^ This cast failing is a huge internal programmer error
+
 // Would kind of like a WhiteHole for these
-class TranslatorVisitor : public cpp::ConstDeclarationVisitor
+class TranslatorVisitor : public cpp::DeclarationVisitor
 {
+    std::string parent_package_name;
     std::shared_ptr<dlang::Declaration> last_result;
     public:
-    std::shared_ptr<dlang::Function> translateFunction(const cpp::FunctionDeclaration& cppDecl)
+
+    explicit TranslatorVisitor(std::string parent)
+        : parent_package_name(parent), last_result()
+    { }
+
+    std::shared_ptr<dlang::Function> translateFunction(cpp::FunctionDeclaration& cppDecl)
     {
+        CHECK_FOR_DECL(Function)
+
         std::shared_ptr<dlang::Function> d_decl = std::make_shared<dlang::Function>();
         if( cppDecl.getName().size() )
         {
@@ -63,59 +79,115 @@ class TranslatorVisitor : public cpp::ConstDeclarationVisitor
         }
         return d_decl;
     }
-    virtual void visitFunction(const cpp::FunctionDeclaration& cppDecl) override
+    virtual void visitFunction(cpp::FunctionDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateFunction(cppDecl));
     }
 
-    virtual void visitNamespace(const cpp::NamespaceDeclaration& cppDecl) override
+    std::shared_ptr<dlang::Module> translateNamespace(cpp::NamespaceDeclaration& cppDecl)
+    {
+        // TODO I probably shouldn't even be doing this,
+        // just looping over all of the items in the namespace and setting the
+        // target_module attribute (if it's not already set),
+        // and then visiting those nodes.  Then the modules / packages get
+        // created when something goes in them.
+        auto search = translated.find(static_cast<cpp::Declaration*>(&cppDecl));
+        std::shared_ptr<dlang::Module> module;
+        if( search != translated.end() )
+        {
+            // This cast failing means that we previously translated this
+            // namespace as something other than a module, which is a really
+            // bad logic error.
+            module = std::dynamic_pointer_cast<dlang::Module>(search->second);
+            if( !module )
+            {
+                throw std::logic_error("Translated a namespace to something other than a module.");
+            }
+        }
+        else
+        {
+            module = std::make_shared<dlang::Module>(cppDecl.getName());
+        }
+
+        std::string this_package_name = parent_package_name + "." + module->getName();
+        for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
+                children_end = cppDecl.getChildEnd();
+             children_iter != children_end;
+             ++children_iter )
+        {
+            if( (*children_iter)->isTargetModuleSet() )
+            {
+                (*children_iter)->setTargetModule(this_package_name);
+            }
+        }
+
+        // visit and translate all of the children
+        TranslatorVisitor subpackage_visitor(this_package_name);
+        for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
+                children_end = cppDecl.getChildEnd();
+             children_iter != children_end;
+             ++children_iter )
+        {
+            (*children_iter)->visit(subpackage_visitor);
+
+
+            // TODO place the result of translation into the correct module
+        }
+
+        return module;
+    }
+
+    virtual void visitNamespace(cpp::NamespaceDeclaration& cppDecl) override
+    {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateNamespace(cppDecl));
+    }
+
+    virtual void visitRecord(cpp::RecordDeclaration& cppDecl) override
     {
     }
-    virtual void visitRecord(const cpp::RecordDeclaration& cppDecl) override
+    virtual void visitTypedef(cpp::TypedefDeclaration& cppDecl) override
     {
     }
-    virtual void visitTypedef(const cpp::TypedefDeclaration& cppDecl) override
+    virtual void visitEnum(cpp::EnumDeclaration& cppDecl) override
     {
     }
-    virtual void visitEnum(const cpp::EnumDeclaration& cppDecl) override
+    virtual void visitField(cpp::FieldDeclaration& cppDecl) override
     {
     }
-    virtual void visitField(const cpp::FieldDeclaration& cppDecl) override
+    virtual void visitEnumConstant(cpp::EnumConstantDeclaration& cppDecl) override
     {
     }
-    virtual void visitEnumConstant(const cpp::EnumConstantDeclaration& cppDecl) override
+    virtual void visitUnion(cpp::UnionDeclaration& cppDecl) override
     {
     }
-    virtual void visitUnion(const cpp::UnionDeclaration& cppDecl) override
+    virtual void visitMethod(cpp::MethodDeclaration& cppDecl) override
     {
     }
-    virtual void visitMethod(const cpp::MethodDeclaration& cppDecl) override
+    virtual void visitConstructor(cpp::ConstructorDeclaration& cppDecl) override
     {
     }
-    virtual void visitConstructor(const cpp::ConstructorDeclaration& cppDecl) override
-    {
-    }
-    virtual void visitDestructor(const cpp::DestructorDeclaration& cppDecl) override
+    virtual void visitDestructor(cpp::DestructorDeclaration& cppDecl) override
     {
     }
 
-    std::shared_ptr<dlang::Argument> translateArgument(const cpp::ArgumentDeclaration& cppDecl)
+    std::shared_ptr<dlang::Argument> translateArgument(cpp::ArgumentDeclaration& cppDecl)
     {
+        CHECK_FOR_DECL(Argument)
         std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
         arg->name = cppDecl.getName();
         arg->type = translateType(cppDecl.getType());
 
         return arg;
     }
-    virtual void visitArgument(const cpp::ArgumentDeclaration& cppDecl) override
+    virtual void visitArgument(cpp::ArgumentDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateArgument(cppDecl));
     }
 
-    virtual void visitVariable(const cpp::VariableDeclaration& cppDecl) override
+    virtual void visitVariable(cpp::VariableDeclaration& cppDecl) override
     {
     }
-    virtual void visitUnwrappable(const cpp::UnwrappableDeclaration& cppDecl) override
+    virtual void visitUnwrappable(cpp::UnwrappableDeclaration& cppDecl) override
     {
     }
 };
@@ -125,7 +197,7 @@ void populateDAST()
     TranslatorVisitor visitor;
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
-        if( !declaration->getShouldBind() || translated.count(declaration) )
+        if( !declaration->getShouldBind() || translated.count(declaration.get()) )
         {
             continue;
         }
