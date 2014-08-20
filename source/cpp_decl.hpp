@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "llvm/ADT/APSInt.h"
+
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 
@@ -241,9 +243,7 @@ func(Unwrappable)
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
 DECLARATION_CLASS_TYPE(Record, Record);
-DECLARATION_CLASS(Enum);
 DECLARATION_CLASS(Field);
-DECLARATION_CLASS(EnumConstant); // TODO change this to a generic constant class
 
 DECLARATION_CLASS_TYPE(Record, Union);
 DECLARATION_CLASS_2(CXXMethod, Method);
@@ -419,6 +419,76 @@ DECLARATION_CLASS_2(Var, Variable);
         std::shared_ptr<Type> getTargetType() const
         {
             return Type::get(_decl->getUnderlyingType());
+        }
+    };
+
+    class EnumDeclaration : public Declaration
+    {
+        private:
+        const clang::EnumDecl* _decl;
+
+        public:
+        EnumDeclaration(const clang::EnumDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            return Type::get(_decl->getIntegerType());
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitEnum(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitEnum(*this);
+        }
+
+        DeclarationIterator getChildBegin()
+        {
+            return DeclarationIterator(_decl->decls_begin());
+        }
+        DeclarationIterator getChildEnd()
+        {
+            return DeclarationIterator(_decl->decls_end());
+        }
+    };
+    // TODO change this to a generic constant class
+    class EnumConstantDeclaration : public Declaration
+    {
+        private:
+        const clang::EnumConstantDecl* _decl;
+
+        public:
+        EnumConstantDeclaration(const clang::EnumConstantDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            return Type::get(_decl->getType());
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitEnumConstant(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitEnumConstant(*this);
+        }
+
+        llvm::APSInt getValue() const
+        {
+            return _decl->getInitVal();
         }
     };
 

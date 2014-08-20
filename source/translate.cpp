@@ -1,3 +1,4 @@
+#include <iostream>
 #include <unordered_map>
 
 #include "cpp_decl.hpp"
@@ -160,13 +161,51 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         last_result = std::static_pointer_cast<dlang::Declaration>(translateTypedef(cppDecl));
     }
 
+    std::shared_ptr<dlang::Enum> translateEnum(cpp::EnumDeclaration& cppDecl)
+    {
+        std::shared_ptr<dlang::Enum> result = std::make_shared<dlang::Enum>();
+
+        result->type = translateType(cppDecl.getType());
+
+        // visit and translate all of the constants
+        for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
+                children_end = cppDecl.getChildEnd();
+             children_iter != children_end;
+             ++children_iter )
+        {
+            std::shared_ptr<cpp::EnumConstantDeclaration> constant = std::dynamic_pointer_cast<cpp::EnumConstantDeclaration>(*children_iter);
+            if( !constant )
+            {
+                std::cout << "Error translating enum constant.\n";
+                continue;
+            }
+
+            result->values.push_back(translateEnumConstant(*constant));
+        }
+
+        return result;
+    }
     virtual void visitEnum(cpp::EnumDeclaration& cppDecl) override
     {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateEnum(cppDecl));
+    }
+
+    std::shared_ptr<dlang::EnumConstant> translateEnumConstant(cpp::EnumConstantDeclaration& cppDecl)
+    {
+        std::shared_ptr<dlang::EnumConstant> result = std::make_shared<dlang::EnumConstant>();
+        result->name = cppDecl.getName(); // TODO remove prefix
+        result->value = cppDecl.getValue();
+
+        return result;
+    }
+    virtual void visitEnumConstant(cpp::EnumConstantDeclaration&) override
+    {
+        // Getting here means that there is an enum constant declaration
+        // outside of an enum declaration, since visitEnum calls
+        // translateEnumConstant directly.
+        throw 14;
     }
     virtual void visitField(cpp::FieldDeclaration& cppDecl) override
-    {
-    }
-    virtual void visitEnumConstant(cpp::EnumConstantDeclaration& cppDecl) override
     {
     }
     virtual void visitUnion(cpp::UnionDeclaration& cppDecl) override

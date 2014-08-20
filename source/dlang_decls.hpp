@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "llvm/ADT/APSInt.h"
+
 namespace dlang
 {
     enum Visibility
@@ -223,6 +225,19 @@ namespace dlang
     {
         public:
         std::shared_ptr<Type> target_type;
+    };
+
+    class EnumConstant : public Declaration
+    {
+        public:
+        llvm::APSInt value;
+    };
+
+    class Enum : public Declaration, public Type
+    {
+        public:
+        std::shared_ptr<Type> type;
+        std::vector<std::shared_ptr<EnumConstant>> values;
     };
 
     extern std::shared_ptr<Package> rootPackage;
