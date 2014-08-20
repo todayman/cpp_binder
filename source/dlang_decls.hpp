@@ -128,7 +128,7 @@ namespace dlang
         }
 
         template<typename ConstIterator>
-        Module& getOrCreateModulePath(ConstIterator start, ConstIterator finish)
+        std::shared_ptr<Module> getOrCreateModulePath(ConstIterator start, ConstIterator finish)
         {
             ConstIterator end_of_first_element;
             auto search_result = findChild(start, finish, end_of_first_element);
@@ -141,7 +141,7 @@ namespace dlang
                     std::shared_ptr<Module> mod = std::make_shared<Module>(name);
                     std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(mod);
                     children.insert(std::make_pair(name, result));
-                    return *mod;
+                    return mod;
                 }
                 else {
                     std::shared_ptr<Package> package = std::make_shared<Package>(name);
@@ -176,7 +176,7 @@ namespace dlang
             }
         }
 
-        Module& getOrCreateModulePath(const std::string& path)
+        std::shared_ptr<Module> getOrCreateModulePath(const std::string& path)
         {
             return getOrCreateModulePath(begin(path), end(path));
         }
