@@ -101,7 +101,7 @@ namespace cpp
             remove_prefix = prefix;
         }
 
-        virtual std::shared_ptr<Type> getType() = 0;
+        virtual std::shared_ptr<Type> getType() const = 0;
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
         virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
@@ -164,7 +164,7 @@ func(Unwrappable)
             return _decl; \
         } \
 \
-        virtual std::shared_ptr<Type> getType() override \
+        virtual std::shared_ptr<Type> getType() const override \
         { \
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0)); \
         }\
@@ -192,7 +192,7 @@ func(Unwrappable)
             return _decl; \
         } \
 \
-        virtual std::shared_ptr<Type> getType() override \
+        virtual std::shared_ptr<Type> getType() const override \
         { \
             throw NotTypeDecl(); \
         } \
@@ -218,8 +218,35 @@ DECLARATION_CLASS_TYPE(Record, Union);
 DECLARATION_CLASS_2(CXXMethod, Method);
 DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
-DECLARATION_CLASS_2(ParmVar, Argument);
 DECLARATION_CLASS_2(Var, Variable);
+
+    class ArgumentDeclaration : public Declaration
+    {
+        private:
+        const clang::ParmVarDecl* _decl;
+
+        public:
+        ArgumentDeclaration(const clang::ParmVarDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            return Type::get(_decl->getType());
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitArgument(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitArgument(*this);
+        }
+    };
 
     class FunctionDeclaration : public Declaration
     {
@@ -234,7 +261,7 @@ DECLARATION_CLASS_2(Var, Variable);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() override
+        virtual std::shared_ptr<Type> getType() const override
         {
             throw NotTypeDecl();
         }
@@ -305,7 +332,7 @@ DECLARATION_CLASS_2(Var, Variable);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() override
+        virtual std::shared_ptr<Type> getType() const override
         {
             throw NotTypeDecl();
         }
