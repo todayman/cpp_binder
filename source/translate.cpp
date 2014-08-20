@@ -130,7 +130,6 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         {
             (*children_iter)->visit(subpackage_visitor);
 
-
             // TODO place the result of translation into the correct module
         }
 
@@ -139,15 +138,28 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
     virtual void visitNamespace(cpp::NamespaceDeclaration& cppDecl) override
     {
-        last_result = std::static_pointer_cast<dlang::Declaration>(translateNamespace(cppDecl));
+        translateNamespace(cppDecl);
+        last_result = std::shared_ptr<dlang::Declaration>();
     }
 
     virtual void visitRecord(cpp::RecordDeclaration& cppDecl) override
     {
     }
+    std::shared_ptr<dlang::TypeAlias> translateTypedef(cpp::TypedefDeclaration& cppDecl)
+    {
+        CHECK_FOR_DECL(TypeAlias)
+
+        std::shared_ptr<dlang::TypeAlias> result = std::make_shared<dlang::TypeAlias>();
+        result->name = cppDecl.getName();
+        result->target_type = translateType(cppDecl.getTargetType());
+
+        return result;
+    }
     virtual void visitTypedef(cpp::TypedefDeclaration& cppDecl) override
     {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateTypedef(cppDecl));
     }
+
     virtual void visitEnum(cpp::EnumDeclaration& cppDecl) override
     {
     }
@@ -194,7 +206,8 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
 void populateDAST()
 {
-    TranslatorVisitor visitor;
+    // May cause problems because root package won't check for empty path.
+    TranslatorVisitor visitor("");
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
         if( !declaration->getShouldBind() || translated.count(declaration.get()) )

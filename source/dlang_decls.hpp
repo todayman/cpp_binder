@@ -219,6 +219,12 @@ namespace dlang
         std::vector<std::shared_ptr<Argument>> arguments;
     };
 
+    class TypeAlias : public Declaration, public Type
+    {
+        public:
+        std::shared_ptr<Type> target_type;
+    };
+
     extern std::shared_ptr<Package> rootPackage;
 } // namespace dlang
 

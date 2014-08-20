@@ -241,7 +241,6 @@ func(Unwrappable)
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
 DECLARATION_CLASS_TYPE(Record, Record);
-DECLARATION_CLASS_TYPE(Typedef, Typedef);
 DECLARATION_CLASS(Enum);
 DECLARATION_CLASS(Field);
 DECLARATION_CLASS(EnumConstant); // TODO change this to a generic constant class
@@ -387,6 +386,39 @@ DECLARATION_CLASS_2(Var, Variable);
         DeclarationIterator getChildEnd()
         {
             return DeclarationIterator(_decl->decls_end());
+        }
+    };
+
+    class TypedefDeclaration : public Declaration
+    {
+        private:
+        const clang::TypedefDecl* _decl;
+
+        public:
+        TypedefDeclaration(const clang::TypedefDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            throw NotTypeDecl();
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitTypedef(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitTypedef(*this);
+        }
+
+        std::shared_ptr<Type> getTargetType() const
+        {
+            return Type::get(_decl->getUnderlyingType());
         }
     };
 
