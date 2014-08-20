@@ -235,8 +235,18 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         last_result = std::static_pointer_cast<dlang::Declaration>(translateArgument(cppDecl));
     }
 
+    std::shared_ptr<dlang::Variable> translateVariable(cpp::VariableDeclaration& cppDecl)
+    {
+        CHECK_FOR_DECL(Variable)
+        std::shared_ptr<dlang::Variable> var = std::make_shared<dlang::Variable>();
+        var->name = cppDecl.getName();
+        var->type = translateType(cppDecl.getType());
+
+        return var;
+    }
     virtual void visitVariable(cpp::VariableDeclaration& cppDecl) override
     {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateVariable(cppDecl));
     }
     virtual void visitUnwrappable(cpp::UnwrappableDeclaration& cppDecl) override
     {

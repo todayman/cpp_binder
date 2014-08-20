@@ -195,16 +195,19 @@ namespace dlang
 
     class Class : public Declaration
     {
+        public:
         std::vector<std::shared_ptr<Declaration>> members;
     };
 
     class Interface : public Declaration
     {
+        public:
         std::vector<std::shared_ptr<Declaration>> functions;
     };
 
     class Variable : public Declaration
     {
+        public:
         std::shared_ptr<Type> type;
     };
 
