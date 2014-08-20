@@ -201,18 +201,17 @@ namespace dlang
         std::shared_ptr<Type> type;
     };
 
+    class Argument : public Declaration
+    {
+        public:
+        std::shared_ptr<Type> type;
+    };
+
     class Function : public Declaration
     {
         public:
         std::shared_ptr<Type> return_type;
-        struct Parameter {
-            std::string name;
-            std::shared_ptr<Type> type;
-            Parameter(std::string n, std::shared_ptr<Type> t)
-                : name(n), type(t)
-            { }
-        };
-        std::vector<Parameter> arguments;
+        std::vector<std::shared_ptr<Argument>> arguments;
     };
 
     extern std::shared_ptr<Package> rootPackage;

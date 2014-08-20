@@ -1,11 +1,11 @@
-#include <unordered_set>
+#include <unordered_map>
 
 #include "cpp_decl.hpp"
 #include "dlang_decls.hpp"
 
 std::shared_ptr<dlang::Type> translateType(clang::QualType);
 
-std::unordered_set<std::shared_ptr<cpp::Declaration>> translated;
+std::unordered_map<std::shared_ptr<cpp::Declaration>, std::shared_ptr<dlang::Declaration>> translated;
 
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
 {
@@ -35,10 +35,12 @@ class TranslateArgument : public cpp::ConstDeclarationVisitor
     }
 };
 
+// Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::ConstDeclarationVisitor
 {
+    std::shared_ptr<dlang::Declaration> last_result;
     public:
-    virtual void visitFunction(const cpp::FunctionDeclaration& cppDecl) override
+    std::shared_ptr<dlang::Function> translateFunction(const cpp::FunctionDeclaration& cppDecl)
     {
         std::shared_ptr<dlang::Function> d_decl = std::make_shared<dlang::Function>();
         if( cppDecl.getName().size() )
@@ -56,10 +58,14 @@ class TranslatorVisitor : public cpp::ConstDeclarationVisitor
              arg_iter != arg_end;
              ++arg_iter )
         {
-            d_decl->arguments.emplace_back(arg_iter->getName(), translateType(arg_iter->getType()));
+            // FIXME double dereference? really?
+            d_decl->arguments.push_back(translateArgument(**arg_iter));
         }
-
-        dlang::rootPackage->getOrCreateModulePath(cppDecl.getTargetModule()).insert(d_decl);
+        return d_decl;
+    }
+    virtual void visitFunction(const cpp::FunctionDeclaration& cppDecl) override
+    {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateFunction(cppDecl));
     }
 
     virtual void visitNamespace(const cpp::NamespaceDeclaration& cppDecl) override
@@ -92,9 +98,20 @@ class TranslatorVisitor : public cpp::ConstDeclarationVisitor
     virtual void visitDestructor(const cpp::DestructorDeclaration& cppDecl) override
     {
     }
+
+    std::shared_ptr<dlang::Argument> translateArgument(const cpp::ArgumentDeclaration& cppDecl)
+    {
+        std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
+        arg->name = cppDecl.getName();
+        arg->type = translateType(cppDecl.getType());
+
+        return arg;
+    }
     virtual void visitArgument(const cpp::ArgumentDeclaration& cppDecl) override
     {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateArgument(cppDecl));
     }
+
     virtual void visitVariable(const cpp::VariableDeclaration& cppDecl) override
     {
     }
@@ -115,4 +132,9 @@ void populateDAST()
 
         declaration->visit(visitor);
     }
+}
+
+// Assigns each declaration to an
+void assignDeclarationModules()
+{
 }
