@@ -114,6 +114,35 @@ namespace cpp
         { }
     };
 
+    class DeclarationIterator
+    {
+        private:
+        clang::DeclContext::decl_iterator cpp_iter;
+
+        public:
+        explicit DeclarationIterator(clang::DeclContext::decl_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const DeclarationIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const DeclarationIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        std::shared_ptr<Declaration> operator*();
+        std::shared_ptr<Declaration> operator->()
+        {
+            return operator*();
+        }
+    };
+
 #define FORALL_DECLARATIONS(func) \
 func(Function)      \
 func(Namespace)     \
@@ -207,7 +236,6 @@ func(Unwrappable)
         } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
-DECLARATION_CLASS(Namespace);
 DECLARATION_CLASS_TYPE(Record, Record);
 DECLARATION_CLASS_TYPE(Typedef, Typedef);
 DECLARATION_CLASS(Enum);
@@ -318,6 +346,43 @@ DECLARATION_CLASS_2(Var, Variable);
         virtual arg_iterator getArgumentEnd() const
         {
             return arg_iterator(_decl->param_end());
+        }
+    };
+
+    class NamespaceDeclaration : public Declaration
+    {
+        private:
+        const clang::NamespaceDecl* _decl;
+
+        public:
+        NamespaceDeclaration(const clang::NamespaceDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            throw NotTypeDecl();
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitNamespace(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitNamespace(*this);
+        }
+
+        DeclarationIterator getChildBegin()
+        {
+            return DeclarationIterator(_decl->decls_begin());
+        }
+        DeclarationIterator getChildEnd()
+        {
+            return DeclarationIterator(_decl->decls_end());
         }
     };
 
