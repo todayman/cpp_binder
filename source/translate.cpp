@@ -334,6 +334,7 @@ std::shared_ptr<dlang::Type> replaceType(std::shared_ptr<cpp::Type> cppType)
                 return replaceFunction(cppType);
 
             case cpp::Type::Record:
+                throw 24;
                 break;
             case cpp::Type::Union:
                 // TODO
@@ -475,8 +476,10 @@ std::shared_ptr<dlang::Type> replaceEnum(std::shared_ptr<cpp::Type> cppType)
     return result;
 }
 
-std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type> cppType)
+std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type>)
 {
+    // Needed for translating function types, but not declarations,
+    // so I'm putting it off until later
     throw 23;
 }
 

@@ -13,6 +13,7 @@
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
 #include "configuration.hpp"
+#include "dlang_decls.hpp"
 
 const clang::SourceManager * source_manager = nullptr;
 
@@ -54,6 +55,8 @@ int main(int argc, const char **argv)
         std::cerr << "\n";
     }
     std::cout << "There are " << cpp::DeclVisitor::getFreeDeclarations().size() << " top level decarations.\n";
+
+    populateDAST();
     // TODO force translation of all types
 
     //DOutput output;
