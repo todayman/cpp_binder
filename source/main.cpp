@@ -24,7 +24,6 @@ int main(int argc, const char **argv)
 
     std::string contents = readFile(args.header_files[0]);
     std::vector<std::string> clang_args;
-    clang_args.emplace_back("-v");
     clang_args.emplace_back("-std=c++11");
     clang_args.emplace_back("-resource-dir");
     clang_args.emplace_back("/usr/lib/clang/3.4.2");
