@@ -263,7 +263,9 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         std::shared_ptr<cpp::Type> type = cpp::Type::getByName(name);
         if( !type )
         {
-            throw 10;
+            // FIXME better error handling with stuff like localization
+            std::cerr << "WARNING: type " << name << " does not appear in the C++ source.\n";
+            return;
         }
 
         for( size_t idx = 0; idx < obj.u.object.len; ++idx )
