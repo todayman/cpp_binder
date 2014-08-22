@@ -14,11 +14,15 @@ class DOutputContext
         LIST_STARTED,
         LONG_LIST,
     } listStatus;
+    bool startingLine;
+    int indentationLevel;
 
     std::ostream& output;
 
+    void indent();
+
     public:
-    DOutputContext(std::ostream& output = std::cout);
+    DOutputContext(std::ostream& output = std::cout, int indentLevel = 0);
 
     void putItem(const std::string& text);
 
