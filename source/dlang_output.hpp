@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-class DOutput
+class DOutputContext
 {
     private:
     bool needSpaceBeforeNextItem;
@@ -18,7 +18,7 @@ class DOutput
     std::ostream& output;
 
     public:
-    DOutput(std::ostream& output = std::cout);
+    DOutputContext(std::ostream& output = std::cout);
 
     void putItem(const std::string& text);
 

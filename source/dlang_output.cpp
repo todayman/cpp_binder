@@ -2,12 +2,12 @@
 
 #include "dlang_output.hpp"
 
-DOutput::DOutput(std::ostream& strm)
+DOutputContext::DOutputContext(std::ostream& strm)
     : needSpaceBeforeNextItem(false), listStatus(NO_LIST),
       output(strm)
 { }
 
-void DOutput::putItem(const std::string& text)
+void DOutputContext::putItem(const std::string& text)
 {
     if( needSpaceBeforeNextItem )
         output << " ";
@@ -15,7 +15,7 @@ void DOutput::putItem(const std::string& text)
     needSpaceBeforeNextItem = true;
 }
 
-void DOutput::beginList()
+void DOutputContext::beginList()
 {
     if( listStatus != NO_LIST )
         throw std::runtime_error("Nested lists are not supported.");
@@ -25,14 +25,14 @@ void DOutput::beginList()
     listStatus = LIST_STARTED;
 }
 
-void DOutput::endList()
+void DOutputContext::endList()
 {
     output << ")";
     needSpaceBeforeNextItem = true;
     listStatus = NO_LIST;
 }
 
-void DOutput::listItem()
+void DOutputContext::listItem()
 {
     switch( listStatus )
     {
@@ -48,12 +48,12 @@ void DOutput::listItem()
     }
 }
 
-void DOutput::newline()
+void DOutputContext::newline()
 {
     output << "\n";
 }
 
-void DOutput::semicolon()
+void DOutputContext::semicolon()
 {
     output << ";";
 }
