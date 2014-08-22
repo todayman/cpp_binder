@@ -532,18 +532,24 @@ DECLARATION_CLASS_2(Var, Variable);
         void allocateDeclaration(SourceType * decl) {
             decl_in_progress = std::make_shared<TargetType>(decl);
             declarations.insert(std::make_pair(decl, decl_in_progress));
+            if( top_level_decls )
+            {
+                free_declarations.insert(std::static_pointer_cast<Declaration>(decl_in_progress));
+            }
         }
 
-        bool registerDeclaration(clang::Decl* cppDecl);
+        bool registerDeclaration(clang::Decl* cppDecl, bool top_level = false);
 
+        // All declarations ever
         static std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> declarations;
+        // Root level declarations, i.e. top level functions, namespaces, etc.
         static std::unordered_set<std::shared_ptr<Declaration>> free_declarations;
 
         bool top_level_decls;
         std::shared_ptr<Declaration> decl_in_progress;
         const clang::PrintingPolicy* print_policy;
 
-        bool TraverseDeclContext(clang::DeclContext * cpp_context);
+        bool TraverseDeclContext(clang::DeclContext * cpp_context, bool maintain_top_level = false);
         public:
         typedef clang::RecursiveASTVisitor<DeclVisitor> Super;
 

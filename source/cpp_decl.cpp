@@ -58,23 +58,20 @@ DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
     : Super(), top_level_decls(false), decl_in_progress(nullptr), print_policy(pp)
 { }
 
-bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl)
+bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
 {
     bool result = true;
     if( declarations.find(cppDecl) == declarations.end() )
     {
         DeclVisitor next_visitor(print_policy);
+        next_visitor.top_level_decls = top_level;
         result = next_visitor.TraverseDecl(cppDecl);
-        if( top_level_decls && declarations.find(cppDecl) != declarations.end() )
-        {
-            free_declarations.insert(declarations.find(cppDecl)->second);
-        }
     }
 
     return result;
 }
 
-bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context)
+bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_level)
 {
     bool result = true;
     clang::DeclContext::decl_iterator end = context->decls_end();
@@ -82,7 +79,7 @@ bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context)
          iter != end && result;
          ++iter )
     {
-        result = registerDeclaration(*iter);
+        result = registerDeclaration(*iter, top_level);
     }
     return result;
 }
@@ -92,7 +89,6 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
         return true;
     if( Declaration->isTemplateDecl() ) {
-       //std::cout << "Skipping templated declaration";
         switch (Declaration->getKind()) {
             case clang::Decl::Function:
             case clang::Decl::Record:
@@ -106,7 +102,6 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
             default:
                 break;
         }
-        //std::cout << ".\n";
     }
     else {
         try {
@@ -216,14 +211,14 @@ bool DeclVisitor::TraverseFunctionDecl(clang::FunctionDecl * cppDecl)
 bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl)
 {
     top_level_decls = true;
-    bool result = TraverseDeclContext(cppDecl);
+    bool result = TraverseDeclContext(cppDecl, true);
     top_level_decls = false;
     return result;
 }
 
 bool DeclVisitor::TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl)
 {
-    return TraverseDeclContext(cppDecl);
+    return TraverseDeclContext(cppDecl, top_level_decls);
 }
 
 bool DeclVisitor::TraverseEnumDecl(clang::EnumDecl* cppDecl)
@@ -270,7 +265,6 @@ bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
     // This could be an instance variable or a global
     if( !decl_in_progress )
         allocateDeclaration<clang::VarDecl, VariableDeclaration>(cppDecl);
-    top_level_decls = false;
     return Super::WalkUpFromVarDecl(cppDecl);
 }
 
