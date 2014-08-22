@@ -248,14 +248,26 @@ std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
 std::unordered_map<std::string, std::shared_ptr<dlang::Type>> types_by_name;
 std::unordered_map<std::shared_ptr<cpp::Type>, std::shared_ptr<dlang::Type>> resolved_replacements;
 
+std::shared_ptr<dlang::Type> replacePointer(std::shared_ptr<cpp::Type> cppType);
+std::shared_ptr<dlang::Type> replaceReference(std::shared_ptr<cpp::Type> cppType);
+std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType);
+std::shared_ptr<dlang::Type> replaceEnum(std::shared_ptr<cpp::Type> cppType);
+std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type> cppType);
+
 void determineStrategy(std::shared_ptr<cpp::Type> cppType)
 {
+    if( cppType->getStrategy() != UNKNOWN )
+    {
+        return;
+    }
+
     switch( cppType->getKind() )
     {
         case cpp::Type::Invalid:
             throw 16;
             break;
         case cpp::Type::Builtin:
+            throw 18;
         case cpp::Type::Pointer:
         case cpp::Type::Reference:
         case cpp::Type::Typedef:
@@ -276,7 +288,7 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
 }
 
 
-void replaceType(std::shared_ptr<cpp::Type> cppType)
+std::shared_ptr<dlang::Type> replaceType(std::shared_ptr<cpp::Type> cppType)
 {
     std::shared_ptr<dlang::Type> result;
     const std::string& replacement_name = cppType->getReplacement();
@@ -292,7 +304,143 @@ void replaceType(std::shared_ptr<cpp::Type> cppType)
         {
             result = search_result->second;
         }
+
+        return result;
     }
+    else
+    {
+        auto replacement_search = resolved_replacements.find(cppType);
+        if( replacement_search != resolved_replacements.end() )
+        {
+            return replacement_search->second;
+        }
+
+        switch( cppType->getKind() )
+        {
+            case cpp::Type::Invalid:
+                throw 16;
+                break;
+            case cpp::Type::Builtin:
+                throw 18;
+            case cpp::Type::Pointer:
+                return replacePointer(cppType);
+            case cpp::Type::Reference:
+                return replaceReference(cppType);
+            case cpp::Type::Typedef:
+                return replaceTypedef(cppType);
+            case cpp::Type::Enum:
+                return replaceEnum(cppType);
+            case cpp::Type::Function:
+                return replaceFunction(cppType);
+
+            case cpp::Type::Record:
+                break;
+            case cpp::Type::Union:
+                // TODO
+                throw 20;
+                break;
+            case cpp::Type::Array:
+                // TODO
+                throw 19;
+                break;
+            case cpp::Type::Vector:
+                throw 17;
+        }
+
+    }
+}
+
+static std::shared_ptr<dlang::Type> replacePointerOrReference(std::shared_ptr<cpp::Type> cppType, dlang::PointerType::PointerOrRef ptr_or_ref)
+{
+    const clang::Type * clang_type = cppType->cppType();
+    std::shared_ptr<cpp::Type> target_type;
+    if( ptr_or_ref == dlang::PointerType::POINTER )
+    {
+        const clang::PointerType * ptr_type = clang_type->castAs<clang::PointerType>();
+        target_type = cpp::Type::get(ptr_type->getPointeeType());
+    }
+    else if( ptr_or_ref == dlang::PointerType::REFERENCE )
+    {
+        const clang::ReferenceType * ref_type = clang_type->castAs<clang::ReferenceType>();
+        target_type = cpp::Type::get(ref_type->getPointeeType());
+    }
+    else
+    {
+        throw 21;
+    }
+    // If a strategy is already picked, then this returns immediately
+    determineStrategy(target_type);
+    bool target_is_reference_type = false;
+    switch(target_type->getStrategy())
+    {
+        case UNKNOWN:
+            throw 18;
+        case REPLACE:
+        case STRUCT:
+            target_is_reference_type = false;
+            break;
+        case INTERFACE:
+        case CLASS:
+        case OPAQUE_CLASS:
+            target_is_reference_type = true;
+        default:
+            throw 22;
+    }
+
+    std::shared_ptr<dlang::Type> result;
+    if( target_is_reference_type )
+    {
+        result = translateType(target_type);
+    }
+    else
+    {
+        std::shared_ptr<dlang::Type> translated_pointee_type = translateType(target_type);
+        result = std::shared_ptr<dlang::Type>(
+                new dlang::PointerType(
+                    translated_pointee_type, ptr_or_ref
+                ));
+    }
+
+    return result;
+}
+std::shared_ptr<dlang::Type> replacePointer(std::shared_ptr<cpp::Type> cppType)
+{
+    return replacePointerOrReference(cppType, dlang::PointerType::POINTER);
+}
+std::shared_ptr<dlang::Type> replaceReference(std::shared_ptr<cpp::Type> cppType)
+{
+    return replacePointerOrReference(cppType, dlang::PointerType::REFERENCE);
+}
+
+std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType)
+{
+    const clang::TypedefType * clang_type = cppType->cppType()->castAs<clang::TypedefType>();
+    clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
+
+    auto all_declarations = cpp::DeclVisitor::getDeclarations();
+    std::shared_ptr<cpp::TypedefDeclaration> cppDecl
+        = std::dynamic_pointer_cast<cpp::TypedefDeclaration>(
+                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+    auto search_result = translated.find(cppDecl.get());
+    std::shared_ptr<dlang::Type> result;
+    if( search_result == translated.end() )
+    {
+        TranslatorVisitor visitor("");
+        // translateTypedef does not try to place the declaration into a
+        // module or context, so this is OK to do here.  It either:
+        //  a) was already placed into the right spot
+        //  b) will get placed later, when we visit the declaration
+        result = std::static_pointer_cast<dlang::Type>(visitor.translateTypedef(*cppDecl));
+    }
+    else
+    {
+        // This cast will succeed (unless something is wrong)
+        // becuase search_result->second is really a TypeAlias, which is a Type.
+        // We're going down and then up the type hierarchy.
+        result = std::dynamic_pointer_cast<dlang::Type>(search_result->second);
+    }
+
+    return result;
 }
 
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
@@ -304,7 +452,7 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
             translateType(cppType);
             break;
         case REPLACE:
-            replaceType(cppType);
+            return replaceType(cppType);
             break;
         case STRUCT:
             break;

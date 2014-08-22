@@ -60,6 +60,25 @@ namespace dlang
         { }
     };
 
+    class PointerType : public Type
+    {
+        public:
+        enum PointerOrRef {
+            POINTER,
+            REFERENCE
+        } pointer_vs_ref;
+        std::shared_ptr<dlang::Type> target;
+        /* An idea for how to handle classes:
+        // True when the target of this pointer is a reference type, i.e. a class
+        // Usages of this type then omit the (*) or (ref) indicator
+        bool points_to_reference_type;
+        */
+
+        explicit PointerType(std::shared_ptr<dlang::Type> tgt, PointerOrRef p)
+            : pointer_vs_ref(p), target(tgt)
+        { }
+    };
+
     // Need a superclass for Module and Package to use Composite pattern
     class FileDir
     {
