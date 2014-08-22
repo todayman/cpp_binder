@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-#include "DOutput.hpp"
+#include "dlang_output.hpp"
 
 DOutput::DOutput(std::ostream& strm)
     : needSpaceBeforeNextItem(false), listStatus(NO_LIST),

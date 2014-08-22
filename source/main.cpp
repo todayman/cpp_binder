@@ -9,11 +9,11 @@
 #include "clang/Tooling/Tooling.h"
 
 #include "cli.hpp"
-#include "DOutput.hpp"
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
 #include "configuration.hpp"
 #include "dlang_decls.hpp"
+#include "dlang_output.hpp"
 
 const clang::SourceManager * source_manager = nullptr;
 
