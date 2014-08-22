@@ -55,7 +55,7 @@ bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
-    : Super(), decl_in_progress(nullptr), print_policy(pp)
+    : Super(), top_level_decls(false), decl_in_progress(nullptr), print_policy(pp)
 { }
 
 bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl)
@@ -65,6 +65,10 @@ bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl)
     {
         DeclVisitor next_visitor(print_policy);
         result = next_visitor.TraverseDecl(cppDecl);
+        if( top_level_decls && declarations.find(cppDecl) != declarations.end() )
+        {
+            free_declarations.insert(declarations.find(cppDecl)->second);
+        }
     }
 
     return result;
@@ -211,17 +215,9 @@ bool DeclVisitor::TraverseFunctionDecl(clang::FunctionDecl * cppDecl)
 
 bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl)
 {
+    top_level_decls = true;
     bool result = TraverseDeclContext(cppDecl);
-    clang::DeclContext::decl_iterator end = cppDecl->decls_end();
-    for( clang::DeclContext::decl_iterator iter = cppDecl->decls_begin();
-         iter != end && result;
-         ++iter )
-    {
-        // TODO do I need to check that declarations.find() returns a valid result?
-        // I think it throws an exception, or produces an UnwrappableDeclaration,
-        // but I should double check.
-        free_declarations.insert(declarations.find(*iter)->second);
-    }
+    top_level_decls = false;
     return result;
 }
 
@@ -274,6 +270,7 @@ bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
     // This could be an instance variable or a global
     if( !decl_in_progress )
         allocateDeclaration<clang::VarDecl, VariableDeclaration>(cppDecl);
+    top_level_decls = false;
     return Super::WalkUpFromVarDecl(cppDecl);
 }
 

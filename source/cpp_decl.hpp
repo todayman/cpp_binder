@@ -539,6 +539,7 @@ DECLARATION_CLASS_2(Var, Variable);
         static std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> declarations;
         static std::unordered_set<std::shared_ptr<Declaration>> free_declarations;
 
+        bool top_level_decls;
         std::shared_ptr<Declaration> decl_in_progress;
         const clang::PrintingPolicy* print_policy;
 
