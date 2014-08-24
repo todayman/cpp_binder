@@ -4,33 +4,40 @@
 #include <iostream>
 #include <string>
 
-class DOutputContext
+#include "dlang_decls.hpp"
+
+namespace dlang
 {
-    private:
-    bool needSpaceBeforeNextItem;
+    class DOutputContext
+    {
+        private:
+        bool needSpaceBeforeNextItem;
 
-    enum {
-        NO_LIST,
-        LIST_STARTED,
-        LONG_LIST,
-    } listStatus;
-    bool startingLine;
-    int indentationLevel;
+        enum {
+            NO_LIST,
+            LIST_STARTED,
+            LONG_LIST,
+        } listStatus;
+        bool startingLine;
+        int indentationLevel;
 
-    std::ostream& output;
+        std::ostream& output;
 
-    void indent();
+        void indent();
 
-    public:
-    DOutputContext(std::ostream& output = std::cout, int indentLevel = 0);
+        public:
+        DOutputContext(std::ostream& output = std::cout, int indentLevel = 0);
 
-    void putItem(const std::string& text);
+        void putItem(const std::string& text);
 
-    void beginList();
-    void endList();
-    void listItem();
-    void newline();
-    void semicolon();
-};
+        void beginList();
+        void endList();
+        void listItem();
+        void newline();
+        void semicolon();
+    };
+}
+
+void produceOutputForPackage(dlang::Package& pack);
 
 #endif // __DOUTPUT_HPP__

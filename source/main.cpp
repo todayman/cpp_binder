@@ -60,6 +60,7 @@ int main(int argc, const char **argv)
     // TODO force translation of all types
 
     //DOutput output;
+    produceOutputForPackage(*dlang::rootPackage);
 
     //funcVisitor.outputTranslatedFunctionDeclarations(output);
 
