@@ -22,8 +22,8 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType);
 class TranslatorVisitor : public cpp::DeclarationVisitor
 {
     std::string parent_package_name;
-    std::shared_ptr<dlang::Declaration> last_result;
     public:
+    std::shared_ptr<dlang::Declaration> last_result;
 
     explicit TranslatorVisitor(std::string parent)
         : parent_package_name(parent), last_result()
@@ -232,15 +232,22 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 void populateDAST()
 {
     // May cause problems because root package won't check for empty path.
-    TranslatorVisitor visitor("");
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
+        TranslatorVisitor visitor("");
         if( !declaration->getShouldBind() || translated.count(declaration.get()) )
         {
             continue;
         }
 
         declaration->visit(visitor);
+        std::string target_module = declaration->getTargetModule();
+        if( target_module.size() == 0 )
+        {
+            target_module = "unknown";
+        }
+        std::shared_ptr<dlang::Module> module = dlang::rootPackage->getOrCreateModulePath(target_module);
+        module->insert(visitor.last_result);
     }
 }
 
