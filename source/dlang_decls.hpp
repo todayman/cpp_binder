@@ -20,6 +20,50 @@ namespace dlang
         EXPORT,
     };
 
+    class Package;
+    class Module;
+    class Function;
+    class Argument;
+    class Variable;
+    class Interface;
+    class Struct;
+    class Class;
+    class TypeAlias;
+    class EnumConstant;
+    class Enum;
+
+    class StringType;
+    class PointerType;
+
+    class PackageVisitor
+    {
+        public:
+        virtual void visitPackage(const dlang::Package& package) = 0;
+        virtual void visitModule(const dlang::Module& module) = 0;
+    };
+    class DeclarationVisitor
+    {
+        public:
+        virtual void visitFunction(const Function&) = 0;
+        virtual void visitArgument(const Argument&) = 0;
+        virtual void visitVariable(const Variable&) = 0;
+        virtual void visitInterface(const Interface&) = 0;
+        virtual void visitStruct(const Struct&) = 0;
+        virtual void visitClass(const Class&) = 0;
+        virtual void visitTypeAlias(const TypeAlias&) = 0;
+        virtual void visitEnum(const Enum&) = 0;
+        virtual void visitEnumConstant(const EnumConstant&) = 0;
+    };
+    class TypeVisitor
+    {
+        public:
+        virtual void visitString(const StringType&) = 0;
+        virtual void visitStruct(const Struct&) = 0;
+        virtual void visitTypeAlias(const TypeAlias&) = 0;
+        virtual void visitEnum(const Enum&) = 0;
+        virtual void visitPointer(const PointerType&) = 0;
+    };
+
     class DeclarationContainer;
 
     class Declaration
@@ -29,6 +73,8 @@ namespace dlang
         std::shared_ptr<DeclarationContainer> parent;
         Visibility visibility;
         virtual ~Declaration() { }
+
+        virtual void visit(DeclarationVisitor& visitor) const = 0;
     };
 
     class DeclarationContainer
@@ -42,6 +88,11 @@ namespace dlang
         {
             children.push_back(decl);
         }
+
+        const decltype(children)& getChildren() const
+        {
+            return children;
+        }
     };
 
     // Needs to be separate from declarations for builtins like int that don't have declarations
@@ -49,6 +100,8 @@ namespace dlang
     {
         public:
         virtual ~Type() = default;
+
+        virtual void visit(TypeVisitor& visitor) const = 0;
     };
 
     class StringType : public Type
@@ -58,6 +111,11 @@ namespace dlang
         explicit StringType(std::string n)
             : name(n)
         { }
+
+        virtual void visit(TypeVisitor& visitor) const override
+        {
+            visitor.visitString(*this);
+        }
     };
 
     class PointerType : public Type
@@ -77,6 +135,11 @@ namespace dlang
         explicit PointerType(std::shared_ptr<dlang::Type> tgt, PointerOrRef p)
             : pointer_vs_ref(p), target(tgt)
         { }
+
+        virtual void visit(TypeVisitor& visitor) const override
+        {
+            visitor.visitPointer(*this);
+        }
     };
 
     // Need a superclass for Module and Package to use Composite pattern
@@ -84,6 +147,8 @@ namespace dlang
     {
         public:
         virtual ~FileDir() { }
+
+        virtual void visit(PackageVisitor& visitor) const = 0;
     };
 
     class Module : public DeclarationContainer, public FileDir
@@ -98,6 +163,11 @@ namespace dlang
         const std::string& getName() const
         {
             return name;
+        }
+
+        virtual void visit(PackageVisitor& visitor) const override
+        {
+            visitor.visitModule(*this);
         }
     };
 
@@ -125,6 +195,21 @@ namespace dlang
         explicit Package(std::string n)
             : name(n), children()
         { }
+
+        const std::string& getName() const
+        {
+            return name;
+        }
+
+        const decltype(children)& getChildren() const
+        {
+            return children;
+        }
+
+        virtual void visit(PackageVisitor& visitor) const override
+        {
+            visitor.visitPackage(*this);
+        }
 
         // These return weak pointers because every package is owned by its
         // parent, and the root package owns all the top level packages.
@@ -221,12 +306,26 @@ namespace dlang
 
     class Struct : public Declaration, public Type, public DeclarationContainer
     {
+        public:
+        virtual void visit(TypeVisitor& visitor) const override
+        {
+            visitor.visitStruct(*this);
+        }
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitStruct(*this);
+        }
     };
 
     class Class : public Declaration
     {
         public:
         std::vector<std::shared_ptr<Declaration>> members;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitClass(*this);
+        }
     };
 
     class Interface : public Declaration
@@ -239,12 +338,22 @@ namespace dlang
     {
         public:
         std::shared_ptr<Type> type;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitVariable(*this);
+        }
     };
 
     class Argument : public Declaration
     {
         public:
         std::shared_ptr<Type> type;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitArgument(*this);
+        }
     };
 
     class Function : public Declaration
@@ -252,18 +361,37 @@ namespace dlang
         public:
         std::shared_ptr<Type> return_type;
         std::vector<std::shared_ptr<Argument>> arguments;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitFunction(*this);
+        }
     };
 
     class TypeAlias : public Declaration, public Type
     {
         public:
         std::shared_ptr<Type> target_type;
+
+        virtual void visit(TypeVisitor& visitor) const override
+        {
+            visitor.visitTypeAlias(*this);
+        }
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitTypeAlias(*this);
+        }
     };
 
     class EnumConstant : public Declaration
     {
         public:
         llvm::APSInt value;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitEnumConstant(*this);
+        }
     };
 
     class Enum : public Declaration, public Type
@@ -271,6 +399,15 @@ namespace dlang
         public:
         std::shared_ptr<Type> type;
         std::vector<std::shared_ptr<EnumConstant>> values;
+
+        virtual void visit(TypeVisitor& visitor) const override
+        {
+            visitor.visitEnum(*this);
+        }
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitEnum(*this);
+        }
     };
 
     extern std::shared_ptr<Package> rootPackage;
