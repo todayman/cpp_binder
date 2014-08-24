@@ -306,6 +306,11 @@ DECLARATION_CLASS_2(Var, Variable);
             visitor.visitFunction(*this);
         }
 
+        clang::LanguageLinkage getLinkLanguage() const
+        {
+            return _decl->getLanguageLinkage();
+        }
+
         virtual std::shared_ptr<Type> getReturnType() const
         {
             // TODO changes to getReturnType in clang 3.5

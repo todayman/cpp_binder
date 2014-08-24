@@ -108,7 +108,24 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
     virtual void visitFunction(const dlang::Function& function) override
     {
-        output.putItem("extern(C++)");
+        if( function.linkage.lang == dlang::LANG_C )
+        {
+            output.putItem("extern(C)");
+        }
+        else if( function.linkage.lang == dlang::LANG_CPP )
+        {
+            if( function.linkage.name_space.size() > 0 )
+            {
+                output.putItem(std::string("extern(C++, ") + function.linkage.name_space + ")");
+            }
+            else
+            {
+                output.putItem("extern(C++)");
+            }
+        }
+        else {
+            throw 25;
+        }
         TypeWriter type(output);
         function.return_type->visit(type);
 

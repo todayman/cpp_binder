@@ -95,6 +95,18 @@ namespace dlang
         }
     };
 
+    enum Language
+    {
+        LANG_C,
+        LANG_CPP
+    };
+
+    struct Linkage
+    {
+        Language lang;
+        std::string name_space;
+    };
+
     // Needs to be separate from declarations for builtins like int that don't have declarations
     class Type
     {
@@ -361,6 +373,7 @@ namespace dlang
         public:
         std::shared_ptr<Type> return_type;
         std::vector<std::shared_ptr<Argument>> arguments;
+        Linkage linkage;
 
         virtual void visit(DeclarationVisitor& visitor) const override
         {

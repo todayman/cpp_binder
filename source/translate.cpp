@@ -18,15 +18,33 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType);
         }
 // ^ This cast failing is a huge internal programmer error
 
+static dlang::Linkage translateLinkage(cpp::FunctionDeclaration& cppDecl)
+{
+    dlang::Linkage result;
+    if( cppDecl.getLinkLanguage() == clang::CLanguageLinkage )
+    {
+        result.lang = dlang::LANG_C;
+    }
+    else if( cppDecl.getLinkLanguage() == clang::CXXLanguageLinkage )
+    {
+        result.lang = dlang::LANG_CPP;
+    }
+    else
+    {
+        throw 26;
+    }
+    return result;
+}
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::DeclarationVisitor
 {
     std::string parent_package_name;
+    std::string namespace_path;
     public:
     std::shared_ptr<dlang::Declaration> last_result;
 
-    explicit TranslatorVisitor(std::string parent)
-        : parent_package_name(parent), last_result()
+    explicit TranslatorVisitor(std::string parent, std::string nsp)
+        : parent_package_name(parent), namespace_path(nsp), last_result()
     { }
 
     std::shared_ptr<dlang::Function> translateFunction(cpp::FunctionDeclaration& cppDecl)
@@ -34,6 +52,10 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(Function)
 
         std::shared_ptr<dlang::Function> d_decl = std::make_shared<dlang::Function>();
+        // Set the linkage attributes for this function
+        d_decl->linkage = translateLinkage(cppDecl);
+        d_decl->linkage.name_space = namespace_path;
+
         if( cppDecl.getName().size() )
         {
             d_decl->name = cppDecl.getName();
@@ -96,8 +118,10 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             }
         }
 
+        // This is the translated name, but really I want the C++ name
+        std::string this_namespace_path = namespace_path + "::" + module->getName();
         // visit and translate all of the children
-        TranslatorVisitor subpackage_visitor(this_package_name);
+        TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
         for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              children_iter != children_end;
