@@ -258,7 +258,7 @@ void populateDAST()
     // May cause problems because root package won't check for empty path.
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
-        TranslatorVisitor visitor("");
+        TranslatorVisitor visitor("", "");
         if( !declaration->getShouldBind() || translated.count(declaration.get()) )
         {
             continue;
@@ -457,7 +457,7 @@ std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType)
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
     {
-        TranslatorVisitor visitor("");
+        TranslatorVisitor visitor("", "");
         // translateTypedef does not try to place the declaration into a
         // module or context, so this is OK to do here.  It either:
         //  a) was already placed into the right spot
@@ -489,7 +489,7 @@ std::shared_ptr<dlang::Type> replaceEnum(std::shared_ptr<cpp::Type> cppType)
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
     {
-        TranslatorVisitor visitor("");
+        TranslatorVisitor visitor("", "");
         // translateTypedef does not try to place the declaration into a
         // module or context, so this is OK to do here.  It either:
         //  a) was already placed into the right spot
