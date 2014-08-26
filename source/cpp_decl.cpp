@@ -282,6 +282,7 @@ WALK_UP(CXXDestructor, Destructor)
 WALK_UP(ParmVar, Argument)
 WALK_UP(Enum, Enum)
 WALK_UP(EnumConstant, EnumConstant)
+WALK_UP(Field, Field)
 
 bool DeclVisitor::VisitParmVarDecl(clang::ParmVarDecl* cppDecl)
 {

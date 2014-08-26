@@ -595,6 +595,7 @@ DECLARATION_CLASS_2(Var, Variable);
         bool WalkUpFromEnumDecl(clang::EnumDecl* cppDecl);
         bool WalkUpFromEnumConstantDecl(clang::EnumConstantDecl* cppDecl);
         bool WalkUpFromVarDecl(clang::VarDecl* cppDecl);
+        bool WalkUpFromFieldDecl(clang::FieldDecl* cppDecl);
 
         // Also gets cxx method/ctor/dtor
         bool VisitFunctionDecl(clang::FunctionDecl * Declaration);
