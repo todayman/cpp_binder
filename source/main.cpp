@@ -48,12 +48,6 @@ int main(int argc, const char **argv)
     }
 
     std::cout << "\n\n";
-    for( auto decl : cpp::DeclVisitor::getFreeDeclarations() )
-    {
-        std::cerr << "- ";
-        decl->decl()->dump();
-        std::cerr << "\n";
-    }
     std::cout << "There are " << cpp::DeclVisitor::getFreeDeclarations().size() << " top level decarations.\n";
 
     populateDAST();
