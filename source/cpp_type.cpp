@@ -110,22 +110,26 @@ WALK_UP_METHOD(Enum);
 
 bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* cppType)
 {
+    allocateType(cppType, Type::Invalid);
     throw SkipRValueRef(cppType);
 }
 
 bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* cppType)
 {
+    allocateType(cppType, Type::Invalid);
     throw SkipMemberPointer(cppType);
 }
 
 bool TypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* cppType)
 {
-    throw SkipTemplate(cppType);
+    allocateType(cppType, Type::Invalid);
+    return false;
 }
 
 bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* cppType)
 {
-    throw SkipTemplate(cppType);
+    allocateType(cppType, Type::Invalid);
+    return false;
 }
 
 bool TypeVisitor::WalkUpFromType(clang::Type* type)
@@ -240,15 +244,18 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
-    throw SkipTemplate(type);
+    allocateType(type, Type::Invalid);
+    return false;
 }
 
 bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
 {
-    throw SkipTemplate(type);
+    allocateType(type, Type::Invalid);
+    return false;
 }
 
 bool TypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
 {
-    throw SkipTemplate(type);
+    allocateType(type, Type::Invalid);
+    return false;
 }
