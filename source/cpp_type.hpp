@@ -57,7 +57,7 @@ namespace cpp
         public:
         static void printTypeNames();
         explicit Type(const clang::Type* t, Kind k)
-            : cpp_type(t), kind(k)
+            : cpp_type(t), kind(k), strategy(UNKNOWN), target_name()
         { }
 
         Type(const Type&) = delete;
