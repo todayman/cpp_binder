@@ -20,8 +20,11 @@ void Type::printTypeNames()
         std::cout << p.first << "\n";
     }
 }
+
+namespace std {
 template<>
-struct std::hash<clang::BuiltinType::Kind> : public std::hash<unsigned> { };
+struct hash<clang::BuiltinType::Kind> : public hash<unsigned> { };
+}
 
 std::shared_ptr<Type> Type::get(clang::QualType qType, const clang::PrintingPolicy* printPolicy)
 {
@@ -82,8 +85,8 @@ bool TypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
     allocateType(type, Type::KIND); \
     return Super::WalkUpFrom##KIND##Type(type); \
 }
-WALK_UP_METHOD(Builtin);
-WALK_UP_METHOD(Pointer);
+WALK_UP_METHOD(Builtin)
+WALK_UP_METHOD(Pointer)
 bool TypeVisitor::WalkUpFromLValueReferenceType( clang::LValueReferenceType* type)
 {
     allocateType(type, Type::Reference);
@@ -102,11 +105,11 @@ bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
     }
     return Super::WalkUpFromRecordType(type);
 }
-WALK_UP_METHOD(Array);
-WALK_UP_METHOD(Function);
-WALK_UP_METHOD(Typedef);
-WALK_UP_METHOD(Vector);
-WALK_UP_METHOD(Enum);
+WALK_UP_METHOD(Array)
+WALK_UP_METHOD(Function)
+WALK_UP_METHOD(Typedef)
+WALK_UP_METHOD(Vector)
+WALK_UP_METHOD(Enum)
 
 bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* cppType)
 {
