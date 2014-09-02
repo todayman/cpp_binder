@@ -227,6 +227,15 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
         arg->name = cppDecl.getName();
         arg->type = translateType(cppDecl.getType());
+        if( arg->type == nullptr )
+        {
+            std::cout << "Translating type failed!\n";
+            std::cout << "Get type = " << cppDecl.getType() << "\n";
+            clang::dyn_cast<clang::ParmVarDecl>(cppDecl.decl())->getType().getTypePtrOrNull()->dump();
+
+            translateType(cppDecl.getType());
+            throw 26;
+        }
 
         return arg;
     }
@@ -271,7 +280,8 @@ void populateDAST()
             target_module = "unknown";
         }
         std::shared_ptr<dlang::Module> module = dlang::rootPackage->getOrCreateModulePath(target_module);
-        module->insert(visitor.last_result);
+        if( visitor.last_result )
+            module->insert(visitor.last_result);
     }
 }
 
@@ -279,6 +289,7 @@ std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
 std::unordered_map<std::string, std::shared_ptr<dlang::Type>> types_by_name;
 std::unordered_map<std::shared_ptr<cpp::Type>, std::shared_ptr<dlang::Type>> resolved_replacements;
 
+void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replacePointer(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replaceReference(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType);
@@ -308,8 +319,10 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
             break;
 
         case cpp::Type::Record:
+            determineRecordStrategy(cppType);
             break;
         case cpp::Type::Union:
+            cppType->chooseReplaceStrategy(""); // FIXME see note for Function
             break;
         case cpp::Type::Array:
             break;
@@ -318,6 +331,76 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
     }
 }
 
+static bool isCXXRecord(const clang::Decl* decl)
+{
+    // This set is of all the DeclKinds that are subclasses of CXXRecord
+    #define ABSTRACT_DECL(Type)
+    #define DECL(Type, Base)
+    #define CXXRECORD(Type, Base)   clang::Decl::Type,
+    static std::unordered_set<int> CXXRecordKinds({
+    #include "clang/AST/DeclNodes.inc"
+            });
+    #undef CXXRECORD
+    #undef DECL
+    #undef ABSTRACT_DECL
+    return CXXRecordKinds.count(decl->getKind()) > 0;
+}
+
+void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
+{
+    // First algorithm:
+    // If the record has any virtual functions, then map it as an interface,
+    // otherwise keep it as a struct
+    // This ignores things like the struct default constructor,
+    // so it's not perfect
+
+    const clang::RecordType * cpp_record = cppType->cppType()->castAs<clang::RecordType>();
+    std::shared_ptr<cpp::RecordDeclaration> cpp_decl =
+        std::dynamic_pointer_cast<cpp::RecordDeclaration>(
+                cpp::DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
+                );
+
+    std::cout << "sizeof(CXXRecordDecl) = " << sizeof(clang::CXXRecordDecl) << "\n";
+    std::cout << "Record " << cpp_decl->getName() << " at " << cpp_decl->decl() << "\n";
+    std::cout << cpp_decl->decl()->getDeclKindName() << "\n";
+    std::cout << "Definition: " << clang::dyn_cast<clang::RecordDecl>(cpp_decl->decl())->getDefinition() << "\n";
+    const clang::CXXRecordDecl * clang_decl = clang::dyn_cast<clang::CXXRecordDecl>(cpp_decl->decl());
+    std::cout << clang_decl + 2 << "\n";
+    std::cout << (clang_decl + 2)->clang::Decl::getDeclKindName() << "\n";
+    std::cout << *(clang_decl->decls_begin()) << "\n";
+    std::cout << "count = " << std::distance(clang_decl->decls_begin(), clang_decl->decls_end()) << "\n";
+    for( clang::DeclContext::decl_iterator iter = clang_decl->decls_begin(),
+                                  finish = clang_decl->decls_end();
+         iter != finish;
+         ++iter )
+    {
+        std::cout << "Found child " << reinterpret_cast<clang::NamedDecl*>(*iter)->getNameAsString() << "\n";
+        std::cout << "Child is kind " << (*iter)->getDeclKindName() << "\n";
+    }
+    for( cpp::DeclarationIterator iter = cpp_decl->getChildBegin(),
+                                  finish = cpp_decl->getChildEnd();
+         iter != finish;
+         ++iter )
+    {
+        std::cout << "Found child " << (*iter)->getName() << "\n";
+    }
+    if( !isCXXRecord(cpp_decl->decl()) )
+    {
+        cppType->setStrategy(STRUCT);
+    }
+    else
+    {
+        const clang::CXXRecordDecl* cxxRecord = reinterpret_cast<const clang::CXXRecordDecl*>(cpp_decl->decl());
+        if( cxxRecord->isDynamicClass() )
+        {
+            cppType->setStrategy(INTERFACE);
+        }
+        else
+        {
+            cppType->setStrategy(STRUCT);
+        }
+    }
+}
 
 std::shared_ptr<dlang::Type> replaceType(std::shared_ptr<cpp::Type> cppType)
 {
@@ -415,6 +498,7 @@ static std::shared_ptr<dlang::Type> replacePointerOrReference(std::shared_ptr<cp
         case CLASS:
         case OPAQUE_CLASS:
             target_is_reference_type = true;
+            break;
         default:
             throw 22;
     }
@@ -435,6 +519,7 @@ static std::shared_ptr<dlang::Type> replacePointerOrReference(std::shared_ptr<cp
 
     return result;
 }
+
 std::shared_ptr<dlang::Type> replacePointer(std::shared_ptr<cpp::Type> cppType)
 {
     return replacePointerOrReference(cppType, dlang::PointerType::POINTER);
@@ -520,7 +605,7 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
     {
         case UNKNOWN:
             determineStrategy(cppType);
-            translateType(cppType);
+            return translateType(cppType);
             break;
         case REPLACE:
             return replaceType(cppType);
@@ -535,5 +620,7 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
             break;
     }
 
+    std::cout << "Cannot translate type with strategy " << cppType->getStrategy() << "\n";
+    throw 27;
     return std::shared_ptr<dlang::Type>();
 }
