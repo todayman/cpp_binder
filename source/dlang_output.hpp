@@ -27,6 +27,7 @@ namespace dlang
 
         public:
         DOutputContext(std::ostream& output = std::cout, int indentLevel = 0);
+        DOutputContext(DOutputContext& ctx, int extraIndent = 0);
 
         void putItem(const std::string& text);
 

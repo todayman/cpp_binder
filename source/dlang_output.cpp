@@ -11,6 +11,12 @@ dlang::DOutputContext::DOutputContext(std::ostream& strm, int indentLevel)
       startingLine(true), indentationLevel(indentLevel), output(strm)
 { }
 
+dlang::DOutputContext::DOutputContext(dlang::DOutputContext& ctx, int extraIndent)
+    : needSpaceBeforeNextItem(false), listStatus(NO_LIST),
+      startingLine(true), indentationLevel(ctx.indentationLevel + extraIndent),
+      output(ctx.output)
+{ }
+
 void dlang::DOutputContext::indent()
 {
     for( int i = 0; i < indentationLevel; ++i )
@@ -100,10 +106,10 @@ class TypeWriter : public dlang::TypeVisitor
 
 class DeclarationWriter : public dlang::DeclarationVisitor
 {
-    dlang::DOutputContext output;
+    dlang::DOutputContext& output;
     public:
-    explicit DeclarationWriter(std::ostream& o, int indentLevel)
-        : output(o, indentLevel)
+    explicit DeclarationWriter(dlang::DOutputContext& ctx)
+        : output(ctx)
     { }
 
     virtual void visitFunction(const dlang::Function& function) override
@@ -154,7 +160,27 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     }
     virtual void visitVariable(const dlang::Variable&) override { }
     virtual void visitInterface(const dlang::Interface&) override { }
-    virtual void visitStruct(const dlang::Struct&) override { }
+
+    virtual void visitStruct(const dlang::Struct& structure) override
+    {
+        output.putItem("struct");
+        output.putItem(structure.name);
+        output.newline();
+
+        output.putItem("{");
+        output.newline();
+
+        dlang::DOutputContext innerContext(output, 4);
+        DeclarationWriter innerWriter(innerContext);
+        for( auto field : structure.getChildren() )
+        {
+            field->visit(innerWriter);
+        }
+
+        output.putItem("}");
+        output.newline();
+    }
+
     virtual void visitClass(const dlang::Class&) override { }
     virtual void visitTypeAlias(const dlang::TypeAlias&) override { }
     virtual void visitEnum(const dlang::Enum&) override { }
@@ -224,7 +250,8 @@ class PackageWriter : public dlang::PackageVisitor
 
         for( std::shared_ptr<dlang::Declaration> decl : module.getChildren() )
         {
-            DeclarationWriter writer(outputFile, 0);
+            dlang::DOutputContext output(outputFile, 0);
+            DeclarationWriter writer(output);
             decl->visit(writer);
         }
     }
