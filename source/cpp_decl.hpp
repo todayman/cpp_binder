@@ -653,7 +653,7 @@ DECLARATION_CLASS_2(Var, Variable);
         std::shared_ptr<Declaration> decl_in_progress;
         const clang::PrintingPolicy* print_policy;
 
-        bool TraverseDeclContext(clang::DeclContext * cpp_context, bool top_level = false, bool verbose = false);
+        bool TraverseDeclContext(clang::DeclContext * cpp_context, bool top_level = false);
         bool TraverseFieldHelper(clang::CXXRecordDecl* record, bool top_level);
         bool TraverseMethodHelper(clang::CXXRecordDecl* record, bool top_level);
         bool TraverseCtorHelper(clang::CXXRecordDecl* record, bool top_level);

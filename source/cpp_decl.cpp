@@ -25,14 +25,6 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
 std::shared_ptr<cpp::Declaration> cpp::DeclarationIterator::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
-    if( search_result == DeclVisitor::getDeclarations().end() )
-    {
-        std::cout << "*****\n";
-        std::cout << *cpp_iter << "\n";
-        std::cout << clang::dyn_cast<clang::RecordDecl>(*cpp_iter)->getDefinition() << "\n";
-        std::cout << reinterpret_cast<clang::NamedDecl*>(*cpp_iter)->getNameAsString() << "\n";
-        std::cout << "Could not find declaration object!\n";
-    }
     return search_result->second;
 }
 
@@ -44,10 +36,6 @@ std::shared_ptr<cpp::ArgumentDeclaration> cpp::FunctionDeclaration::arg_iterator
 std::shared_ptr<cpp::FieldDeclaration> cpp::FieldIterator::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
-    if( search_result == DeclVisitor::getDeclarations().end() )
-    {
-        std::cout << "Could not find declaration object!\n";
-    }
     std::shared_ptr<cpp::Declaration> decl = search_result->second;
     return std::dynamic_pointer_cast<cpp::FieldDeclaration>(decl);
 }
@@ -107,7 +95,7 @@ bool DeclVisitor::Traverse##Title##Helper(TYPE* context, bool top_level) \
     return result; \
 }
 
-bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_level, bool verbose)
+bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_level)
 {
     bool result = true;
     clang::DeclContext::decl_iterator end = context->decls_end();
@@ -115,10 +103,6 @@ bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_leve
          iter != end && result;
          ++iter )
     {
-        if( verbose )
-        {
-            std::cout << (*iter)->getDeclKindName() << " " << reinterpret_cast<clang::NamedDecl*>(*iter)->getNameAsString() << " " << *iter << "\n";
-        }
         result = registerDeclaration(*iter, top_level);
     }
     return result;
@@ -176,7 +160,7 @@ bool DeclVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl)
 {
     if( !WalkUpFromCXXRecordDecl(cppDecl) ) return false;
 
-    if( !TraverseDeclContext(cppDecl, false, cppDecl->getNameAsString() == "CLIArguments") ) return false;
+    if( !TraverseDeclContext(cppDecl, false) ) return false;
     if( !TraverseFieldHelper(cppDecl, false) ) return false;
     if( !TraverseMethodHelper(cppDecl, false) ) return false;
     if( !TraverseCtorHelper(cppDecl, false) ) return false;

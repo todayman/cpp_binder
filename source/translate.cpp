@@ -227,15 +227,6 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
         arg->name = cppDecl.getName();
         arg->type = translateType(cppDecl.getType());
-        if( arg->type == nullptr )
-        {
-            std::cout << "Translating type failed!\n";
-            std::cout << "Get type = " << cppDecl.getType() << "\n";
-            clang::dyn_cast<clang::ParmVarDecl>(cppDecl.decl())->getType().getTypePtrOrNull()->dump();
-
-            translateType(cppDecl.getType());
-            throw 26;
-        }
 
         return arg;
     }
@@ -360,30 +351,6 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
                 cpp::DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
                 );
 
-    std::cout << "sizeof(CXXRecordDecl) = " << sizeof(clang::CXXRecordDecl) << "\n";
-    std::cout << "Record " << cpp_decl->getName() << " at " << cpp_decl->decl() << "\n";
-    std::cout << cpp_decl->decl()->getDeclKindName() << "\n";
-    std::cout << "Definition: " << clang::dyn_cast<clang::RecordDecl>(cpp_decl->decl())->getDefinition() << "\n";
-    const clang::CXXRecordDecl * clang_decl = clang::dyn_cast<clang::CXXRecordDecl>(cpp_decl->decl());
-    std::cout << clang_decl + 2 << "\n";
-    std::cout << (clang_decl + 2)->clang::Decl::getDeclKindName() << "\n";
-    std::cout << *(clang_decl->decls_begin()) << "\n";
-    std::cout << "count = " << std::distance(clang_decl->decls_begin(), clang_decl->decls_end()) << "\n";
-    for( clang::DeclContext::decl_iterator iter = clang_decl->decls_begin(),
-                                  finish = clang_decl->decls_end();
-         iter != finish;
-         ++iter )
-    {
-        std::cout << "Found child " << reinterpret_cast<clang::NamedDecl*>(*iter)->getNameAsString() << "\n";
-        std::cout << "Child is kind " << (*iter)->getDeclKindName() << "\n";
-    }
-    for( cpp::DeclarationIterator iter = cpp_decl->getChildBegin(),
-                                  finish = cpp_decl->getChildEnd();
-         iter != finish;
-         ++iter )
-    {
-        std::cout << "Found child " << (*iter)->getName() << "\n";
-    }
     if( !isCXXRecord(cpp_decl->decl()) )
     {
         cppType->setStrategy(STRUCT);
