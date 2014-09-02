@@ -266,21 +266,21 @@ namespace dlang
         {
             ConstIterator end_of_first_element;
             auto search_result = findChild(start, finish, end_of_first_element);
-            std::string name(start, finish);
             if( search_result == children.end() )
             {
+                std::string next_name(start, end_of_first_element);
                 // Create
                 if( end_of_first_element == finish )
                 {
-                    std::shared_ptr<Module> mod = std::make_shared<Module>(name);
+                    std::shared_ptr<Module> mod = std::make_shared<Module>(next_name);
                     std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(mod);
-                    children.insert(std::make_pair(name, result));
+                    children.insert(std::make_pair(next_name, result));
                     return mod;
                 }
                 else {
-                    std::shared_ptr<Package> package = std::make_shared<Package>(name);
+                    std::shared_ptr<Package> package = std::make_shared<Package>(next_name);
                     std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(package);
-                    children.insert(std::make_pair(name, result));
+                    children.insert(std::make_pair(next_name, result));
                     return package->getOrCreateModulePath(end_of_first_element + 1, finish);
                 }
             }
