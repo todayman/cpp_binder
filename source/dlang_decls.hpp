@@ -303,10 +303,17 @@ namespace dlang
             }
             else
             {
-                std::shared_ptr<Package> package = std::make_shared<Package>(name);
-                std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(package);
-                children.insert(std::make_pair(name, result));
-                return package->getOrCreateModulePath(end_of_first_element + 1, finish);
+                // entry exists, and this is the end of the path
+                std::shared_ptr<Module> module = std::dynamic_pointer_cast<Module>(search_result->second);
+                if( !module )
+                {
+                    // This is a package, but expected a module
+                    throw 13; // TODO
+                }
+                else
+                {
+                    return module;
+                }
             }
         }
 
