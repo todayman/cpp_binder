@@ -12,6 +12,10 @@
 #include "cpp_type.hpp"
 #include "cpp_exception.hpp"
 
+// TODO These are basically the same as the ones
+// in dlang_decls.hpp.  I should have a better model
+// for separating out attributes set from configuration files
+// and what gets parsed by clang.
 enum Visibility
 {
     UNSET = 0,
@@ -31,6 +35,7 @@ namespace cpp
     // classes, etc.
     class Declaration
     {
+        protected:
         // We still want to know about things we can't wrap,
         // like templates, but they'll get skipped later on
         bool is_wrappable;
@@ -97,6 +102,10 @@ namespace cpp
             return target_module;
         }
 
+        virtual ::Visibility getVisibility() const
+        {
+            return visibility;
+        }
         void setVisibility(Visibility vis)
         {
             visibility = vis;
@@ -505,6 +514,33 @@ DECLARATION_CLASS_2(Var, Variable);
         { }
         virtual const clang::Decl* decl() override {
             return _decl;
+        }
+
+        // Fields can infer visibility from C++ AST
+        virtual ::Visibility getVisibility() const override
+        {
+            if( visibility == UNSET )
+            {
+                switch( _decl->getAccess() )
+                {
+                    case clang::AS_public:
+                        return ::PUBLIC;
+                    case clang::AS_private:
+                        return ::PRIVATE;
+                    case clang::AS_protected:
+                        return ::PROTECTED;
+                    case clang::AS_none:
+                        // This means different things in different contexts,
+                        // and I don't know what any of them are.
+                        throw 29;
+                    default:
+                        throw 30;
+                }
+            }
+            else
+            {
+                return visibility;
+            }
         }
 
         virtual std::shared_ptr<Type> getType() const override
