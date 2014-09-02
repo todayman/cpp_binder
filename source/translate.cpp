@@ -10,6 +10,8 @@ std::unordered_map<cpp::Declaration*, std::shared_ptr<dlang::Declaration>> trans
 
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType);
 
+void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType);
+
 #define CHECK_FOR_DECL(x) \
         auto search = translated.find(static_cast<cpp::Declaration*>(&cppDecl)); \
         if( search != translated.end() ) \
@@ -181,11 +183,20 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
 
         // TODO static methods and other things
-        return std::shared_ptr<dlang::Struct>();
+        return result;
     }
 
     virtual void visitRecord(cpp::RecordDeclaration& cppDecl) override
     {
+        determineRecordStrategy(cppDecl.getType());
+        switch( cppDecl.getType()->getStrategy() )
+        {
+            case STRUCT:
+                last_result = std::static_pointer_cast<dlang::Declaration>(buildStruct(cppDecl));
+                break;
+            default:
+                throw 32;
+        }
     }
     std::shared_ptr<dlang::TypeAlias> translateTypedef(cpp::TypedefDeclaration& cppDecl)
     {
@@ -337,7 +348,6 @@ std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
 std::unordered_map<std::string, std::shared_ptr<dlang::Type>> types_by_name;
 std::unordered_map<std::shared_ptr<cpp::Type>, std::shared_ptr<dlang::Type>> resolved_replacements;
 
-void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replacePointer(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replaceReference(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType);
