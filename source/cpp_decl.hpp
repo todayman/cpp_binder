@@ -653,7 +653,10 @@ DECLARATION_CLASS_2(Var, Variable);
         std::shared_ptr<Declaration> decl_in_progress;
         const clang::PrintingPolicy* print_policy;
 
-        bool TraverseDeclContext(clang::DeclContext * cpp_context, bool maintain_top_level = false);
+        bool TraverseDeclContext(clang::DeclContext * cpp_context, bool top_level = false, bool verbose = false);
+        bool TraverseFieldHelper(clang::CXXRecordDecl* record, bool top_level);
+        bool TraverseMethodHelper(clang::CXXRecordDecl* record, bool top_level);
+        bool TraverseCtorHelper(clang::CXXRecordDecl* record, bool top_level);
         public:
         typedef clang::RecursiveASTVisitor<DeclVisitor> Super;
 
@@ -665,10 +668,16 @@ DECLARATION_CLASS_2(Var, Variable);
             return true;
         }
 
+        bool shouldVisitImplicitCode() const
+        {
+            return true;
+        }
+
         bool TraverseDecl(clang::Decl * Declaration);
         bool TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
         bool TraverseFunctionDecl(clang::FunctionDecl* cppDecl);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
+        bool TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
         bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration);
         bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration);
         bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Declaration);
@@ -678,6 +687,8 @@ DECLARATION_CLASS_2(Var, Variable);
         // TODO handle constexpr
         bool TraverseVarDecl(clang::VarDecl* cppDecl);
         bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl);
+        bool TraverseAccessSpecDecl(clang::AccessSpecDecl* cppDecl);
+        bool TraverseFriendDecl(clang::FriendDecl* cppDecl);
         // FIXME I have no idea what this is.
         bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
 

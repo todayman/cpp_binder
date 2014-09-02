@@ -7,6 +7,8 @@
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
 
+#include "clang/AST/Decl.h"
+
 using namespace cpp;
 
 std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> DeclVisitor::declarations;
@@ -22,12 +24,32 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
 
 std::shared_ptr<cpp::Declaration> cpp::DeclarationIterator::operator*()
 {
-    return DeclVisitor::getDeclarations().find(*cpp_iter)->second;
+    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        std::cout << "*****\n";
+        std::cout << *cpp_iter << "\n";
+        std::cout << clang::dyn_cast<clang::RecordDecl>(*cpp_iter)->getDefinition() << "\n";
+        std::cout << reinterpret_cast<clang::NamedDecl*>(*cpp_iter)->getNameAsString() << "\n";
+        std::cout << "Could not find declaration object!\n";
+    }
+    return search_result->second;
 }
 
 std::shared_ptr<cpp::ArgumentDeclaration> cpp::FunctionDeclaration::arg_iterator::operator*()
 {
     return std::dynamic_pointer_cast<cpp::ArgumentDeclaration>(DeclVisitor::getDeclarations().find(*cpp_iter)->second);
+}
+
+std::shared_ptr<cpp::FieldDeclaration> cpp::FieldIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        std::cout << "Could not find declaration object!\n";
+    }
+    std::shared_ptr<cpp::Declaration> decl = search_result->second;
+    return std::dynamic_pointer_cast<cpp::FieldDeclaration>(decl);
 }
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
@@ -71,7 +93,21 @@ bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
     return result;
 }
 
-bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_level)
+#define TRAVERSE_PART(Title, TYPE, field) \
+bool DeclVisitor::Traverse##Title##Helper(TYPE* context, bool top_level) \
+{ \
+    bool result = true; \
+    auto end = context->field##_end(); \
+    for( auto iter = context->field##_begin(); \
+         iter != end && result; \
+         ++iter ) \
+    { \
+        result = registerDeclaration(*iter, top_level); \
+    } \
+    return result; \
+}
+
+bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_level, bool verbose)
 {
     bool result = true;
     clang::DeclContext::decl_iterator end = context->decls_end();
@@ -79,6 +115,10 @@ bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_leve
          iter != end && result;
          ++iter )
     {
+        if( verbose )
+        {
+            std::cout << (*iter)->getDeclKindName() << " " << reinterpret_cast<clang::NamedDecl*>(*iter)->getNameAsString() << " " << *iter << "\n";
+        }
         result = registerDeclaration(*iter, top_level);
     }
     return result;
@@ -125,6 +165,22 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 bool DeclVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
 {
     allocateDeclaration<clang::Decl, UnwrappableDeclaration>(declaration);
+    return true;
+}
+
+TRAVERSE_PART(Field, clang::CXXRecordDecl, field)
+TRAVERSE_PART(Method, clang::CXXRecordDecl, method)
+TRAVERSE_PART(Ctor, clang::CXXRecordDecl, ctor)
+
+bool DeclVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl)
+{
+    if( !WalkUpFromCXXRecordDecl(cppDecl) ) return false;
+
+    if( !TraverseDeclContext(cppDecl, false, cppDecl->getNameAsString() == "CLIArguments") ) return false;
+    if( !TraverseFieldHelper(cppDecl, false) ) return false;
+    if( !TraverseMethodHelper(cppDecl, false) ) return false;
+    if( !TraverseCtorHelper(cppDecl, false) ) return false;
+
     return true;
 }
 
@@ -246,11 +302,15 @@ bool DeclVisitor::TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl)
     return true;
 }
 
-bool DeclVisitor::TraverseEmptyDecl(clang::EmptyDecl* cppDecl)
-{
-    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
-    return true;
+#define UNWRAPPABLE_TRAVERSE(Type) \
+bool DeclVisitor::Traverse##Type##Decl(clang::Type##Decl* cppDecl) \
+{ \
+    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl); \
+    return true; \
 }
+UNWRAPPABLE_TRAVERSE(Empty)
+UNWRAPPABLE_TRAVERSE(AccessSpec)
+UNWRAPPABLE_TRAVERSE(Friend)
 
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {
@@ -271,7 +331,8 @@ bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
 #define WALK_UP(C, D)\
 bool DeclVisitor::WalkUpFrom##C##Decl(clang::C##Decl* cppDecl) \
 { \
-    allocateDeclaration<clang::C##Decl, D##Declaration>(cppDecl); \
+    if( !decl_in_progress ) \
+        allocateDeclaration<clang::C##Decl, D##Declaration>(cppDecl); \
     return Super::WalkUpFrom##C##Decl(cppDecl); \
 }
 WALK_UP(Typedef, Typedef)
