@@ -31,6 +31,7 @@ namespace dlang
     class TypeAlias;
     class EnumConstant;
     class Enum;
+    class Field;
 
     class StringType;
     class PointerType;
@@ -53,6 +54,7 @@ namespace dlang
         virtual void visitTypeAlias(const TypeAlias&) = 0;
         virtual void visitEnum(const Enum&) = 0;
         virtual void visitEnumConstant(const EnumConstant&) = 0;
+        virtual void visitField(const Field&) = 0;
     };
     class TypeVisitor
     {
@@ -344,6 +346,19 @@ namespace dlang
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitClass(*this);
+        }
+    };
+
+    class Field : public Declaration
+    {
+        public:
+        std::shared_ptr<Type> type;
+        Visibility visibility;
+        // const, immutable, etc.
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitField(*this);
         }
     };
 

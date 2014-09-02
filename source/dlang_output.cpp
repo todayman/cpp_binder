@@ -159,6 +159,37 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     virtual void visitTypeAlias(const dlang::TypeAlias&) override { }
     virtual void visitEnum(const dlang::Enum&) override { }
     virtual void visitEnumConstant(const dlang::EnumConstant&) override { }
+
+    virtual void visitField(const dlang::Field& field) override
+    {
+        switch( field.visibility )
+        {
+            case dlang::PRIVATE:
+                output.putItem("private");
+                break;
+            case dlang::PROTECTED:
+                output.putItem("protected");
+                break;
+            case dlang::PUBLIC:
+                output.putItem("public");
+                break;
+            case dlang::PACKAGE:
+                output.putItem("package");
+                break;
+            case dlang::EXPORT:
+                // FIXME I think this is an error for structs
+                // I think it only makes sesnse for top-level functions
+                output.putItem("export");
+                break;
+        }
+
+        TypeWriter type(output);
+        field.type->visit(type);
+
+        output.putItem(field.name);
+        output.semicolon();
+        output.newline();
+    }
 };
 
 class PackageWriter : public dlang::PackageVisitor

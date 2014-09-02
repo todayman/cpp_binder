@@ -35,6 +35,28 @@ static dlang::Linkage translateLinkage(cpp::FunctionDeclaration& cppDecl)
     }
     return result;
 }
+
+static dlang::Visibility translateVisibility(::Visibility access)
+{
+    switch( access )
+    {
+        case ::UNSET:
+            throw 31;
+        case ::PUBLIC:
+            return dlang::PUBLIC;
+        case ::PRIVATE:
+            return dlang::PRIVATE;
+        case ::PROTECTED:
+            return dlang::PROTECTED;
+        case ::EXPORT:
+            return dlang::EXPORT;
+        case ::PACKAGE:
+            return dlang::PACKAGE;
+        default:
+            throw 32;
+    }
+}
+
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::DeclarationVisitor
 {
@@ -141,6 +163,27 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         last_result = std::shared_ptr<dlang::Declaration>();
     }
 
+    std::shared_ptr<dlang::Struct> buildStruct(cpp::RecordDeclaration& cppDecl)
+    {
+        CHECK_FOR_DECL(Struct)
+
+        std::shared_ptr<dlang::Struct> result = std::make_shared<dlang::Struct>();
+        result->name = cppDecl.getName();
+
+        for( auto iter = cppDecl.getFieldBegin(),
+                  finish = cppDecl.getFieldEnd();
+             iter != finish;
+             ++iter )
+        {
+            // FIXME double dereference? really?
+            std::shared_ptr<dlang::Field> field = translateField(**iter);
+            result->insert(field);
+        }
+
+        // TODO static methods and other things
+        return std::shared_ptr<dlang::Struct>();
+    }
+
     virtual void visitRecord(cpp::RecordDeclaration& cppDecl) override
     {
     }
@@ -205,8 +248,22 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // translateEnumConstant directly.
         throw 14;
     }
-    virtual void visitField(cpp::FieldDeclaration& cppDecl) override
+
+    std::shared_ptr<dlang::Field> translateField(cpp::FieldDeclaration& cppDecl)
     {
+        CHECK_FOR_DECL(Field)
+        std::shared_ptr<dlang::Field> result = std::make_shared<dlang::Field>();
+        result->name = cppDecl.getName();
+        result->type = translateType(cppDecl.getType());
+        result->visibility = translateVisibility(cppDecl.getVisibility());
+        return result;
+    }
+    virtual void visitField(cpp::FieldDeclaration&) override
+    {
+        // Getting here means that there is a field declaration
+        // outside of a record declaration, since the struct / interface building
+        // functions call translateField directly.
+        throw 28;
     }
     virtual void visitUnion(cpp::UnionDeclaration& cppDecl) override
     {
@@ -566,6 +623,43 @@ std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type>)
     throw 23;
 }
 
+// TODO combine with replaceEnum and replaceTypedef?
+static std::shared_ptr<dlang::Type> generateStruct(std::shared_ptr<cpp::Type> cppType)
+{
+    if( cppType->getKind() != cpp::Type::Record )
+    {
+        throw 27;
+    }
+    const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
+    clang::RecordDecl * clang_decl = clang_type->getDecl();
+
+    auto& all_declarations = cpp::DeclVisitor::getDeclarations();
+    std::shared_ptr<cpp::RecordDeclaration> cppDecl
+        = std::dynamic_pointer_cast<cpp::RecordDeclaration>(
+                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+
+    auto search_result = translated.find(cppDecl.get());
+    std::shared_ptr<dlang::Type> result;
+    if( search_result == translated.end() )
+    {
+        TranslatorVisitor visitor("", "");
+        // translateTypedef does not try to place the declaration into a
+        // module or context, so this is OK to do here.  It either:
+        //  a) was already placed into the right spot
+        //  b) will get placed later, when we visit the declaration
+        result = std::static_pointer_cast<dlang::Type>(visitor.buildStruct(*cppDecl));
+    }
+    else
+    {
+        // This cast will succeed (unless something is wrong)
+        // becuase search_result->second is really a TypeAlias, which is a Type.
+        // We're going down and then up the type hierarchy.
+        result = std::dynamic_pointer_cast<dlang::Type>(search_result->second);
+    }
+
+    return result;
+}
+
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
 {
     switch( cppType->getStrategy() )
@@ -578,6 +672,7 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
             return replaceType(cppType);
             break;
         case STRUCT:
+            return generateStruct(cppType);
             break;
         case INTERFACE:
             break;
