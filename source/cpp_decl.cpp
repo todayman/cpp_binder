@@ -369,6 +369,11 @@ bool DeclVisitor::VisitNamedDecl(clang::NamedDecl* cppDecl)
     return true;
 }
 
+bool DeclVisitor::VisitFieldDecl(clang::FieldDecl* cppDecl)
+{
+    return TraverseType(cppDecl->getType());
+}
+
 class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
 {
     public:

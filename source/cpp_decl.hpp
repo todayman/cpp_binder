@@ -748,6 +748,7 @@ DECLARATION_CLASS_2(Var, Variable);
         bool VisitTypedefDecl(clang::TypedefDecl * decl);
         bool VisitParmVarDecl(clang::ParmVarDecl* cppDecl);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
+        bool VisitFieldDecl(clang::FieldDecl* cppDecl);
 
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
 
