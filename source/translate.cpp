@@ -59,6 +59,9 @@ static dlang::Visibility translateVisibility(::Visibility access)
     }
 }
 
+class TranslatorVisitor;
+static void placeIntoTargetModule(const cpp::Declaration& declaration, const TranslatorVisitor& visitor);
+
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::DeclarationVisitor
 {
@@ -145,15 +148,15 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // This is the translated name, but really I want the C++ name
         std::string this_namespace_path = namespace_path + "::" + module->getName();
         // visit and translate all of the children
-        TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
         for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              children_iter != children_end;
              ++children_iter )
         {
+            TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
             (*children_iter)->visit(subpackage_visitor);
 
-            // TODO place the result of translation into the correct module
+            placeIntoTargetModule(*children_iter, subpackage_visitor);
         }
 
         return module;
@@ -321,6 +324,20 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     }
 };
 
+static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, const TranslatorVisitor& visitor)
+{
+    std::string target_module = declaration->getTargetModule();
+    if( target_module.size() == 0 )
+    {
+        target_module = "unknown";
+    }
+    std::shared_ptr<dlang::Module> module = dlang::rootPackage->getOrCreateModulePath(target_module);
+    if( visitor.last_result )
+    {
+        module->insert(visitor.last_result);
+    }
+}
+
 void populateDAST()
 {
     // May cause problems because root package won't check for empty path.
@@ -333,6 +350,7 @@ void populateDAST()
         }
 
         declaration->visit(visitor);
+        placeIntoTargetModule(declaration, visitor);
         std::string target_module = declaration->getTargetModule();
         if( target_module.size() == 0 )
         {
