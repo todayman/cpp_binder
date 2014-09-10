@@ -354,7 +354,7 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
 
 bool DeclVisitor::VisitFunctionDecl(clang::FunctionDecl* cppDecl)
 {
-    return TraverseType(cppDecl->getResultType());
+    return TraverseType(cppDecl->getReturnType());
 }
 
 bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)

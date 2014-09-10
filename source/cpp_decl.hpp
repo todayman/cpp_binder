@@ -319,8 +319,7 @@ DECLARATION_CLASS_2(Var, Variable);
 
         virtual std::shared_ptr<Type> getReturnType() const
         {
-            // TODO changes to getReturnType in clang 3.5
-            return Type::get(_decl->getResultType());
+            return Type::get(_decl->getReturnType());
         }
 
         struct arg_iterator

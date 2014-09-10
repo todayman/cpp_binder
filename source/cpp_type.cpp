@@ -190,7 +190,7 @@ bool TypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
 {
     bool continue_traversal = true;
     TypeVisitor arg_visitor(printPolicy); // Also visits return type
-    continue_traversal = arg_visitor.TraverseType(cppType->getResultType());
+    continue_traversal = arg_visitor.TraverseType(cppType->getReturnType());
 
     // TODO get all the arguments
 
