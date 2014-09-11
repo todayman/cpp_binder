@@ -279,9 +279,17 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // functions call translateField directly.
         throw 28;
     }
+
+    std::shared_ptr<dlang::Union> translateUnion(cpp::UnionDeclaration& cppDecl)
+    {
+        CHECK_FOR_DECL(Union)
+        // TODO fill in here
+    }
     virtual void visitUnion(cpp::UnionDeclaration& cppDecl) override
     {
+        last_result = std::static_pointer_cast<dlang::Declaration>(translateUnion(cppDecl));
     }
+
     virtual void visitMethod(cpp::MethodDeclaration& cppDecl) override
     {
     }

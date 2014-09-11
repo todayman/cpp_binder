@@ -102,6 +102,7 @@ class TypeWriter : public dlang::TypeVisitor
     virtual void visitTypeAlias(const dlang::TypeAlias&) override { }
     virtual void visitEnum(const dlang::Enum&) override { }
     virtual void visitPointer(const dlang::PointerType&) override { }
+    virtual void visitUnion(const dlang::Union&) override { }
 };
 
 class DeclarationWriter : public dlang::DeclarationVisitor
@@ -216,6 +217,8 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         output.semicolon();
         output.newline();
     }
+
+    virtual void visitUnion(const dlang::Union&) override { }
 };
 
 class PackageWriter : public dlang::PackageVisitor

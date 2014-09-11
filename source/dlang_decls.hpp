@@ -32,6 +32,7 @@ namespace dlang
     class EnumConstant;
     class Enum;
     class Field;
+    class Union;
 
     class StringType;
     class PointerType;
@@ -55,6 +56,7 @@ namespace dlang
         virtual void visitEnum(const Enum&) = 0;
         virtual void visitEnumConstant(const EnumConstant&) = 0;
         virtual void visitField(const Field&) = 0;
+        virtual void visitUnion(const Union&) = 0;
     };
     class TypeVisitor
     {
@@ -64,6 +66,7 @@ namespace dlang
         virtual void visitTypeAlias(const TypeAlias&) = 0;
         virtual void visitEnum(const Enum&) = 0;
         virtual void visitPointer(const PointerType&) = 0;
+        virtual void visitUnion(const Union&) = 0;
     };
 
     class DeclarationContainer;
@@ -442,6 +445,19 @@ namespace dlang
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitEnum(*this);
+        }
+    };
+
+    class Union : public Declaration, public Type, public DeclarationContainer
+    {
+        public:
+        virtual void visit(TypeVisitor& visitor) const override
+        {
+            visitor.visitUnion(*this);
+        }
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitUnion(*this);
         }
     };
 
