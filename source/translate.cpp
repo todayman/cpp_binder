@@ -60,7 +60,7 @@ static dlang::Visibility translateVisibility(::Visibility access)
 }
 
 class TranslatorVisitor;
-static void placeIntoTargetModule(const cpp::Declaration& declaration, const TranslatorVisitor& visitor);
+static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, const TranslatorVisitor& visitor);
 
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::DeclarationVisitor
