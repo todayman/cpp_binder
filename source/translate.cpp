@@ -283,7 +283,22 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     std::shared_ptr<dlang::Union> translateUnion(cpp::UnionDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Union)
-        // TODO fill in here
+
+        std::shared_ptr<dlang::Union> result = std::make_shared<dlang::Union>();
+        result->name = cppDecl.getName();
+
+        for( auto iter = cppDecl.getFieldBegin(),
+                  finish = cppDecl.getFieldEnd();
+             iter != finish;
+             ++iter )
+        {
+            // FIXME double dereference? really?
+            std::shared_ptr<dlang::Field> field = translateField(**iter);
+            result->insert(field);
+        }
+
+        // TODO static methods and other things?
+        return result;
     }
     virtual void visitUnion(cpp::UnionDeclaration& cppDecl) override
     {

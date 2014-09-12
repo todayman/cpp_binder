@@ -251,7 +251,6 @@ func(Unwrappable)
         } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
-DECLARATION_CLASS_TYPE(Record, Union);
 DECLARATION_CLASS_2(CXXMethod, Method);
 DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
@@ -611,6 +610,51 @@ DECLARATION_CLASS_2(Var, Variable);
         virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitRecord(*this);
+        }
+
+        FieldIterator getFieldBegin()
+        {
+            return FieldIterator(_decl->field_begin());
+        }
+        FieldIterator getFieldEnd()
+        {
+            return FieldIterator(_decl->field_end());
+        }
+        DeclarationIterator getChildBegin()
+        {
+            return DeclarationIterator(_decl->decls_begin());
+        }
+        DeclarationIterator getChildEnd()
+        {
+            return DeclarationIterator(_decl->decls_end());
+        }
+    };
+
+    class UnionDeclaration : public Declaration
+    {
+        private:
+        const clang::RecordDecl* _decl;
+
+        public:
+        UnionDeclaration(const clang::RecordDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitUnion(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitUnion(*this);
         }
 
         FieldIterator getFieldBegin()
