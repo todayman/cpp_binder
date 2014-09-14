@@ -189,6 +189,11 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         return result;
     }
 
+    std::shared_ptr<dlang::Interface> buildInterface(cpp::RecordDeclaration& cppDecl)
+    {
+        CHECK_FOR_DECL(Interface)
+    }
+
     virtual void visitRecord(cpp::RecordDeclaration& cppDecl) override
     {
         determineRecordStrategy(cppDecl.getType());
@@ -197,7 +202,11 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             case STRUCT:
                 last_result = std::static_pointer_cast<dlang::Declaration>(buildStruct(cppDecl));
                 break;
+            case INTERFACE:
+                last_result = std::static_pointer_cast<dlang::Declaration>(buildInterface(cppDecl));
+                break;
             default:
+                std::cout << "Strategy is: " << cppDecl.getType()->getStrategy() << "\n";
                 throw 32;
         }
     }
