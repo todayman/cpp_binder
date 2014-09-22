@@ -1,6 +1,7 @@
 # `cpp_binder`
 
 This tool reads C++ headers and generates D bindings to the declarations there.
+It is licensed under the GNU GPLv3.
 
 ## Usage
 
