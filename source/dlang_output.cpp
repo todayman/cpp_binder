@@ -269,10 +269,6 @@ class PackageWriter : public dlang::PackageVisitor
         output.newline();
         output.newline();
 
-        std::cout << "The things in this module are:\n";
-        for( std::shared_ptr<dlang::Declaration> decl : module.getChildren() )
-            std::cout << "\t" << decl->name << "\n";
-
         for( std::shared_ptr<dlang::Declaration> decl : module.getChildren() )
         {
             dlang::DOutputContext output(outputFile, 0);

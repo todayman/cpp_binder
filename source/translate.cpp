@@ -404,10 +404,6 @@ static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration,
 
 void populateDAST()
 {
-    std::cout << "The free declarations are:\n";
-    for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
-        std::cout << "\t" << declaration->getName() << "\n";
-
     // May cause problems because root package won't check for empty path.
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
