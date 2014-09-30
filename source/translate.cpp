@@ -219,7 +219,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
              iter != finish;
              ++iter )
         {
-            std::cout << "Found child 
+            std::cout << "Found child " << iter->getName() << "\n";
         }
 
         // TODO static methods and other things
@@ -404,6 +404,10 @@ static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration,
 
 void populateDAST()
 {
+    std::cout << "The free declarations are:\n";
+    for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
+        std::cout << "\t" << declaration->getName() << "\n";
+
     // May cause problems because root package won't check for empty path.
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
@@ -415,14 +419,6 @@ void populateDAST()
 
         declaration->visit(visitor);
         placeIntoTargetModule(declaration, visitor);
-        std::string target_module = declaration->getTargetModule();
-        if( target_module.size() == 0 )
-        {
-            target_module = "unknown";
-        }
-        std::shared_ptr<dlang::Module> module = dlang::rootPackage->getOrCreateModulePath(target_module);
-        if( visitor.last_result )
-            module->insert(visitor.last_result);
     }
 }
 

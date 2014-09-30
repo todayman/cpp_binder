@@ -93,7 +93,7 @@ namespace dlang
     {
         public:
         std::string name;
-        std::shared_ptr<DeclarationContainer> parent;
+        DeclarationContainer * parent;
         Visibility visibility;
         virtual ~Declaration() { }
 
@@ -110,6 +110,7 @@ namespace dlang
         void insert(std::shared_ptr<Declaration> decl)
         {
             children.push_back(decl);
+            decl->parent = this;
         }
 
         const decltype(children)& getChildren() const
