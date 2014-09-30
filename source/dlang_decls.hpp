@@ -388,6 +388,11 @@ namespace dlang
     {
         public:
         std::vector<std::shared_ptr<Declaration>> functions;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitInterface(*this);
+        }
     };
 
     class Variable : public Declaration

@@ -178,7 +178,25 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         }
     }
     virtual void visitVariable(const dlang::Variable&) override { }
-    virtual void visitInterface(const dlang::Interface&) override { }
+    virtual void visitInterface(const dlang::Interface& interface) override
+    {
+        output.putItem("interface");
+        output.putItem(interface.name);
+        output.newline();
+
+        output.putItem("{");
+        output.newline();
+
+        dlang::DOutputContext innerContext(output, 4);
+        DeclarationWriter innerWriter(innerContext);
+        for( auto method : interface.functions )
+        {
+            method->visit(innerWriter);
+        }
+
+        output.putItem("}");
+        output.newline();
+    }
 
     virtual void visitStruct(const dlang::Struct& structure) override
     {
