@@ -49,6 +49,8 @@ namespace cpp
     class DeclarationVisitor;
     class ConstDeclarationVisitor;
 
+    bool isCXXRecord(const clang::Decl* decl);
+
     // Same thing as Type, but for declarations of functions,
     // classes, etc.
     class Declaration
@@ -605,6 +607,7 @@ DECLARATION_CLASS_2(Var, Variable);
     };
 
     typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
+    typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
 
     class RecordDeclaration : public Declaration
     {
@@ -648,6 +651,29 @@ DECLARATION_CLASS_2(Var, Variable);
         DeclarationIterator getChildEnd()
         {
             return DeclarationIterator(_decl->decls_end());
+        }
+
+        MethodIterator getMethodBegin()
+        {
+            if( isCXXRecord(_decl) )
+            {
+                return MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_begin());
+            }
+            else
+            {
+                return MethodIterator(clang::CXXRecordDecl::method_iterator());
+            }
+        }
+        MethodIterator getMethodEnd()
+        {
+            if( isCXXRecord(_decl) )
+            {
+                return MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_end());
+            }
+            else
+            {
+                return MethodIterator(clang::CXXRecordDecl::method_iterator());
+            }
         }
     };
 

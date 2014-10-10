@@ -29,6 +29,21 @@
 
 using namespace cpp;
 
+bool cpp::isCXXRecord(const clang::Decl* decl)
+{
+    // This set is of all the DeclKinds that are subclasses of CXXRecord
+    #define ABSTRACT_DECL(Type)
+    #define DECL(Type, Base)
+    #define CXXRECORD(Type, Base)   clang::Decl::Type,
+    static std::unordered_set<int> CXXRecordKinds({
+    #include "clang/AST/DeclNodes.inc"
+            });
+    #undef CXXRECORD
+    #undef DECL
+    #undef ABSTRACT_DECL
+    return CXXRecordKinds.count(decl->getKind()) > 0;
+}
+
 std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> DeclVisitor::declarations;
 std::unordered_set<std::shared_ptr<Declaration>> DeclVisitor::free_declarations;
 
@@ -58,8 +73,8 @@ std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operat
     std::shared_ptr<cpp::Declaration> decl = search_result->second;
     return std::dynamic_pointer_cast<TranslatorType>(decl);
 }
-template
-std::shared_ptr<cpp::FieldDeclaration> cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
+template std::shared_ptr<cpp::FieldDeclaration> cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
+template std::shared_ptr<cpp::MethodDeclaration> cpp::Iterator<clang::CXXRecordDecl::method_iterator, cpp::MethodDeclaration>::operator*();
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 {

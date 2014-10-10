@@ -219,6 +219,8 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
              iter != finish;
              ++iter )
         {
+            if( !iter->getShouldBind() )
+                continue;
             std::cout << "Found child " << iter->getName() << "\n";
         }
 
@@ -463,21 +465,6 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
     }
 }
 
-static bool isCXXRecord(const clang::Decl* decl)
-{
-    // This set is of all the DeclKinds that are subclasses of CXXRecord
-    #define ABSTRACT_DECL(Type)
-    #define DECL(Type, Base)
-    #define CXXRECORD(Type, Base)   clang::Decl::Type,
-    static std::unordered_set<int> CXXRecordKinds({
-    #include "clang/AST/DeclNodes.inc"
-            });
-    #undef CXXRECORD
-    #undef DECL
-    #undef ABSTRACT_DECL
-    return CXXRecordKinds.count(decl->getKind()) > 0;
-}
-
 void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
 {
     // First algorithm:
@@ -492,7 +479,7 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
                 cpp::DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
                 );
 
-    if( !isCXXRecord(cpp_decl->decl()) )
+    if( !cpp::isCXXRecord(cpp_decl->decl()) )
     {
         cppType->setStrategy(STRUCT);
     }
