@@ -574,13 +574,14 @@ DECLARATION_CLASS_2(Var, Variable);
         }
     };
 
-    class FieldIterator
+    template<typename ClangType, typename TranslatorType>
+    class Iterator
     {
         private:
-        clang::RecordDecl::field_iterator cpp_iter;
+        ClangType cpp_iter;
 
         public:
-        explicit FieldIterator(clang::RecordDecl::field_iterator i)
+        explicit Iterator(ClangType i)
             : cpp_iter(i)
         { }
 
@@ -588,20 +589,22 @@ DECLARATION_CLASS_2(Var, Variable);
             cpp_iter++;
         }
 
-        bool operator==(const FieldIterator& other) {
+        bool operator==(const Iterator<ClangType, TranslatorType>& other) {
             return cpp_iter == other.cpp_iter;
         }
 
-        bool operator!=(const FieldIterator& other) {
+        bool operator!=(const Iterator<ClangType, TranslatorType>& other) {
             return cpp_iter != other.cpp_iter;
         }
 
-        std::shared_ptr<FieldDeclaration> operator*();
-        std::shared_ptr<FieldDeclaration> operator->()
+        std::shared_ptr<TranslatorType> operator*();
+        std::shared_ptr<TranslatorType> operator->()
         {
             return operator*();
         }
     };
+
+    typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
 
     class RecordDeclaration : public Declaration
     {

@@ -51,12 +51,15 @@ std::shared_ptr<cpp::ArgumentDeclaration> cpp::FunctionDeclaration::arg_iterator
     return std::dynamic_pointer_cast<cpp::ArgumentDeclaration>(DeclVisitor::getDeclarations().find(*cpp_iter)->second);
 }
 
-std::shared_ptr<cpp::FieldDeclaration> cpp::FieldIterator::operator*()
+template<typename ClangType, typename TranslatorType>
+std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
     std::shared_ptr<cpp::Declaration> decl = search_result->second;
-    return std::dynamic_pointer_cast<cpp::FieldDeclaration>(decl);
+    return std::dynamic_pointer_cast<TranslatorType>(decl);
 }
+template
+std::shared_ptr<cpp::FieldDeclaration> cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 {
