@@ -50,6 +50,7 @@ namespace dlang
     class EnumConstant;
     class Enum;
     class Field;
+    class Method;
     class Union;
 
     class StringType;
@@ -75,6 +76,7 @@ namespace dlang
         virtual void visitEnumConstant(const EnumConstant&) = 0;
         virtual void visitField(const Field&) = 0;
         virtual void visitUnion(const Union&) = 0;
+        virtual void visitMethod(const Method&) = 0;
     };
     class TypeVisitor
     {
@@ -347,9 +349,25 @@ namespace dlang
         }
     };
 
+    // FIXME has some commonality with Function
+    class Method : public Declaration
+    {
+        public:
+        bool isVirtual; // need to not collide with keywords
+        std::shared_ptr<Type> return_type;
+        std::vector<std::shared_ptr<Argument>> arguments;
+
+        virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitMethod(*this);
+        }
+    };
+
     class Struct : public Declaration, public Type, public DeclarationContainer
     {
         public:
+        std::vector<std::shared_ptr<Method>> methods;
+
         virtual void visit(TypeVisitor& visitor) const override
         {
             visitor.visitStruct(*this);
@@ -363,7 +381,6 @@ namespace dlang
     class Class : public Declaration
     {
         public:
-        std::vector<std::shared_ptr<Declaration>> members;
 
         virtual void visit(DeclarationVisitor& visitor) const override
         {

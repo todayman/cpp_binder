@@ -225,7 +225,44 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
     virtual void visitField(const dlang::Field& field) override
     {
-        switch( field.visibility )
+        putVisiblity(field.visibility);
+        TypeWriter type(output);
+        field.type->visit(type);
+
+        output.putItem(field.name);
+        output.semicolon();
+        output.newline();
+    }
+
+    virtual void visitMethod(const dlang::Method& method) override
+    {
+        putVisiblity(method.visibility);
+
+        if( method.isVirtual )
+            output.putItem("virtual");
+        else
+            output.putItem("final");
+
+        TypeWriter type(output);
+        method.return_type->visit(type);
+
+        output.putItem(method.name);
+        output.beginList();
+        for( auto arg : method.arguments )
+        {
+            visitArgument(*arg);
+        }
+        output.endList();
+        output.semicolon();
+        output.newline();
+    }
+
+    virtual void visitUnion(const dlang::Union&) override { }
+
+    private:
+    void putVisiblity(dlang::Visibility visibility)
+    {
+        switch( visibility )
         {
             case dlang::PRIVATE:
                 output.putItem("private");
@@ -245,16 +282,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
                 output.putItem("export");
                 break;
         }
-
-        TypeWriter type(output);
-        field.type->visit(type);
-
-        output.putItem(field.name);
-        output.semicolon();
-        output.newline();
     }
-
-    virtual void visitUnion(const dlang::Union&) override { }
 };
 
 class PackageWriter : public dlang::PackageVisitor
