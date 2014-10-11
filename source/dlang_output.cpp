@@ -238,9 +238,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     {
         putVisiblity(method.visibility);
 
-        if( method.isVirtual )
-            output.putItem("virtual");
-        else
+        if( !method.isVirtual )
             output.putItem("final");
 
         TypeWriter type(output);
