@@ -1,4 +1,10 @@
 {
+    "void": {
+        "strategy": {
+            "name": "replace",
+            "d_decl": "void"
+        }
+    },
     "char": {
         "strategy": {
             "name": "replace",
