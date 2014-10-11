@@ -234,11 +234,11 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         output.newline();
     }
 
-    virtual void visitMethod(const dlang::Method& method) override
+    void visitMethod(const dlang::Method& method, bool displayFinal)
     {
         putVisiblity(method.visibility);
 
-        if( !method.isVirtual )
+        if( displayFinal && !method.isVirtual )
             output.putItem("final");
 
         TypeWriter type(output);
@@ -253,6 +253,11 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         output.endList();
         output.semicolon();
         output.newline();
+    }
+
+    virtual void visitMethod(const dlang::Method& method) override
+    {
+        visitMethod(method, true);
     }
 
     virtual void visitUnion(const dlang::Union&) override { }
