@@ -214,14 +214,24 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>();
         result->name = cppDecl.getName();
 
-        for( auto iter = cppDecl.getChildBegin(),
-                  finish = cppDecl.getChildEnd();
+        for( auto iter = cppDecl.getMethodBegin(),
+                  finish = cppDecl.getMethodEnd();
              iter != finish;
              ++iter )
         {
-            if( !iter->getShouldBind() )
+            // sometimes, e.g. for implicit destructors, the lookup from clang
+            // type to my types fails.  So we should skip those.
+            std::shared_ptr<cpp::MethodDeclaration> cpp_method = *iter;
+            if( !cpp_method || !cpp_method->getShouldBind() )
                 continue;
-            std::cout << "Found child " << iter->getName() << "\n";
+            // FIXME double dereference? really?
+            std::shared_ptr<dlang::Method> method = translateMethod(**iter);
+            if( !method->isVirtual )
+            {
+                std::cout << "Methods on interfaces must be virtual!\n";
+                throw 37;
+            }
+            result->functions.push_back(method);
         }
 
         // TODO static methods and other things
@@ -348,8 +358,42 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         last_result = std::static_pointer_cast<dlang::Declaration>(translateUnion(cppDecl));
     }
 
+    std::shared_ptr<dlang::Method> translateMethod(cpp::MethodDeclaration& cppDecl)
+    {
+        CHECK_FOR_DECL(Method)
+
+        std::shared_ptr<dlang::Method> result = std::make_shared<dlang::Method>();
+
+        // final / virtual
+        result->isVirtual = cppDecl.isVirtual();
+
+        if( cppDecl.getName().size() )
+        {
+            result->name = cppDecl.getName();
+        }
+        else
+        {
+            throw 12;
+        }
+
+        result->return_type = translateType(cppDecl.getReturnType());
+
+        for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
+             arg_iter != arg_end;
+             ++arg_iter )
+        {
+            // FIXME double dereference? really?
+            result->arguments.push_back(translateArgument(**arg_iter));
+        }
+        return result;
+    }
+
     virtual void visitMethod(cpp::MethodDeclaration& cppDecl) override
     {
+        // Getting here means that there is a method declaration
+        // outside of a record declaration, since the struct / interface building
+        // functions call translateMethod directly.
+        throw 36;
     }
     virtual void visitConstructor(cpp::ConstructorDeclaration& cppDecl) override
     {
@@ -443,6 +487,9 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
             throw 16;
             break;
         case cpp::Type::Builtin:
+            std::cerr << "I don't know how to translate the builtin C++ type:\n";
+            cppType->cppType()->dump();
+            std::cerr << "\n";
             throw 18;
         case cpp::Type::Pointer:
         case cpp::Type::Reference:

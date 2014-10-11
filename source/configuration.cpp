@@ -22,7 +22,6 @@
 #include <iostream>
 #include <sstream>
 
-//#include "clang/ASTMatchers/ASTMatchers.h"
 #include "yajl/yajl_tree.h"
 
 #include "configuration.hpp"

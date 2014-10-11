@@ -271,7 +271,6 @@ func(Unwrappable)
         } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
-DECLARATION_CLASS_2(CXXMethod, Method);
 DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
 DECLARATION_CLASS_2(Var, Variable);
@@ -304,82 +303,6 @@ DECLARATION_CLASS_2(Var, Variable);
         }
     };
 
-    class FunctionDeclaration : public Declaration
-    {
-        private:
-        const clang::FunctionDecl* _decl;
-
-        public:
-        FunctionDeclaration(const clang::FunctionDecl* d)
-            : _decl(d)
-        { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
-
-        virtual std::shared_ptr<Type> getType() const override
-        {
-            throw NotTypeDecl();
-        }
-
-        virtual void visit(DeclarationVisitor& visitor) override
-        {
-            visitor.visitFunction(*this);
-        }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
-        {
-            visitor.visitFunction(*this);
-        }
-
-        clang::LanguageLinkage getLinkLanguage() const
-        {
-            return _decl->getLanguageLinkage();
-        }
-
-        virtual std::shared_ptr<Type> getReturnType() const
-        {
-            return Type::get(_decl->getReturnType());
-        }
-
-        struct arg_iterator
-        {
-            private:
-            clang::FunctionDecl::param_const_iterator cpp_iter;
-
-            public:
-            explicit arg_iterator(clang::FunctionDecl::param_const_iterator i)
-                : cpp_iter(i)
-            { }
-
-            void operator++() {
-                cpp_iter++;
-            }
-
-            bool operator==(const arg_iterator& other) {
-                return cpp_iter == other.cpp_iter;
-            }
-
-            bool operator!=(const arg_iterator& other) {
-                return cpp_iter != other.cpp_iter;
-            }
-
-            std::shared_ptr<ArgumentDeclaration> operator*();
-            std::shared_ptr<ArgumentDeclaration> operator->()
-            {
-                return operator*();
-            }
-        };
-
-        virtual arg_iterator getArgumentBegin() const
-        {
-            return arg_iterator(_decl->param_begin());
-        }
-
-        virtual arg_iterator getArgumentEnd() const
-        {
-            return arg_iterator(_decl->param_end());
-        }
-    };
 
     class NamespaceDeclaration : public Declaration
     {
@@ -521,6 +444,85 @@ DECLARATION_CLASS_2(Var, Variable);
         }
     };
 
+    template<typename ClangType, typename TranslatorType>
+    class Iterator
+    {
+        private:
+        ClangType cpp_iter;
+
+        public:
+        explicit Iterator(ClangType i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const Iterator<ClangType, TranslatorType>& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const Iterator<ClangType, TranslatorType>& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        std::shared_ptr<TranslatorType> operator*();
+        std::shared_ptr<TranslatorType> operator->()
+        {
+            return operator*();
+        }
+    };
+
+    typedef Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration> ArgumentIterator;
+    class FunctionDeclaration : public Declaration
+    {
+        private:
+        const clang::FunctionDecl* _decl;
+
+        public:
+        FunctionDeclaration(const clang::FunctionDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            throw NotTypeDecl();
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitFunction(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitFunction(*this);
+        }
+
+        clang::LanguageLinkage getLinkLanguage() const
+        {
+            return _decl->getLanguageLinkage();
+        }
+
+        virtual std::shared_ptr<Type> getReturnType() const
+        {
+            return Type::get(_decl->getReturnType());
+        }
+
+        virtual ArgumentIterator getArgumentBegin() const
+        {
+            return ArgumentIterator(_decl->param_begin());
+        }
+
+        virtual ArgumentIterator getArgumentEnd() const
+        {
+            return ArgumentIterator(_decl->param_end());
+        }
+    };
+
     class FieldDeclaration : public Declaration
     {
         private:
@@ -576,33 +578,50 @@ DECLARATION_CLASS_2(Var, Variable);
         }
     };
 
-    template<typename ClangType, typename TranslatorType>
-    class Iterator
+    class MethodDeclaration : public Declaration
     {
         private:
-        ClangType cpp_iter;
+        const clang::CXXMethodDecl* _decl;
 
         public:
-        explicit Iterator(ClangType i)
-            : cpp_iter(i)
+        MethodDeclaration(const clang::CXXMethodDecl* d)
+            : _decl(d)
         { }
-
-        void operator++() {
-            cpp_iter++;
+        virtual const clang::Decl* decl() override {
+            return _decl;
         }
 
-        bool operator==(const Iterator<ClangType, TranslatorType>& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const Iterator<ClangType, TranslatorType>& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        std::shared_ptr<TranslatorType> operator*();
-        std::shared_ptr<TranslatorType> operator->()
+        virtual std::shared_ptr<Type> getType() const override
         {
-            return operator*();
+            throw NotTypeDecl();;
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitMethod(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitMethod(*this);
+        }
+
+        bool isVirtual() const
+        {
+            return _decl->isVirtual();
+        }
+
+        virtual std::shared_ptr<Type> getReturnType() const
+        {
+            return Type::get(_decl->getReturnType());
+        }
+
+        virtual ArgumentIterator getArgumentBegin() const
+        {
+            return ArgumentIterator(_decl->param_begin());
+        }
+        virtual ArgumentIterator getArgumentEnd() const
+        {
+            return ArgumentIterator(_decl->param_end());
         }
     };
 
@@ -657,7 +676,8 @@ DECLARATION_CLASS_2(Var, Variable);
         {
             if( isCXXRecord(_decl) )
             {
-                return MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_begin());
+                const clang::CXXRecordDecl* record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
+                return MethodIterator(record->method_begin());
             }
             else
             {
