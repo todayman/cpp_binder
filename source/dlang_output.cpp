@@ -189,7 +189,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
         dlang::DOutputContext innerContext(output, 4);
         DeclarationWriter innerWriter(innerContext);
-        for( auto method : interface.functions )
+        for( auto method : interface.methods )
         {
             method->visit(innerWriter);
         }
@@ -212,6 +212,12 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         for( auto field : structure.getChildren() )
         {
             field->visit(innerWriter);
+        }
+
+        output.newline();
+        for( auto method : structure.methods )
+        {
+            method->visit(innerWriter);
         }
 
         output.putItem("}");

@@ -404,7 +404,7 @@ namespace dlang
     class Interface : public Declaration
     {
         public:
-        std::vector<std::shared_ptr<Declaration>> functions;
+        std::vector<std::shared_ptr<Declaration>> methods;
 
         virtual void visit(DeclarationVisitor& visitor) const override
         {

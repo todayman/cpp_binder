@@ -203,6 +203,25 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             result->insert(field);
         }
 
+        for( auto iter = cppDecl.getMethodBegin(),
+                  finish = cppDecl.getMethodEnd();
+             iter != finish;
+             ++iter )
+        {
+            // sometimes, e.g. for implicit destructors, the lookup from clang
+            // type to my types fails.  So we should skip those.
+            std::shared_ptr<cpp::MethodDeclaration> cpp_method = *iter;
+            if( !cpp_method || !cpp_method->getShouldBind() )
+                continue;
+            // FIXME double dereference? really?
+            std::shared_ptr<dlang::Method> method = translateMethod(**iter);
+            if( method->isVirtual )
+            {
+                std::cout << "Methods on structs cannot be virtual!\n";
+                throw 37;
+            }
+            result->methods.push_back(method);
+        }
         // TODO static methods and other things
         return result;
     }
@@ -231,7 +250,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
                 std::cout << "Methods on interfaces must be virtual!\n";
                 throw 37;
             }
-            result->functions.push_back(method);
+            result->methods.push_back(method);
         }
 
         // TODO static methods and other things
