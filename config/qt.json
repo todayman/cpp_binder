@@ -1,0 +1,7 @@
+{
+    "clang_args": [
+          "-I"
+        , "/usr/include/qt"
+        , "-fPIC"
+    ]
+}

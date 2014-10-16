@@ -61,6 +61,16 @@ class ExpectedInteger : ConfigurationException
     { }
 };
 
+class ExpectedArray : ConfigurationException
+{
+    public:
+    // TODO incorporate the value (with context)
+    // into the error message.
+    ExpectedArray(const yajl_val_s*)
+        : ConfigurationException("Expected JSON array, got something like object, number, etc.")
+    { }
+};
+
 class UnknownVisiblity : ConfigurationException
 {
     public:
@@ -117,12 +127,14 @@ std::string readFile(const std::string& filename)
     return result;
 }
 
-
+static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast);
+static void applyRootObjectForClang(const yajl_val_s& obj, std::vector<std::string>& clang_args);
+static void collectClangArguments(const yajl_val_s& obj_container, std::vector<std::string>& clang_args);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast);
 static void readStrategyConfiguration(const yajl_val_s& container, std::shared_ptr<cpp::Type> type);
 
-static void applyConfigFromFile(const std::string& filename, clang::ASTContext& ast)
+static std::shared_ptr<yajl_val_s> parseJSON(const std::string& filename)
 {
     std::string config_contents = readFile(filename);
     constexpr size_t BUFFER_SIZE = 512;
@@ -141,7 +153,95 @@ static void applyConfigFromFile(const std::string& filename, clang::ASTContext& 
         throw ExpectedObject(tree_root);
     }
 
-    applyConfigToObjectMap(*tree_root.get(), ast);
+    return tree_root;
+}
+
+static void applyConfigFromFile(const std::string& filename, clang::ASTContext& ast)
+{
+    std::shared_ptr<yajl_val_s> tree_root = parseJSON(filename);
+    applyRootObjectForAttributes(*tree_root.get(), ast);
+}
+
+static void applyClangConfig(const std::string& filename, std::vector<std::string>& clang_args)
+{
+    std::shared_ptr<yajl_val_s> tree_root = parseJSON(filename);
+    applyRootObjectForClang(*tree_root.get(), clang_args);
+}
+
+static void applyRootObjectForClang(const yajl_val_s& obj, std::vector<std::string>& clang_args)
+{
+    for( size_t idx = 0; idx < obj.u.object.len; ++idx )
+    {
+        std::string name = obj.u.object.keys[idx];
+        const yajl_val_s* sub_obj = obj.u.object.values[idx];
+        if( !sub_obj )
+        {
+            throw 5;
+        }
+
+        if( name == "clang_args" )
+        {
+            if( !YAJL_IS_ARRAY(sub_obj) )
+            {
+                throw ExpectedArray(sub_obj);
+            }
+            collectClangArguments(*sub_obj, clang_args);
+        }
+        else if( name == "binding_attributes" )
+        {
+            continue;
+        }
+        else {
+            throw ConfigurationException(std::string("Unexpected top-level key \"") + name + "\".");
+        }
+    }
+}
+
+static void collectClangArguments(const yajl_val_s& obj, std::vector<std::string>& clang_args)
+{
+    for( size_t idx = 0; idx < obj.u.array.len; ++idx )
+    {
+        const yajl_val_s* sub_obj = obj.u.array.values[idx];
+        if( !sub_obj )
+        {
+            throw 5;
+        }
+
+        if( !YAJL_IS_STRING(sub_obj) )
+        {
+            throw ExpectedString(sub_obj);
+        }
+        clang_args.emplace_back(sub_obj->u.string);
+    }
+}
+
+static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast)
+{
+    for( size_t idx = 0; idx < obj.u.object.len; ++idx )
+    {
+        std::string name = obj.u.object.keys[idx];
+        const yajl_val_s* sub_obj = obj.u.object.values[idx];
+        if( !sub_obj )
+        {
+            throw 5;
+        }
+
+        if( name == "clang_args" )
+        {
+            continue;
+        }
+        else if( name == "binding_attributes" )
+        {
+            if( !YAJL_IS_OBJECT(sub_obj) )
+            {
+                throw ExpectedObject(sub_obj);
+            }
+            applyConfigToObjectMap(*sub_obj, ast);
+        }
+        else {
+            throw ConfigurationException(std::string("Unexpected top-level key \"") + name + "\".");
+        }
+    }
 }
 
 static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast)
@@ -356,6 +456,16 @@ static void readStrategyConfiguration(const yajl_val_s& container, std::shared_p
             }
         }
     }
+}
+
+std::vector<std::string> parseClangArgs(const std::vector<std::string>& config_files)
+{
+    std::vector<std::string> clang_args;
+    for( const std::string& filename : config_files )
+    {
+        applyClangConfig(filename, clang_args);
+    }
+    return clang_args;
 }
 
 void parseAndApplyConfiguration(const std::vector<std::string>& config_files, clang::ASTContext& ast)

@@ -1,104 +1,114 @@
 {
-    "void": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "void"
-        }
-    },
-    "char": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "char"
-        }
-    },
-    "char16_t": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "wchar"
-        }
-    },
-    "char32_t": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "dchar"
-        }
-    },
-    "signed char": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "char"
-        }
-    },
-    "unsigned char": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "ubyte"
-        }
-    },
-    "short": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "short"
-        }
-    },
-    "unsigned short": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "ushort"
-        }
-    },
-    "int": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "int"
-        }
-    },
-    "unsigned int": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "uint"
-        }
-    },
-    "long": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "long"
-        }
-    },
-    "unsigned long": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "ulong"
-        }
-    },
-    "long long": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "long"
-        }
-    },
-    "unsigned long long": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "ulong"
-        }
-    },
-    "bool": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "bool"
-        }
-    },
-    "float": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "float"
-        }
-    },
-    "double": {
-        "strategy": {
-            "name": "replace",
-            "d_decl": "double"
+    "clang_args": [
+        "-x",
+        "c++",
+        "-std=c++11",
+        "-resource-dir",
+        "/usr/lib/clang/3.5.0"
+    ],
+
+    "binding_attributes": {
+        "void": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "void"
+            }
+        },
+        "char": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "char"
+            }
+        },
+        "char16_t": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "wchar"
+            }
+        },
+        "char32_t": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "dchar"
+            }
+        },
+        "signed char": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "char"
+            }
+        },
+        "unsigned char": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "ubyte"
+            }
+        },
+        "short": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "short"
+            }
+        },
+        "unsigned short": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "ushort"
+            }
+        },
+        "int": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "int"
+            }
+        },
+        "unsigned int": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "uint"
+            }
+        },
+        "long": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "long"
+            }
+        },
+        "unsigned long": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "ulong"
+            }
+        },
+        "long long": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "long"
+            }
+        },
+        "unsigned long long": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "ulong"
+            }
+        },
+        "bool": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "bool"
+            }
+        },
+        "float": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "float"
+            }
+        },
+        "double": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "double"
+            }
         }
     }
 }

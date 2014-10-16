@@ -41,11 +41,17 @@ int main(int argc, const char **argv)
     if( !parse_args(argc, argv, args) )
         return EXIT_FAILURE;
 
-    std::string contents = readFile(args.header_files[0]);
     std::vector<std::string> clang_args;
-    clang_args.emplace_back("-std=c++11");
-    clang_args.emplace_back("-resource-dir");
-    clang_args.emplace_back("/usr/lib/clang/3.4.2");
+    try {
+        clang_args = parseClangArgs(args.config_files);
+    }
+    catch(ConfigurationException& exc)
+    {
+        std::cerr << "ERROR: " << exc.what() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    std::string contents = readFile(args.header_files[0]);
 
     std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, args.header_files[0]));
     source_manager = &ast->getSourceManager();
