@@ -73,7 +73,7 @@ This way, if I am a `Klass *`, I can reference the translation of `Klass`.
 
 For now, this pass is going to be written in C++.
 I want to be able to write a `clang::RecursiveASTVisitor` to parse C++.
-Unfortunatly, `RecursiveASTVisitor` uses the [Curiously Recurring Template Pattern](http://en.wikipedia.org/wiki/Curiously_recurring_template_pattern), so it will not be bound directly any time soon.
+Unfortunately, `RecursiveASTVisitor` uses the [Curiously Recurring Template Pattern](http://en.wikipedia.org/wiki/Curiously_recurring_template_pattern), so it will not be bound directly any time soon.
 I would like to write a C++ subclass of it that uses virtual methods and could be bound to D; along with binding the clang AST types, this should allow the tool to be written almost entirely in D.
 
 An option, for now, is to write the first pass in C++ and have it output results to a JSON file or something, then a tool in D can pick up from there.
@@ -89,10 +89,18 @@ TODO allow configuration of how to parse the C++, i.e. command line flags to `cl
 ## One-and-a-half Phase
 
 This parses user supplied configuration about the translation process.
+There are two sections of information: flags to pass to `clang` and attributes to guide the translation.
+
+To pass flags to `clang`, use the key `clang_args` and set the value to the
+array of flags.  Usage of `clang_args` in multiple configuation files is
+cumulative; that is, the arguments passed to clang will be the concatenation of
+all of the arrays in all the configuration files.
+
 The conceptual model is of attaching annotations to elements that are translated.
 For instance, adding annotations to a function.
 The general format is a key-value store; keys indicate the element receiving annotations.
 For now, keys are referenced by their fully-qualifed name.
+All attributes are stored in a the value associated with the top-level `binding_attributes` key.
 
 Attributes read during this phase are applied directly onto the declarations or type information generated previously.
 The configuration file does not distinguish whether the target of an attribute is a declaration or a type; that should be clear from the attribute.
