@@ -68,14 +68,12 @@ namespace cpp
 
         public:
         virtual const clang::Decl* decl() = 0;
-        const std::string name() {
-            return _name;
-        }
         protected:
+        std::string source_name;
         std::string _name;
 
-        void setName(std::string name) {
-            _name = name;
+        void setSourceName(std::string name) {
+            source_name = name;
         }
 
         friend class DeclVisitor;
@@ -90,8 +88,18 @@ namespace cpp
               visibility(UNSET), remove_prefix("")
         { }
 
-        const std::string& getName() const {
-            return _name;
+        const std::string& getSourceName() const {
+            return source_name;
+        }
+        const std::string& getTargetName() const {
+            if( _name.size() == 0 )
+            {
+                return source_name;
+            }
+            else
+            {
+                return _name;
+            }
         }
 
         bool isWrappable() const noexcept {
@@ -273,7 +281,34 @@ func(Unwrappable)
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
 DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
-DECLARATION_CLASS_2(Var, Variable);
+
+    class VariableDeclaration : public Declaration
+    {
+        private:
+        const clang::VarDecl* _decl;
+
+        public:
+        VariableDeclaration(const clang::VarDecl* d)
+            : _decl(d)
+        { }
+        virtual const clang::Decl* decl() override {
+            return _decl;
+        }
+
+        virtual std::shared_ptr<Type> getType() const override
+        {
+            return Type::get(_decl->getType());
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitVariable(*this);
+        }
+        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+            visitor.visitVariable(*this);
+        }
+    };
 
     class ArgumentDeclaration : public Declaration
     {

@@ -398,7 +398,7 @@ bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)
 
 bool DeclVisitor::VisitNamedDecl(clang::NamedDecl* cppDecl)
 {
-    decl_in_progress->setName(cppDecl->getNameAsString());
+    decl_in_progress->setSourceName(cppDecl->getNameAsString());
     return true;
 }
 

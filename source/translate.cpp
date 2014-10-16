@@ -101,13 +101,13 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         d_decl->linkage = translateLinkage(cppDecl);
         d_decl->linkage.name_space = namespace_path;
 
-        if( cppDecl.getName().size() )
+        if( cppDecl.getTargetName().size() )
         {
-            d_decl->name = cppDecl.getName();
+            d_decl->name = cppDecl.getTargetName();
         }
         else
         {
-            throw 12;
+            throw std::runtime_error("Function declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
         d_decl->return_type = translateType(cppDecl.getReturnType());
@@ -148,7 +148,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
         else
         {
-            module = std::make_shared<dlang::Module>(cppDecl.getName());
+            module = std::make_shared<dlang::Module>(cppDecl.getTargetName());
         }
 
         std::string this_package_name = parent_package_name + "." + module->getName();
@@ -191,7 +191,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(Struct)
 
         std::shared_ptr<dlang::Struct> result = std::make_shared<dlang::Struct>();
-        result->name = cppDecl.getName();
+        result->name = cppDecl.getTargetName();
 
         for( auto iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
@@ -231,7 +231,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(Interface)
 
         std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>();
-        result->name = cppDecl.getName();
+        result->name = cppDecl.getTargetName();
 
         for( auto iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
@@ -278,7 +278,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(TypeAlias)
 
         std::shared_ptr<dlang::TypeAlias> result = std::make_shared<dlang::TypeAlias>();
-        result->name = cppDecl.getName();
+        result->name = cppDecl.getTargetName();
         result->target_type = translateType(cppDecl.getTargetType());
 
         return result;
@@ -322,7 +322,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     {
         CHECK_FOR_DECL(EnumConstant)
         std::shared_ptr<dlang::EnumConstant> result = std::make_shared<dlang::EnumConstant>();
-        result->name = cppDecl.getName(); // TODO remove prefix
+        result->name = cppDecl.getTargetName(); // TODO remove prefix
         result->value = cppDecl.getValue();
 
         return result;
@@ -339,7 +339,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     {
         CHECK_FOR_DECL(Field)
         std::shared_ptr<dlang::Field> result = std::make_shared<dlang::Field>();
-        result->name = cppDecl.getName();
+        result->name = cppDecl.getTargetName();
         result->type = translateType(cppDecl.getType());
         result->visibility = translateVisibility(cppDecl.getVisibility());
         return result;
@@ -357,7 +357,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(Union)
 
         std::shared_ptr<dlang::Union> result = std::make_shared<dlang::Union>();
-        result->name = cppDecl.getName();
+        result->name = cppDecl.getTargetName();
 
         for( auto iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
@@ -386,13 +386,13 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // final / virtual
         result->isVirtual = cppDecl.isVirtual();
 
-        if( cppDecl.getName().size() )
+        if( cppDecl.getTargetName().size() )
         {
-            result->name = cppDecl.getName();
+            result->name = cppDecl.getTargetName();
         }
         else
         {
-            throw 12;
+            throw std::runtime_error("Method declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
         result->return_type = translateType(cppDecl.getReturnType());
@@ -407,7 +407,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         return result;
     }
 
-    virtual void visitMethod(cpp::MethodDeclaration& cppDecl) override
+    virtual void visitMethod(cpp::MethodDeclaration&) override
     {
         // Getting here means that there is a method declaration
         // outside of a record declaration, since the struct / interface building
@@ -416,6 +416,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     }
     virtual void visitConstructor(cpp::ConstructorDeclaration& cppDecl) override
     {
+        std::cout << "Got here!\n";
     }
     virtual void visitDestructor(cpp::DestructorDeclaration& cppDecl) override
     {
@@ -425,7 +426,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     {
         CHECK_FOR_DECL(Argument)
         std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
-        arg->name = cppDecl.getName();
+        arg->name = cppDecl.getTargetName();
         arg->type = translateType(cppDecl.getType());
 
         return arg;
@@ -439,7 +440,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     {
         CHECK_FOR_DECL(Variable)
         std::shared_ptr<dlang::Variable> var = std::make_shared<dlang::Variable>();
-        var->name = cppDecl.getName();
+        var->name = cppDecl.getTargetName();
         var->type = translateType(cppDecl.getType());
 
         return var;
@@ -551,6 +552,8 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
     }
     else
     {
+        //std::cout << "Determining strategy for " << cppType->getName()
+        std::cerr << "Determinining strategy for: " << cpp_decl->getSourceName() << "\n";
         const clang::CXXRecordDecl* cxxRecord = reinterpret_cast<const clang::CXXRecordDecl*>(cpp_decl->decl());
         if( cxxRecord->isDynamicClass() )
         {
