@@ -26,6 +26,7 @@
 #include <clang/Basic/SourceManager.h>
 
 #include "cpp_type.hpp"
+#include "cpp_decl.hpp"
 using namespace cpp;
 
 std::unordered_map<const clang::Type*, std::shared_ptr<Type>> Type::type_map;
@@ -181,7 +182,13 @@ bool TypeVisitor::VisitPointerType(clang::PointerType* cppType)
 bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
 {
     bool continue_traversal = true;
-    const clang::RecordDecl * decl = cppType->getDecl();
+
+    // To avoid mutually recursion in DeclVisitor
+    // TODO with other types like union, etc.
+    clang::RecordDecl * decl = cppType->getDecl();
+    DeclVisitor declVisitor(printPolicy);
+    declVisitor.TraverseDecl(decl);
+
     // Recurse down all of the fields of the record
     if( !decl->field_empty() )
     {
