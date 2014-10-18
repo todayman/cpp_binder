@@ -870,6 +870,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl);
         bool TraverseAccessSpecDecl(clang::AccessSpecDecl* cppDecl);
         bool TraverseFriendDecl(clang::FriendDecl* cppDecl);
+        bool TraverseIndirectFieldDecl(clang::IndirectFieldDecl* cppDecl);
         // FIXME I have no idea what this is.
         bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
 

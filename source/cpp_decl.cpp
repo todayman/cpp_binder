@@ -329,6 +329,13 @@ UNWRAPPABLE_TRAVERSE(Empty)
 UNWRAPPABLE_TRAVERSE(AccessSpec)
 UNWRAPPABLE_TRAVERSE(Friend)
 
+// TODO properly wrap these with an alias?
+// From the clang documentation on IndirectFieldDecl:
+//  An instance of this class is created to represent a field injected from an
+//  anonymous union/struct into the parent scope. IndirectFieldDecl are always
+//  implicit.
+UNWRAPPABLE_TRAVERSE(IndirectField)
+
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {
     // This could be a method or a regular function
