@@ -74,8 +74,15 @@ int main(int argc, const char **argv)
     std::cout << "\n\n";
     std::cout << "There are " << cpp::DeclVisitor::getFreeDeclarations().size() << " top level decarations.\n";
 
-    populateDAST();
-    // TODO force translation of all types
+    try {
+        populateDAST();
+        // TODO force translation of all types
+    }
+    catch(std::exception& exc)
+    {
+        std::cerr << "ERROR: " << exc.what() << "\n";
+        return EXIT_FAILURE;
+    }
 
     //DOutput output;
     produceOutputForPackage(*dlang::rootPackage);
