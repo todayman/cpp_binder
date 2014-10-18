@@ -353,7 +353,11 @@ namespace dlang
     class Method : public Declaration
     {
         public:
-        bool isVirtual; // need to not collide with keywords
+        enum {
+            VIRTUAL,
+            STATIC,
+            FINAL
+        } kind;
         std::shared_ptr<Type> return_type;
         std::vector<std::shared_ptr<Argument>> arguments;
 

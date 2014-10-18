@@ -244,8 +244,20 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     {
         putVisiblity(method.visibility);
 
-        if( displayFinal && !method.isVirtual )
-            output.putItem("final");
+        switch( method.kind )
+        {
+            case dlang::Method::STATIC:
+                output.putItem("static");
+                break;
+            case dlang::Method::FINAL:
+                if( displayFinal )
+                {
+                    output.putItem("final");
+                }
+                break;
+            case dlang::Method::VIRTUAL:
+                break;
+        }
 
         TypeWriter type(output);
         method.return_type->visit(type);

@@ -22,9 +22,8 @@
 #include "cpp_decl.hpp"
 #include "dlang_decls.hpp"
 
-std::shared_ptr<dlang::Type> translateType(clang::QualType);
-
-std::unordered_map<cpp::Declaration*, std::shared_ptr<dlang::Declaration>> translated;
+static std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> translated_types;
+static std::unordered_map<cpp::Declaration*, std::shared_ptr<dlang::Declaration>> translated;
 
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType);
 
@@ -191,6 +190,8 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(Struct)
 
         std::shared_ptr<dlang::Struct> result = std::make_shared<dlang::Struct>();
+        translated.insert(std::make_pair(&cppDecl, result));
+        translated_types.insert(std::make_pair(cppDecl.getType().get(), result));
         result->name = cppDecl.getTargetName();
 
         for( auto iter = cppDecl.getFieldBegin(),
@@ -215,10 +216,9 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
                 continue;
             // FIXME double dereference? really?
             std::shared_ptr<dlang::Method> method = translateMethod(**iter);
-            if( method->isVirtual )
+            if( method->kind == dlang::Method::VIRTUAL )
             {
-                std::cout << "Methods on structs cannot be virtual!\n";
-                throw 37;
+                throw std::runtime_error("Methods on structs cannot be virtual!");
             }
             result->methods.push_back(method);
         }
@@ -245,10 +245,9 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
                 continue;
             // FIXME double dereference? really?
             std::shared_ptr<dlang::Method> method = translateMethod(**iter);
-            if( !method->isVirtual )
+            if( dlang::Method::FINAL == method->kind )
             {
-                std::cout << "Methods on interfaces must be virtual!\n";
-                throw 37;
+                throw std::runtime_error("Methods on interfaces must be virtual!");
             }
             result->methods.push_back(method);
         }
@@ -383,8 +382,17 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         std::shared_ptr<dlang::Method> result = std::make_shared<dlang::Method>();
 
-        // final / virtual
-        result->isVirtual = cppDecl.isVirtual();
+        if( cppDecl.isStatic() )
+        {
+            result->kind = dlang::Method::STATIC;
+        }
+        else if( cppDecl.isVirtual() )
+        {
+            result->kind = dlang::Method::VIRTUAL;
+        }
+        else {
+            result->kind = dlang::Method::FINAL;
+        }
 
         if( cppDecl.getTargetName().size() )
         {
@@ -412,7 +420,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // Getting here means that there is a method declaration
         // outside of a record declaration, since the struct / interface building
         // functions call translateMethod directly.
-        throw 36;
+        throw std::runtime_error("Attempting to translate a method as if it were top level, but methods are never top level.");
     }
     virtual void visitConstructor(cpp::ConstructorDeclaration& cppDecl) override
     {
@@ -479,8 +487,17 @@ void populateDAST()
             continue;
         }
 
-        declaration->visit(visitor);
-        placeIntoTargetModule(declaration, visitor);
+        try {
+            declaration->visit(visitor);
+            placeIntoTargetModule(declaration, visitor);
+        }
+        catch(...)
+        {
+            std::exception_ptr eptr = std::current_exception();
+            declaration->decl()->dump();
+            std::rethrow_exception(eptr);
+        }
+
     }
 }
 
@@ -504,13 +521,14 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
     switch( cppType->getKind() )
     {
         case cpp::Type::Invalid:
-            throw 16;
+            throw std::runtime_error("Attempting to determine strategy for invalid type.");
             break;
         case cpp::Type::Builtin:
             std::cerr << "I don't know how to translate the builtin C++ type:\n";
             cppType->cppType()->dump();
             std::cerr << "\n";
-            throw 18;
+            std::runtime_error("Cannot translate builtin.");
+            break;
         case cpp::Type::Pointer:
         case cpp::Type::Reference:
         case cpp::Type::Typedef:
@@ -531,6 +549,13 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
             throw 17;
     }
 }
+
+struct NoDefinitionException : public std::runtime_error
+{
+    NoDefinitionException(std::shared_ptr<cpp::Declaration> decl)
+      : std::runtime_error(decl->getSourceName() + " has no definition, so I cannot determine a translation strategy.")
+    { }
+};
 
 void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
 {
@@ -555,6 +580,10 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
         //std::cout << "Determining strategy for " << cppType->getName()
         std::cerr << "Determinining strategy for: " << cpp_decl->getSourceName() << "\n";
         const clang::CXXRecordDecl* cxxRecord = reinterpret_cast<const clang::CXXRecordDecl*>(cpp_decl->decl());
+        if( !cxxRecord->hasDefinition() ) {
+            throw NoDefinitionException(cpp_decl);
+        }
+
         if( cxxRecord->isDynamicClass() )
         {
             cppType->setStrategy(INTERFACE);
@@ -695,7 +724,7 @@ std::shared_ptr<dlang::Type> replaceReference(std::shared_ptr<cpp::Type> cppType
 
 std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType)
 {
-    const clang::TypedefType * clang_type = cppType->cppType()->castAs<clang::TypedefType>();
+    const clang::TypedefType * clang_type = cppType->cppType()->getAs<clang::TypedefType>();
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
     auto all_declarations = cpp::DeclVisitor::getDeclarations();
@@ -802,17 +831,24 @@ static std::shared_ptr<dlang::Type> generateStruct(std::shared_ptr<cpp::Type> cp
 
 std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
 {
+    auto search_result = translated_types.find(cppType.get());
+    if( search_result != translated_types.end() )
+    {
+        return search_result->second;
+    }
+
+    std::shared_ptr<dlang::Type> result;
     switch( cppType->getStrategy() )
     {
         case UNKNOWN:
             determineStrategy(cppType);
-            return translateType(cppType);
+            result = translateType(cppType);
             break;
         case REPLACE:
-            return replaceType(cppType);
+            result = replaceType(cppType);
             break;
         case STRUCT:
-            return generateStruct(cppType);
+            result = generateStruct(cppType);
             break;
         case INTERFACE:
             break;
@@ -822,7 +858,13 @@ std::shared_ptr<dlang::Type> translateType(std::shared_ptr<cpp::Type> cppType)
             break;
     }
 
-    std::cout << "Cannot translate type with strategy " << cppType->getStrategy() << "\n";
-    throw 27;
-    return std::shared_ptr<dlang::Type>();
+    if( result )
+    {
+        translated_types.insert(std::make_pair(cppType.get(), result));
+    }
+    else
+    {
+        throw std::runtime_error(std::string("Cannot translate type with strategy ") + std::to_string(cppType->getStrategy()));
+    }
+    return result;
 }

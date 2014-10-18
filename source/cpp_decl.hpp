@@ -640,6 +640,10 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitMethod(*this);
         }
 
+        bool isStatic() const
+        {
+            return _decl->isStatic();
+        }
         bool isVirtual() const
         {
             return _decl->isVirtual();
