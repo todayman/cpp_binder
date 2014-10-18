@@ -263,9 +263,9 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
     }
 }
 
-static cpp::Declaration* getDecl(clang::Decl*)
+static const std::shared_ptr<cpp::Declaration> getDecl(clang::Decl* decl)
 {
-    return nullptr;
+    return cpp::DeclVisitor::getDeclarations().at(decl);
 }
 
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast)
@@ -282,7 +282,12 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         // be handled more gracefully.
         for( clang::NamedDecl* cppDecl : lookup_result )
         {
-            cpp::Declaration * decl = getDecl(cppDecl);
+            std::shared_ptr<cpp::Declaration> decl = getDecl(cppDecl);
+            if( decl == nullptr )
+            {
+                std::cerr << "Could not find declaration for " << name << "\n";
+                continue;
+            }
             //decl->setNameAttribute(name);
             for( size_t idx = 0; idx < obj.u.object.len; ++idx )
             {
