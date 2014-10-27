@@ -417,6 +417,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
 
         result->return_type = translateType(cppDecl.getReturnType());
+        result->visibility = translateVisibility(cppDecl.getVisibility());
 
         for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
              arg_iter != arg_end;
