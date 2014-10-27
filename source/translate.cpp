@@ -222,7 +222,18 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             }
             result->methods.push_back(method);
         }
+
         // TODO static methods and other things
+        for( auto iter = cppDecl.getChildBegin(),
+                finish = cppDecl.getChildEnd();
+            iter != finish;
+            ++iter )
+        {
+            if( std::shared_ptr<cpp::EnumDeclaration> enumDecl = std::dynamic_pointer_cast<cpp::EnumDeclaration>(*iter) )
+            {
+                result->insert(translateEnum(*enumDecl));
+            }
+        }
         return result;
     }
 
