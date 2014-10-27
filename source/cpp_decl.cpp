@@ -392,6 +392,31 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
     return Super::WalkUpFromRecordDecl(cppDecl);
 }
 
+// This method is called after WalkUpFromDecl, which
+// throws an exception if decl_in_progress hasn't been allocated yet.
+bool DeclVisitor::VisitDecl(clang::Decl* Declaration)
+{
+    Visibility v = UNSET;
+    switch( Declaration->getAccess() )
+    {
+        case clang::AS_public:
+            v = PUBLIC;
+            break;
+        case clang::AS_protected:
+            v = PROTECTED;
+            break;
+        case clang::AS_private:
+            v = PRIVATE;
+            break;
+        case clang::AS_none:
+            v = UNSET;
+            break;
+    }
+    decl_in_progress->setVisibility(v);
+
+    return Super::VisitDecl(Declaration);
+}
+
 bool DeclVisitor::VisitFunctionDecl(clang::FunctionDecl* cppDecl)
 {
     return TraverseType(cppDecl->getReturnType());

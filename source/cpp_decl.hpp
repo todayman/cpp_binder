@@ -867,6 +867,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromVarDecl(clang::VarDecl* cppDecl);
         bool WalkUpFromFieldDecl(clang::FieldDecl* cppDecl);
 
+        bool VisitDecl(clang::Decl* Declaration);
         // Also gets cxx method/ctor/dtor
         bool VisitFunctionDecl(clang::FunctionDecl * Declaration);
         bool VisitTypedefDecl(clang::TypedefDecl * decl);
