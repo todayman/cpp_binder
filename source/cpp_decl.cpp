@@ -55,12 +55,6 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
-std::shared_ptr<cpp::Declaration> cpp::DeclarationIterator::operator*()
-{
-    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
-    return search_result->second;
-}
-
 template<typename ClangType, typename TranslatorType>
 std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operator*()
 {
@@ -68,6 +62,7 @@ std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operat
     std::shared_ptr<cpp::Declaration> decl = search_result->second;
     return std::dynamic_pointer_cast<TranslatorType>(decl);
 }
+template std::shared_ptr<cpp::Declaration> cpp::Iterator<clang::DeclContext::decl_iterator, cpp::Declaration>::operator*();
 template std::shared_ptr<cpp::ArgumentDeclaration> cpp::Iterator<clang::FunctionDecl::param_const_iterator, cpp::ArgumentDeclaration>::operator*();
 template std::shared_ptr<cpp::FieldDeclaration> cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
 

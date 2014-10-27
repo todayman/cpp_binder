@@ -157,13 +157,14 @@ namespace cpp
         { }
     };
 
-    class DeclarationIterator
+    template<typename ClangType, typename TranslatorType>
+    class Iterator
     {
         private:
-        clang::DeclContext::decl_iterator cpp_iter;
+        ClangType cpp_iter;
 
         public:
-        explicit DeclarationIterator(clang::DeclContext::decl_iterator i)
+        explicit Iterator(ClangType i)
             : cpp_iter(i)
         { }
 
@@ -171,20 +172,22 @@ namespace cpp
             cpp_iter++;
         }
 
-        bool operator==(const DeclarationIterator& other) {
+        bool operator==(const Iterator<ClangType, TranslatorType>& other) {
             return cpp_iter == other.cpp_iter;
         }
 
-        bool operator!=(const DeclarationIterator& other) {
+        bool operator!=(const Iterator<ClangType, TranslatorType>& other) {
             return cpp_iter != other.cpp_iter;
         }
 
-        std::shared_ptr<Declaration> operator*();
-        std::shared_ptr<Declaration> operator->()
+        std::shared_ptr<TranslatorType> operator*();
+        std::shared_ptr<TranslatorType> operator->()
         {
             return operator*();
         }
     };
+
+    typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
 
 #define FORALL_DECLARATIONS(func) \
 func(Function)      \
@@ -476,36 +479,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         llvm::APSInt getValue() const
         {
             return _decl->getInitVal();
-        }
-    };
-
-    template<typename ClangType, typename TranslatorType>
-    class Iterator
-    {
-        private:
-        ClangType cpp_iter;
-
-        public:
-        explicit Iterator(ClangType i)
-            : cpp_iter(i)
-        { }
-
-        void operator++() {
-            cpp_iter++;
-        }
-
-        bool operator==(const Iterator<ClangType, TranslatorType>& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const Iterator<ClangType, TranslatorType>& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        std::shared_ptr<TranslatorType> operator*();
-        std::shared_ptr<TranslatorType> operator->()
-        {
-            return operator*();
         }
     };
 
