@@ -301,9 +301,11 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     std::shared_ptr<dlang::Enum> translateEnum(cpp::EnumDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Enum)
+
         std::shared_ptr<dlang::Enum> result = std::make_shared<dlang::Enum>();
 
         result->type = translateType(cppDecl.getType());
+        result->name = cppDecl.getTargetName();
 
         // visit and translate all of the constants
         for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
@@ -435,7 +437,6 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     }
     virtual void visitConstructor(cpp::ConstructorDeclaration& cppDecl) override
     {
-        std::cout << "Got here!\n";
     }
     virtual void visitDestructor(cpp::DestructorDeclaration& cppDecl) override
     {
