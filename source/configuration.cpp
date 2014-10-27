@@ -282,8 +282,10 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         // be handled more gracefully.
         for( clang::NamedDecl* cppDecl : lookup_result )
         {
-            std::shared_ptr<cpp::Declaration> decl = getDecl(cppDecl);
-            if( decl == nullptr )
+            try {
+                std::shared_ptr<cpp::Declaration> decl = getDecl(cppDecl);
+            }
+            catch( std::out_of_range& exc )
             {
                 std::cerr << "Could not find declaration for " << name << "\n";
                 continue;
@@ -371,7 +373,10 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     {
                         throw ExpectedObject(sub_obj);
                     }
-                    readStrategyConfiguration(*sub_obj, decl->getType());
+                    if( decl->isWrappable() ) // FIXME apply this higher up?
+                    {
+                        readStrategyConfiguration(*sub_obj, decl->getType());
+                    }
                 }
                 else {
                     // throw UnrecognizedAttribute(attrib_name);
