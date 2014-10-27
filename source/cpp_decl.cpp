@@ -140,22 +140,12 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 {
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
         return true;
-    if( Declaration->isTemplateDecl() ) {
-        switch (Declaration->getKind()) {
-            case clang::Decl::Function:
-            case clang::Decl::Record:
-            case clang::Decl::CXXRecord:
-            case clang::Decl::CXXMethod:
-            case clang::Decl::ClassTemplate:
-            case clang::Decl::FunctionTemplate:
-                // These ones have names, so we can print them out
-                //std::cout << " " << static_cast<clang::NamedDecl*>(Declaration)->getNameAsString();
-                break;
-            default:
-                break;
-        }
+    if( Declaration->isTemplateDecl() )
+    {
+        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
     }
-    else {
+    else
+    {
         try {
             RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
         }
@@ -165,7 +155,8 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
             {
                 decl_in_progress->markUnwrappable();
             }
-            else {
+            else
+            {
                 allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
             }
         }
@@ -175,6 +166,12 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 }
 
 bool DeclVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration)
+{
+    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(declaration);
+    return true;
+}
+
+bool DeclVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
 {
     allocateDeclaration<clang::Decl, UnwrappableDeclaration>(declaration);
     return true;
@@ -239,6 +236,10 @@ bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
     {
         RecursiveASTVisitor<DeclVisitor>::TraverseCXXConstructorDecl(cppDecl);
     }
+    else
+    {
+        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
+    }
 
     return true;
 }
@@ -249,6 +250,10 @@ bool DeclVisitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl)
     if( !hasTemplateParent(parent_decl) )
     {
         RecursiveASTVisitor<DeclVisitor>::TraverseCXXDestructorDecl(cppDecl);
+    }
+    else
+    {
+        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
     }
 
     return true;

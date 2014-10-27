@@ -835,6 +835,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
         bool TraverseFunctionDecl(clang::FunctionDecl* cppDecl);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
+        bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
         bool TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
         bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration);
         bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration);
