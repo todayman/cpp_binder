@@ -77,7 +77,7 @@ static dlang::Visibility translateVisibility(::Visibility access)
 }
 
 class TranslatorVisitor;
-static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, const TranslatorVisitor& visitor);
+static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, std::shared_ptr<dlang::Declaration> translation);
 
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::DeclarationVisitor
@@ -173,7 +173,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
             (*children_iter)->visit(subpackage_visitor);
 
-            placeIntoTargetModule(*children_iter, subpackage_visitor);
+            placeIntoTargetModule(*children_iter, subpackage_visitor.last_result);
         }
 
         return module;
@@ -462,7 +462,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     }
 };
 
-static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, const TranslatorVisitor& visitor)
+static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, std::shared_ptr<dlang::Declaration> translation)
 {
     std::string target_module = declaration->getTargetModule();
     if( target_module.size() == 0 )
@@ -470,9 +470,9 @@ static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration,
         target_module = "unknown";
     }
     std::shared_ptr<dlang::Module> module = dlang::rootPackage->getOrCreateModulePath(target_module);
-    if( visitor.last_result )
+    if( translation )
     {
-        module->insert(visitor.last_result);
+        module->insert(translation);
     }
 }
 
@@ -481,15 +481,26 @@ void populateDAST()
     // May cause problems because root package won't check for empty path.
     for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
     {
-        TranslatorVisitor visitor("", "");
-        if( !declaration->getShouldBind() || translated.count(declaration.get()) )
+        if( !declaration->getShouldBind() )
         {
             continue;
         }
 
+        TranslatorVisitor visitor("", "");
         try {
-            declaration->visit(visitor);
-            placeIntoTargetModule(declaration, visitor);
+            std::shared_ptr<dlang::Declaration> translation;
+            auto iter = translated.find(declaration.get());
+            if( translated.end() == iter )
+            {
+                declaration->visit(visitor);
+                translation = visitor.last_result;
+            }
+            else
+            {
+                translation = iter->second;
+            }
+
+            placeIntoTargetModule(declaration, translation);
         }
         catch(...)
         {
