@@ -45,6 +45,7 @@ void dlang::DOutputContext::indent()
 
 void dlang::DOutputContext::putItem(const std::string& text)
 {
+    if( text.size() == 0 ) return;
     if( startingLine ) indent();
     else if( needSpaceBeforeNextItem ) output << " ";
     output << text;
@@ -52,43 +53,50 @@ void dlang::DOutputContext::putItem(const std::string& text)
     startingLine = false;
 }
 
-void dlang::DOutputContext::beginList()
+void dlang::DOutputContext::beginList(const std::string& symbol)
 {
     if( listStatus != NO_LIST )
         throw std::runtime_error("Nested lists are not supported.");
 
-    if( startingLine ) indent();
-    output << "(";
-    needSpaceBeforeNextItem = false;
+    if( symbol.size() )
+    {
+        if( startingLine ) indent();
+        output << symbol;
+        needSpaceBeforeNextItem = false;
+        startingLine = false;
+    }
     listStatus = LIST_STARTED;
-    startingLine = false;
 }
 
-void dlang::DOutputContext::endList()
+void dlang::DOutputContext::endList(const std::string& symbol)
 {
-    if( startingLine ) indent();
-    output << ")";
-    needSpaceBeforeNextItem = true;
+    if( symbol.size() )
+    {
+        if( startingLine ) indent();
+        output << symbol;
+        needSpaceBeforeNextItem = true;
+        startingLine = false;
+    }
     listStatus = NO_LIST;
-    startingLine = false;
 }
 
 void dlang::DOutputContext::listItem()
 {
-    if( startingLine ) indent();
     switch( listStatus )
     {
         case NO_LIST:
             throw std::runtime_error("Entered a list item while there was no list in progress.");
             break;
         case LIST_STARTED:
+            listStatus = LONG_LIST;
             break;
         case LONG_LIST:
+            if( startingLine ) indent();
             output << ",";
             needSpaceBeforeNextItem = true;
+            startingLine = false;
             break;
     }
-    startingLine = false;
 }
 
 void dlang::DOutputContext::newline()
@@ -116,11 +124,38 @@ class TypeWriter : public dlang::TypeVisitor
     {
         output.putItem(strType.name);
     }
-    virtual void visitStruct(const dlang::Struct&) override { }
-    virtual void visitTypeAlias(const dlang::TypeAlias&) override { }
-    virtual void visitEnum(const dlang::Enum&) override { }
-    virtual void visitPointer(const dlang::PointerType&) override { }
-    virtual void visitUnion(const dlang::Union&) override { }
+
+    virtual void visitStruct(const dlang::Struct& type) override
+    {
+        output.putItem(type.name);
+    }
+
+    virtual void visitTypeAlias(const dlang::TypeAlias& type) override
+    {
+        output.putItem(type.name);
+    }
+    virtual void visitEnum(const dlang::Enum& type) override
+    {
+        output.putItem(type.name);
+    }
+    virtual void visitPointer(const dlang::PointerType& type) override
+    {
+        if( dlang::PointerType::REFERENCE == type.pointer_vs_ref )
+        {
+            output.putItem("ref");
+        }
+        type.target->visit(*this);
+
+        if( dlang::PointerType::POINTER == type.pointer_vs_ref )
+        {
+            output.putItem("*");
+        }
+    }
+
+    virtual void visitUnion(const dlang::Union& type) override
+    {
+        output.putItem(type.name);
+    }
 };
 
 class DeclarationWriter : public dlang::DeclarationVisitor
@@ -156,12 +191,13 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
         output.putItem(function.name);
 
-        output.beginList();
+        output.beginList("(");
         for( auto arg : function.arguments )
         {
+            output.listItem();
             visitArgument(*arg);
         }
-        output.endList();
+        output.endList(")");
 
         output.semicolon();
         output.newline();
@@ -191,6 +227,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         DeclarationWriter innerWriter(innerContext);
         for( auto method : interface.methods )
         {
+            innerWriter.putVisiblity(method->visibility);
             method->visit(innerWriter);
         }
 
@@ -211,13 +248,15 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         DeclarationWriter innerWriter(innerContext);
         for( auto field : structure.getChildren() )
         {
+            innerWriter.putVisiblity(field->visibility);
             field->visit(innerWriter);
         }
 
         output.newline();
         for( auto method : structure.methods )
         {
-            method->visit(innerWriter);
+            innerWriter.putVisiblity(method->visibility);
+            innerWriter.visitMethod(*method, false);
         }
 
         output.putItem("}");
@@ -225,13 +264,56 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     }
 
     virtual void visitClass(const dlang::Class&) override { }
-    virtual void visitTypeAlias(const dlang::TypeAlias&) override { }
-    virtual void visitEnum(const dlang::Enum&) override { }
-    virtual void visitEnumConstant(const dlang::EnumConstant&) override { }
+    virtual void visitTypeAlias(const dlang::TypeAlias& aliasDecl) override
+    {
+        output.putItem("alias");
+        output.putItem(aliasDecl.name);
+
+        output.putItem("=");
+
+        TypeWriter type(output);
+        aliasDecl.target_type->visit(type);
+
+        output.semicolon();
+        output.newline();
+    }
+
+    virtual void visitEnum(const dlang::Enum& enumDecl) override
+    {
+        output.putItem("enum");
+        output.putItem(enumDecl.name);
+        output.newline();
+
+        output.putItem("{");
+        //output.newline();
+
+        dlang::DOutputContext innerContext(output, 4);
+        DeclarationWriter innerWriter(innerContext);
+
+        innerContext.beginList("");
+        for( auto field : enumDecl.values )
+        {
+            innerContext.listItem();
+            innerContext.newline();
+            field->visit(innerWriter);
+        }
+        innerContext.endList("");
+        output.newline();
+
+        output.putItem("}");
+        output.newline();
+        output.newline();
+    }
+
+    virtual void visitEnumConstant(const dlang::EnumConstant& constant) override
+    {
+        output.putItem(constant.name);
+        output.putItem("=");
+        output.putItem(constant.value.toString(10));
+    }
 
     virtual void visitField(const dlang::Field& field) override
     {
-        putVisiblity(field.visibility);
         TypeWriter type(output);
         field.type->visit(type);
 
@@ -242,8 +324,6 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
     void visitMethod(const dlang::Method& method, bool displayFinal)
     {
-        putVisiblity(method.visibility);
-
         switch( method.kind )
         {
             case dlang::Method::STATIC:
@@ -263,12 +343,13 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         method.return_type->visit(type);
 
         output.putItem(method.name);
-        output.beginList();
+        output.beginList("(");
         for( auto arg : method.arguments )
         {
+            output.listItem();
             visitArgument(*arg);
         }
-        output.endList();
+        output.endList(")");
         output.semicolon();
         output.newline();
     }

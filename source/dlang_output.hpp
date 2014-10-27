@@ -49,9 +49,9 @@ namespace dlang
 
         void putItem(const std::string& text);
 
-        void beginList();
-        void endList();
-        void listItem();
+        void beginList(const std::string& symbol);
+        void endList(const std::string& symbol);
+        void listItem(); // FIXME this method is really clunky
         void newline();
         void semicolon();
     };
