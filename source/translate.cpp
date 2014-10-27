@@ -60,7 +60,7 @@ static dlang::Visibility translateVisibility(::Visibility access)
     switch( access )
     {
         case ::UNSET:
-            throw 31;
+            throw std::runtime_error("Unset visibility");
         case ::PUBLIC:
             return dlang::PUBLIC;
         case ::PRIVATE:
@@ -789,7 +789,7 @@ std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type>)
 {
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
-    throw 23;
+    throw std::logic_error("Translation of function types is not implemented yet.");
 }
 
 // TODO combine with replaceEnum and replaceTypedef?
@@ -797,7 +797,7 @@ static std::shared_ptr<dlang::Type> generateStruct(std::shared_ptr<cpp::Type> cp
 {
     if( cppType->getKind() != cpp::Type::Record )
     {
-        throw 27;
+        throw std::logic_error("Attempted to generate a struct from a non-record type.");
     }
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
