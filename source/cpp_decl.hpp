@@ -394,7 +394,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual std::shared_ptr<Type> getType() const override
         {
-            throw NotTypeDecl();
+            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
 
         virtual void visit(DeclarationVisitor& visitor) override
