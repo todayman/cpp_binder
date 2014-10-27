@@ -582,6 +582,13 @@ struct NoDefinitionException : public std::runtime_error
 
 void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
 {
+    // There are some paths that don't come through determineStrategy,
+    // so filter those out.
+    if( cppType->getStrategy() != UNKNOWN )
+    {
+        return;
+    }
+
     // First algorithm:
     // If the record has any virtual functions, then map it as an interface,
     // otherwise keep it as a struct
