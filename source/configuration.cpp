@@ -282,15 +282,16 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         // be handled more gracefully.
         for( clang::NamedDecl* cppDecl : lookup_result )
         {
+            std::shared_ptr<cpp::Declaration> decl;
             try {
-                std::shared_ptr<cpp::Declaration> decl = getDecl(cppDecl);
+                decl = getDecl(cppDecl);
             }
             catch( std::out_of_range& exc )
             {
                 std::cerr << "Could not find declaration for " << name << "\n";
                 continue;
             }
-            //decl->setNameAttribute(name);
+
             for( size_t idx = 0; idx < obj.u.object.len; ++idx )
             {
                 std::string attrib_name = obj.u.object.keys[idx];
