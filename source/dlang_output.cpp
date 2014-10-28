@@ -287,7 +287,11 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         output.newline();
     }
 
-    virtual void visitClass(const dlang::Class&) override { }
+    virtual void visitClass(const dlang::Class&) override
+    {
+        throw std::logic_error("TODO: implement DeclarationWriter::visitClass()");
+    }
+
     virtual void visitTypeAlias(const dlang::TypeAlias& aliasDecl) override
     {
         output.putItem("alias");
@@ -383,7 +387,10 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         visitMethod(method, true);
     }
 
-    virtual void visitUnion(const dlang::Union&) override { }
+    virtual void visitUnion(const dlang::Union&) override
+    {
+        throw std::logic_error("TODO: implement DeclarationWriter::visitUnion()");
+    }
 
     private:
     void putVisiblity(dlang::Visibility visibility)

@@ -354,7 +354,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // Getting here means that there is an enum constant declaration
         // outside of an enum declaration, since visitEnum calls
         // translateEnumConstant directly.
-        throw 14;
+        throw std::logic_error("Attempted to translate an enum constant directly, instead of via an enum.");
     }
 
     std::shared_ptr<dlang::Field> translateField(cpp::FieldDeclaration& cppDecl)
@@ -371,7 +371,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // Getting here means that there is a field declaration
         // outside of a record declaration, since the struct / interface building
         // functions call translateField directly.
-        throw 28;
+        throw std::logic_error("Attempted to translate a field directly, instead of via a record.");
     }
 
     std::shared_ptr<dlang::Union> translateUnion(cpp::UnionDeclaration& cppDecl)
@@ -448,11 +448,13 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // functions call translateMethod directly.
         throw std::runtime_error("Attempting to translate a method as if it were top level, but methods are never top level.");
     }
-    virtual void visitConstructor(cpp::ConstructorDeclaration& cppDecl) override
+    virtual void visitConstructor(cpp::ConstructorDeclaration&) override
     {
+        // the C++ interface page on dlang.org says that D cannot call constructors
     }
-    virtual void visitDestructor(cpp::DestructorDeclaration& cppDecl) override
+    virtual void visitDestructor(cpp::DestructorDeclaration&) override
     {
+        // the C++ interface page on dlang.org says that D cannot call destructors
     }
 
     std::shared_ptr<dlang::Argument> translateArgument(cpp::ArgumentDeclaration& cppDecl)
@@ -482,8 +484,9 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateVariable(cppDecl));
     }
-    virtual void visitUnwrappable(cpp::UnwrappableDeclaration& cppDecl) override
+    virtual void visitUnwrappable(cpp::UnwrappableDeclaration&) override
     {
+        // Cannot wrap unwrappable declarations, ;)
     }
 };
 
@@ -582,7 +585,7 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
         case cpp::Type::Array:
             break;
         case cpp::Type::Vector:
-            throw 17;
+            throw std::logic_error("Cannot translate vector (e.g. SSE, AVX) types.");
     }
 }
 
