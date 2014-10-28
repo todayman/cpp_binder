@@ -59,6 +59,11 @@ template<typename ClangType, typename TranslatorType>
 std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
     std::shared_ptr<cpp::Declaration> decl = search_result->second;
     return std::dynamic_pointer_cast<TranslatorType>(decl);
 }
