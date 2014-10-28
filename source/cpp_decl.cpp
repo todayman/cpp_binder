@@ -195,6 +195,9 @@ bool DeclVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl)
 
 bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
 {
+    // FIXME hack to avoid translating out-of-line methods
+    bool old_top_level = top_level_decls;
+    top_level_decls = false; // method are never top level
     const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
     if( hasTemplateParent(parent_decl) )
     {
@@ -217,16 +220,17 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
         {
             result = registerDeclaration(*iter);
         }
-
-        return result;
     }
     catch( SkipUnwrappableDeclaration& e )
     {
         // If we can't wrap the return type or any of the arguments,
         // then we cannot wrap the method declaration
         decl_in_progress->markUnwrappable();
-        return result;
     }
+    // FIXME hack to avoid translating out-of-line methods
+    top_level_decls = old_top_level;
+
+    return result;
 }
 
 bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
