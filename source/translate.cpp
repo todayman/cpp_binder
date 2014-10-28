@@ -621,7 +621,7 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
     else
     {
         //std::cout << "Determining strategy for " << cppType->getName()
-        std::cerr << "Determinining strategy for: " << cpp_decl->getSourceName() << "\n";
+        std::cerr << "Determinining strategy for: " << cpp_decl->getSourceName() << " (" << cpp_record << ")\n";
         const clang::CXXRecordDecl* cxxRecord = reinterpret_cast<const clang::CXXRecordDecl*>(cpp_decl->decl());
         if( !cxxRecord->hasDefinition() ) {
             throw NoDefinitionException(cpp_decl);
@@ -630,10 +630,12 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
         if( cxxRecord->isDynamicClass() )
         {
             cppType->setStrategy(INTERFACE);
+            std::cerr << "\tChose INTERFACE\n";
         }
         else
         {
             cppType->setStrategy(STRUCT);
+            std::cerr << "\tChose STRUCT\n";
         }
     }
 }
