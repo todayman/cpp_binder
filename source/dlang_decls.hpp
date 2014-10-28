@@ -124,7 +124,8 @@ namespace dlang
     enum Language
     {
         LANG_C,
-        LANG_CPP
+        LANG_CPP,
+        LANG_D
     };
 
     struct Linkage
@@ -370,6 +371,7 @@ namespace dlang
     class Struct : public Declaration, public Type, public DeclarationContainer
     {
         public:
+        Linkage linkage;
         std::vector<std::shared_ptr<Method>> methods;
 
         virtual void visit(TypeVisitor& visitor) const override
@@ -408,6 +410,7 @@ namespace dlang
     class Interface : public Declaration
     {
         public:
+        Linkage linkage;
         std::vector<std::shared_ptr<Declaration>> methods;
 
         virtual void visit(DeclarationVisitor& visitor) const override

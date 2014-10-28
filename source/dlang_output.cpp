@@ -160,32 +160,54 @@ class TypeWriter : public dlang::TypeVisitor
 
 class DeclarationWriter : public dlang::DeclarationVisitor
 {
+    dlang::Linkage current_linkage;
     dlang::DOutputContext& output;
+
+    // RAII struct to track linkage
+    struct LinkageSegment
+    {
+        DeclarationWriter& writer;
+        dlang::Linkage old_linkage;
+        LinkageSegment(DeclarationWriter& w, dlang::Linkage nl)
+            : writer(w), old_linkage(writer.current_linkage)
+        {
+            if( nl.lang == dlang::LANG_C && old_linkage.lang != dlang::LANG_C )
+            {
+                writer.output.putItem("extern(C)");
+            }
+            else if( nl.lang == dlang::LANG_CPP && old_linkage.lang != dlang::LANG_CPP )
+            {
+                if( nl.name_space.size() > 0 )
+                {
+                    writer.output.putItem(std::string("extern(C++, ") + nl.name_space + ")");
+                }
+                else
+                {
+                    writer.output.putItem("extern(C++)");
+                }
+            }
+            else if( nl.lang == dlang::LANG_D && old_linkage.lang != dlang::LANG_D )
+            {
+                throw std::logic_error("Moving from non-D linkage to D linkage.  I need to think about this.");
+            }
+            else {
+                throw std::logic_error("Unrecognized linkage language");
+            }
+        }
+
+        ~LinkageSegment()
+        {
+            writer.current_linkage = old_linkage;
+        }
+    };
     public:
     explicit DeclarationWriter(dlang::DOutputContext& ctx)
-        : output(ctx)
+        : current_linkage({dlang::LANG_D, ""}), output(ctx)
     { }
 
     virtual void visitFunction(const dlang::Function& function) override
     {
-        if( function.linkage.lang == dlang::LANG_C )
-        {
-            output.putItem("extern(C)");
-        }
-        else if( function.linkage.lang == dlang::LANG_CPP )
-        {
-            if( function.linkage.name_space.size() > 0 )
-            {
-                output.putItem(std::string("extern(C++, ") + function.linkage.name_space + ")");
-            }
-            else
-            {
-                output.putItem("extern(C++)");
-            }
-        }
-        else {
-            throw 25;
-        }
+        LinkageSegment ls(*this, function.linkage);
         TypeWriter type(output);
         function.return_type->visit(type);
 
@@ -216,6 +238,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     virtual void visitVariable(const dlang::Variable&) override { }
     virtual void visitInterface(const dlang::Interface& interface) override
     {
+        LinkageSegment ls(*this, interface.linkage);
         output.putItem("interface");
         output.putItem(interface.name);
         output.newline();
@@ -237,6 +260,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
     virtual void visitStruct(const dlang::Struct& structure) override
     {
+        LinkageSegment ls(*this, structure.linkage);
         output.putItem("struct");
         output.putItem(structure.name);
         output.newline();

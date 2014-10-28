@@ -194,6 +194,11 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         translated_types.insert(std::make_pair(cppDecl.getType().get(), result));
         result->name = cppDecl.getTargetName();
 
+        // Set the linkage attributes for this struct
+        // This only matters for methods
+        result->linkage.lang = dlang::LANG_CPP;
+        result->linkage.name_space = namespace_path;
+
         for( auto iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
              iter != finish;
@@ -243,6 +248,11 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>();
         result->name = cppDecl.getTargetName();
+
+        // Set the linkage attributes for this interface
+        // This only matters for methods
+        result->linkage.lang = dlang::LANG_CPP;
+        result->linkage.name_space = namespace_path;
 
         for( auto iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
@@ -417,6 +427,8 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
 
         result->return_type = translateType(cppDecl.getReturnType());
+        if( cppDecl.getVisibility() == UNSET )
+            cppDecl.decl()->dump();
         result->visibility = translateVisibility(cppDecl.getVisibility());
 
         for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
