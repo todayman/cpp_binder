@@ -539,11 +539,10 @@ void populateDAST()
 
             placeIntoTargetModule(declaration, translation);
         }
-        catch(...)
+        catch( std::runtime_error& exc )
         {
-            std::exception_ptr eptr = std::current_exception();
             declaration->decl()->dump();
-            std::rethrow_exception(eptr);
+            std::cerr << "ERROR: " <<  exc.what() << "\n";
         }
 
     }
@@ -570,6 +569,7 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
     switch( cppType->getKind() )
     {
         case cpp::Type::Invalid:
+            cppType->cppType()->dump();
             throw std::runtime_error("Attempting to determine strategy for invalid type.");
             break;
         case cpp::Type::Builtin:
@@ -785,9 +785,15 @@ std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType)
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
     auto all_declarations = cpp::DeclVisitor::getDeclarations();
+    auto this_declaration = all_declarations.find(static_cast<clang::Decl*>(clang_decl));
+    if( this_declaration == all_declarations.end() )
+    {
+        clang_decl->dump();
+        throw std::logic_error("Found a declaration that I'm not wrapping.");
+    }
+
     std::shared_ptr<cpp::TypedefDeclaration> cppDecl
-        = std::dynamic_pointer_cast<cpp::TypedefDeclaration>(
-                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+        = std::dynamic_pointer_cast<cpp::TypedefDeclaration>(this_declaration->second);
     auto search_result = translated.find(cppDecl.get());
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
