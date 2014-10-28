@@ -122,7 +122,14 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
     }
     virtual void visitFunction(cpp::FunctionDeclaration& cppDecl) override
     {
-        last_result = std::static_pointer_cast<dlang::Declaration>(translateFunction(cppDecl));
+        if( reinterpret_cast<const clang::FunctionDecl*>(cppDecl.decl())->isOverloadedOperator() )
+        {
+            std::cout << "ERROR: Cannot translate overloaded operator.\n";
+        }
+        else
+        {
+            last_result = std::static_pointer_cast<dlang::Declaration>(translateFunction(cppDecl));
+        }
     }
 
     std::shared_ptr<dlang::Module> translateNamespace(cpp::NamespaceDeclaration& cppDecl)
