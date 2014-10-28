@@ -19,6 +19,8 @@
 #include <iostream>
 #include <set>
 
+#include <boost/filesystem.hpp>
+
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
 
@@ -271,7 +273,10 @@ bool DeclVisitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl)
 bool DeclVisitor::WalkUpFromDecl(clang::Decl* cppDecl)
 {
     if( !decl_in_progress )
+    {
+        cppDecl->dump();
         throw SkipUnwrappableDeclaration(cppDecl);
+    }
     return Super::WalkUpFromDecl(cppDecl);
 }
 
@@ -456,7 +461,7 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
 {
     public:
     std::shared_ptr<cpp::Declaration> maybe_emits;
-    std::set<std::string> filenames;
+    std::set<boost::filesystem::path> filenames;
 
     template<typename ConstIterator>
     FilenameVisitor(ConstIterator firstFile, ConstIterator lastFile)
@@ -471,9 +476,12 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
         if( presumed.getFilename() )
         {
             std::string this_filename = presumed.getFilename();
-            if( filenames.count(this_filename) > 0 )
+            for( auto name : filenames )
             {
-                maybe_emits->shouldBind(true);
+                if( boost::filesystem::equivalent(name, this_filename) )
+                {
+                    maybe_emits->shouldBind(true);
+                }
             }
         }
 
