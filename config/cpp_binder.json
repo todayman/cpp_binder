@@ -1,0 +1,15 @@
+{
+    "clang_args": [
+          "-D__STDC_LIMIT_MACROS"
+        , "-D__STDC_CONSTANT_MACROS"
+        , "-fPIC"
+    ],
+    "binding_attributes": {
+        "string": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "astring"
+            }
+        }
+    }
+}
