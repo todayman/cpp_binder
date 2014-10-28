@@ -558,6 +558,7 @@ std::shared_ptr<dlang::Type> replaceReference(std::shared_ptr<cpp::Type> cppType
 std::shared_ptr<dlang::Type> replaceTypedef(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replaceEnum(std::shared_ptr<cpp::Type> cppType);
 std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type> cppType);
+std::shared_ptr<dlang::Type> replaceUnion(std::shared_ptr<cpp::Type> cppType);
 
 void determineStrategy(std::shared_ptr<cpp::Type> cppType)
 {
@@ -701,8 +702,7 @@ std::shared_ptr<dlang::Type> replaceType(std::shared_ptr<cpp::Type> cppType)
                 throw 24;
                 break;
             case cpp::Type::Union:
-                // TODO
-                throw 20;
+                return replaceUnion(cppType);
                 break;
             case cpp::Type::Array:
                 // TODO
@@ -847,6 +847,39 @@ std::shared_ptr<dlang::Type> replaceFunction(std::shared_ptr<cpp::Type>)
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
     throw std::logic_error("Translation of function types is not implemented yet.");
+}
+
+// FIXME There's a way to generalize this and combine it with replaceTypedef,
+// but I don't see it upon cursory inspection, so I'll get to it later.
+std::shared_ptr<dlang::Type> replaceUnion(std::shared_ptr<cpp::Type> cppType)
+{
+    const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
+    clang::RecordDecl * clang_decl = clang_type->getDecl();
+
+    auto all_declarations = cpp::DeclVisitor::getDeclarations();
+    std::shared_ptr<cpp::UnionDeclaration> cppDecl
+        = std::dynamic_pointer_cast<cpp::UnionDeclaration>(
+                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+    auto search_result = translated.find(cppDecl.get());
+    std::shared_ptr<dlang::Type> result;
+    if( search_result == translated.end() )
+    {
+        TranslatorVisitor visitor("", "");
+        // translateTypedef does not try to place the declaration into a
+        // module or context, so this is OK to do here.  It either:
+        //  a) was already placed into the right spot
+        //  b) will get placed later, when we visit the declaration
+        result = std::static_pointer_cast<dlang::Type>(visitor.translateUnion(*cppDecl));
+    }
+    else
+    {
+        // This cast will succeed (unless something is wrong)
+        // becuase search_result->second is really a TypeAlias, which is a Type.
+        // We're going down and then up the type hierarchy.
+        result = std::dynamic_pointer_cast<dlang::Type>(search_result->second);
+    }
+
+    return result;
 }
 
 // TODO combine with replaceEnum and replaceTypedef?
