@@ -848,9 +848,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl);
         bool TraverseAccessSpecDecl(clang::AccessSpecDecl* cppDecl);
         bool TraverseFriendDecl(clang::FriendDecl* cppDecl);
+        bool TraverseStaticAssertDecl(clang::StaticAssertDecl* cppDecl);
         bool TraverseIndirectFieldDecl(clang::IndirectFieldDecl* cppDecl);
         // FIXME I have no idea what this is.
         bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
+        bool TraverseUsingDecl(clang::UsingDecl* cppDecl);
+        bool TraverseUsingShadowDecl(clang::UsingShadowDecl* cppDecl);
 
         bool WalkUpFromDecl(clang::Decl* cppDecl);
         bool WalkUpFromTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);

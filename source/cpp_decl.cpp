@@ -337,6 +337,7 @@ bool DeclVisitor::Traverse##Type##Decl(clang::Type##Decl* cppDecl) \
 UNWRAPPABLE_TRAVERSE(Empty)
 UNWRAPPABLE_TRAVERSE(AccessSpec)
 UNWRAPPABLE_TRAVERSE(Friend)
+UNWRAPPABLE_TRAVERSE(StaticAssert)
 
 // TODO properly wrap these with an alias?
 // From the clang documentation on IndirectFieldDecl:
@@ -344,6 +345,9 @@ UNWRAPPABLE_TRAVERSE(Friend)
 //  anonymous union/struct into the parent scope. IndirectFieldDecl are always
 //  implicit.
 UNWRAPPABLE_TRAVERSE(IndirectField)
+
+UNWRAPPABLE_TRAVERSE(Using) // FIXME we can translate these as aliases
+UNWRAPPABLE_TRAVERSE(UsingShadow) // FIXME we can probably translate these as aliases?
 
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {
