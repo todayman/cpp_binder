@@ -71,9 +71,6 @@ int main(int argc, const char **argv)
         return EXIT_FAILURE;
     }
 
-    std::cout << "\n\n";
-    std::cout << "There are " << cpp::DeclVisitor::getFreeDeclarations().size() << " top level decarations.\n";
-
     try {
         populateDAST();
         // TODO force translation of all types
@@ -84,10 +81,7 @@ int main(int argc, const char **argv)
         return EXIT_FAILURE;
     }
 
-    //DOutput output;
     produceOutputForPackage(*dlang::rootPackage);
-
-    //funcVisitor.outputTranslatedFunctionDeclarations(output);
 
     return EXIT_SUCCESS;
 }
