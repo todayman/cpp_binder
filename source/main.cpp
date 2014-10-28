@@ -17,6 +17,7 @@
  */
 
 #include <memory>
+#include <sstream>
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
@@ -51,9 +52,19 @@ int main(int argc, const char **argv)
         return EXIT_FAILURE;
     }
 
-    std::string contents = readFile(args.header_files[0]);
+    //std::string contents = readFile(args.header_files[0]);
+    std::string contents;
+    std::ostringstream strm;
+    for( const std::string& filename : args.header_files )
+    {
+        strm << "#include \"" << filename << "\"\n";
+    }
+    contents = strm.str();
 
-    std::shared_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, args.header_files[0]));
+    // FIXME potential collisions with cpp_binder.cpp will really confuse clang
+    // If you pass a header here and the source #includes that header,
+    // then clang recurses infinitely
+    std::unique_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, "cpp_binder.cpp"));
     source_manager = &ast->getSourceManager();
 
     cpp::DeclVisitor declVisitor(&ast->getASTContext().getPrintingPolicy());
@@ -73,7 +84,6 @@ int main(int argc, const char **argv)
 
     try {
         populateDAST();
-        // TODO force translation of all types
     }
     catch(std::exception& exc)
     {
