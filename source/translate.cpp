@@ -48,9 +48,11 @@ static dlang::Linkage translateLinkage(cpp::FunctionDeclaration& cppDecl)
     {
         result.lang = dlang::LANG_CPP;
     }
-    else
+    else if( cppDecl.getLinkLanguage() == clang::NoLanguageLinkage )
     {
-        throw 26;
+        cppDecl.decl()->dump();
+        std::cerr << "WARNING: symbol has no language linkage.  Assuming C++.\n";
+        result.lang = dlang::LANG_CPP;
     }
     return result;
 }
