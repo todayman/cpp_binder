@@ -27,6 +27,8 @@
 
 #include "llvm/ADT/APSInt.h"
 
+#include "string.hpp"
+
 namespace dlang
 {
     enum Visibility
@@ -94,7 +96,7 @@ namespace dlang
     class Declaration
     {
         public:
-        std::string name;
+        string name;
         DeclarationContainer * parent;
         Visibility visibility;
         virtual ~Declaration() { }
@@ -131,7 +133,7 @@ namespace dlang
     struct Linkage
     {
         Language lang;
-        std::string name_space;
+        string name_space;
     };
 
     // Needs to be separate from declarations for builtins like int that don't have declarations
@@ -146,8 +148,8 @@ namespace dlang
     class StringType : public Type
     {
         public:
-        std::string name;
-        explicit StringType(std::string n)
+        string name;
+        explicit StringType(string n)
             : name(n)
         { }
 
@@ -192,14 +194,14 @@ namespace dlang
 
     class Module : public DeclarationContainer, public FileDir
     {
-        std::string name;
+        string name;
 
         public:
-        explicit Module(std::string n)
+        explicit Module(string n)
             : DeclarationContainer(), FileDir(), name(n)
         { }
 
-        const std::string& getName() const
+        const string& getName() const
         {
             return name;
         }
@@ -212,8 +214,8 @@ namespace dlang
 
     class Package : public FileDir
     {
-        std::string name;
-        std::unordered_map<std::string, std::shared_ptr<FileDir>> children;
+        string name;
+        std::unordered_map<string, std::shared_ptr<FileDir>> children;
 
         template<typename ConstIterator>
         decltype(children)::iterator findChild(ConstIterator start, ConstIterator finish, ConstIterator& end_of_first_element)
@@ -227,15 +229,15 @@ namespace dlang
                 throw 4;
             }
 
-            return children.find(std::string(start, end_of_first_element));
+            return children.find(string(start, end_of_first_element));
         }
         public:
         Package() = default;
-        explicit Package(std::string n)
+        explicit Package(string n)
             : name(n), children()
         { }
 
-        const std::string& getName() const
+        const string& getName() const
         {
             return name;
         }
@@ -283,9 +285,9 @@ namespace dlang
             }
         }
         template<typename Result>
-        std::weak_ptr<Result> findForName(const std::string& path)
+        std::weak_ptr<Result> findForName(const string& path)
         {
-            return findForName<Result>(begin(path), end(path));
+            return findForName<Result>(std::begin(path), std::end(path));
         }
 
         template<typename ConstIterator>
@@ -295,7 +297,7 @@ namespace dlang
             auto search_result = findChild(start, finish, end_of_first_element);
             if( search_result == children.end() )
             {
-                std::string next_name(start, end_of_first_element);
+                string next_name(start, end_of_first_element);
                 // Create
                 if( end_of_first_element == finish )
                 {
@@ -344,9 +346,9 @@ namespace dlang
             }
         }
 
-        std::shared_ptr<Module> getOrCreateModulePath(const std::string& path)
+        std::shared_ptr<Module> getOrCreateModulePath(const string& path)
         {
-            return getOrCreateModulePath(begin(path), end(path));
+            return getOrCreateModulePath(std::begin(path), std::end(path));
         }
     };
 

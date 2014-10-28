@@ -29,6 +29,7 @@
 
 #include "cpp_type.hpp"
 #include "cpp_exception.hpp"
+#include "string.hpp"
 
 // TODO These are basically the same as the ones
 // in dlang_decls.hpp.  I should have a better model
@@ -62,17 +63,17 @@ namespace cpp
         // Attributes!
         // Pointer to D declaration!
         bool should_bind;
-        std::string target_module;
+        string target_module;
         Visibility visibility;
-        std::string remove_prefix;
+        string remove_prefix;
 
         public:
         virtual const clang::Decl* decl() = 0;
         protected:
-        std::string source_name;
-        std::string _name;
+        string source_name;
+        string _name;
 
-        void setSourceName(std::string name) {
+        void setSourceName(string name) {
             source_name = name;
         }
 
@@ -88,10 +89,10 @@ namespace cpp
               visibility(UNSET), remove_prefix("")
         { }
 
-        const std::string& getSourceName() const {
+        const string& getSourceName() const {
             return source_name;
         }
-        const std::string& getTargetName() const {
+        const string& getTargetName() const {
             if( _name.size() == 0 )
             {
                 return source_name;
@@ -116,7 +117,7 @@ namespace cpp
             return should_bind;
         }
 
-        void setTargetModule(std::string target)
+        void setTargetModule(string target)
         {
             target_module = target;
         }
@@ -125,7 +126,7 @@ namespace cpp
         {
             return target_module.size() > 0;
         }
-        const std::string& getTargetModule() const
+        const string& getTargetModule() const
         {
             return target_module;
         }
@@ -139,7 +140,7 @@ namespace cpp
             visibility = vis;
         }
 
-        void removePrefix(std::string prefix)
+        void removePrefix(string prefix)
         {
             remove_prefix = prefix;
         }

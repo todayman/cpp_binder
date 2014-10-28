@@ -20,8 +20,8 @@
 #define __DOUTPUT_HPP__
 
 #include <iostream>
-#include <string>
 
+#include "string.hpp"
 #include "dlang_decls.hpp"
 
 namespace dlang
@@ -47,10 +47,10 @@ namespace dlang
         DOutputContext(std::ostream& output = std::cout, int indentLevel = 0);
         DOutputContext(DOutputContext& ctx, int extraIndent = 0);
 
-        void putItem(const std::string& text);
+        void putItem(const string& text);
 
-        void beginList(const std::string& symbol);
-        void endList(const std::string& symbol);
+        void beginList(const string& symbol);
+        void endList(const string& symbol);
         void listItem(); // FIXME this method is really clunky
         void newline();
         void semicolon();

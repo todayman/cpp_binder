@@ -27,6 +27,7 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 
 #include "cpp_exception.hpp"
+#include "string.hpp"
 
 enum Strategy
 {
@@ -67,7 +68,7 @@ namespace cpp
         // Attributes! from config files or inferred
         // Pointer to D type!
         Strategy strategy;
-        std::string target_name;
+        string target_name;
 
         static std::unordered_map<const clang::Type*, std::shared_ptr<Type>> type_map;
         static std::unordered_map<std::string, std::shared_ptr<Type>> type_by_name;
@@ -101,7 +102,7 @@ namespace cpp
 
         friend class TypeVisitor;
 
-        void chooseReplaceStrategy(std::string replacement)
+        void chooseReplaceStrategy(string replacement)
         {
             strategy = REPLACE;
             target_name = replacement;
@@ -144,7 +145,7 @@ namespace cpp
                 : std::runtime_error("That operation is only valid for types with a different translation strategy.")
             { }
         };
-        const std::string& getReplacement() const
+        const string& getReplacement() const
         {
             if( strategy != REPLACE )
             {

@@ -43,7 +43,7 @@ void dlang::DOutputContext::indent()
     }
 }
 
-void dlang::DOutputContext::putItem(const std::string& text)
+void dlang::DOutputContext::putItem(const string& text)
 {
     if( text.size() == 0 ) return;
     if( startingLine ) indent();
@@ -53,7 +53,7 @@ void dlang::DOutputContext::putItem(const std::string& text)
     startingLine = false;
 }
 
-void dlang::DOutputContext::beginList(const std::string& symbol)
+void dlang::DOutputContext::beginList(const string& symbol)
 {
     if( listStatus != NO_LIST )
         throw std::runtime_error("Nested lists are not supported.");
@@ -68,7 +68,7 @@ void dlang::DOutputContext::beginList(const std::string& symbol)
     listStatus = LIST_STARTED;
 }
 
-void dlang::DOutputContext::endList(const std::string& symbol)
+void dlang::DOutputContext::endList(const string& symbol)
 {
     if( symbol.size() )
     {
@@ -179,7 +179,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
             {
                 if( nl.name_space.size() > 0 )
                 {
-                    writer.output.putItem(std::string("extern(C++, ") + nl.name_space + ")");
+                    writer.output.putItem(string("extern(C++, ") + nl.name_space + ")");
                 }
                 else
                 {
@@ -235,7 +235,12 @@ class DeclarationWriter : public dlang::DeclarationVisitor
             output.putItem(argument.name);
         }
     }
-    virtual void visitVariable(const dlang::Variable&) override { }
+
+    virtual void visitVariable(const dlang::Variable&) override
+    {
+        throw std::logic_error("Have not implemented DeclarationWriter::visitVariable yet.");
+    }
+
     virtual void visitInterface(const dlang::Interface& interface) override
     {
         LinkageSegment ls(*this, interface.linkage);
@@ -337,7 +342,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     {
         output.putItem(constant.name);
         output.putItem("=");
-        output.putItem(constant.value.toString(10));
+        output.putItem(constant.value.toString(10).c_str());
     }
 
     virtual void visitField(const dlang::Field& field) override
@@ -428,7 +433,7 @@ class PackageWriter : public dlang::PackageVisitor
 
     virtual void visitPackage(const dlang::Package& package) override
     {
-        boost::filesystem::path sub_path(path_prefix / package.getName());
+        boost::filesystem::path sub_path(path_prefix / package.getName().c_str());
         boost::filesystem::create_directory(sub_path);
         for( auto child : package.getChildren() )
         {
@@ -439,7 +444,7 @@ class PackageWriter : public dlang::PackageVisitor
 
     virtual void visitModule(const dlang::Module& module) override
     {
-        boost::filesystem::path module_path(path_prefix / (module.getName() + ".d"));
+        boost::filesystem::path module_path(path_prefix / (module.getName() + ".d").c_str());
         std::ofstream outputFile(module_path.c_str(), std::ios::out);
         dlang::DOutputContext output(outputFile, 0);
         output.putItem("module");

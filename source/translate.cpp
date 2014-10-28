@@ -84,12 +84,12 @@ static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration,
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public cpp::DeclarationVisitor
 {
-    std::string parent_package_name;
-    std::string namespace_path;
+    string parent_package_name;
+    string namespace_path;
     public:
     std::shared_ptr<dlang::Declaration> last_result;
 
-    explicit TranslatorVisitor(std::string parent, std::string nsp)
+    explicit TranslatorVisitor(string parent, string nsp)
         : parent_package_name(parent), namespace_path(nsp), last_result()
     { }
 
@@ -159,7 +159,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             module = std::make_shared<dlang::Module>(cppDecl.getTargetName());
         }
 
-        std::string this_package_name = parent_package_name + "." + module->getName();
+        string this_package_name = parent_package_name + "." + module->getName();
         for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              children_iter != children_end;
@@ -172,7 +172,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
 
         // This is the translated name, but really I want the C++ name
-        std::string this_namespace_path = namespace_path + "::" + module->getName();
+        string this_namespace_path = namespace_path + "::" + module->getName();
         // visit and translate all of the children
         for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
@@ -501,7 +501,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
 static void placeIntoTargetModule(std::shared_ptr<cpp::Declaration> declaration, std::shared_ptr<dlang::Declaration> translation)
 {
-    std::string target_module = declaration->getTargetModule();
+    string target_module = declaration->getTargetModule();
     if( target_module.size() == 0 )
     {
         target_module = "unknown";
@@ -549,7 +549,7 @@ void populateDAST()
 }
 
 std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
-std::unordered_map<std::string, std::shared_ptr<dlang::Type>> types_by_name;
+std::unordered_map<string, std::shared_ptr<dlang::Type>> types_by_name;
 std::unordered_map<std::shared_ptr<cpp::Type>, std::shared_ptr<dlang::Type>> resolved_replacements;
 
 std::shared_ptr<dlang::Type> replacePointer(std::shared_ptr<cpp::Type> cppType);
@@ -602,7 +602,7 @@ void determineStrategy(std::shared_ptr<cpp::Type> cppType)
 struct NoDefinitionException : public std::runtime_error
 {
     NoDefinitionException(std::shared_ptr<cpp::Declaration> decl)
-      : std::runtime_error(decl->getSourceName() + " has no definition, so I cannot determine a translation strategy.")
+      : std::runtime_error((decl->getSourceName() + " has no definition, so I cannot determine a translation strategy.").c_str())
     { }
 };
 
@@ -656,7 +656,7 @@ void determineRecordStrategy(std::shared_ptr<cpp::Type> cppType)
 std::shared_ptr<dlang::Type> replaceType(std::shared_ptr<cpp::Type> cppType)
 {
     std::shared_ptr<dlang::Type> result;
-    const std::string& replacement_name = cppType->getReplacement();
+    const string& replacement_name = cppType->getReplacement();
     if( replacement_name.size() > 0 )
     {
         auto search_result = types_by_name.find(replacement_name);
