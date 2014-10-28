@@ -460,7 +460,6 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
             std::string this_filename = presumed.getFilename();
             if( filenames.count(this_filename) > 0 )
             {
-                std::cout << "Will bind " << cppDecl->getNameAsString() << "\n";
                 maybe_emits->shouldBind(true);
             }
         }

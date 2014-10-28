@@ -299,16 +299,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
 
                 // TODO get these string constants out of here
                 // TODO change to a hash table of std::function??
-                /*if( attrib_name == "name" )
-                {
-                    if( !YAJL_IS_STRING(sub_obj) )
-                    {
-                        throw ExpectedString(sub_obj);
-                    }
-                    // already set the name, but do it again anyway
-                    decl->setNameAttribute(sub_obj->u.string);
-                }
-                else*/ if( attrib_name == "bound" )
+                if( attrib_name == "bound" )
                 {
                     // FIXME bools might come through as strings
                     if( !YAJL_IS_INTEGER(sub_obj) )
@@ -317,7 +308,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     }
                     decl->shouldBind(sub_obj->u.number.i);
                 }
-                else if( attrib_name == "target_module")
+                else if( attrib_name == "target_module" )
                 {
                     if( !YAJL_IS_STRING(sub_obj) )
                     {
@@ -325,7 +316,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     }
                     decl->setTargetModule(sub_obj->u.string);
                 }
-                else if( attrib_name == "visibility")
+                else if( attrib_name == "visibility" )
                 {
                     if( !YAJL_IS_STRING(sub_obj) )
                     {
