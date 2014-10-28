@@ -23,7 +23,7 @@ find_library(BOOST_FILESYSTEM_LIBRARY_PATH boost_filesystem)
 find_library(BOOST_SYSTEM_LIBRARY_PATH boost_system)
 
 add_compile_options(-std=c++11 -Wall -Wextra -pedantic)
-add_executable(cpp_binder source/main.cpp source/cpp_type.cpp source/dlang_output.cpp source/cli.cpp source/cpp_decl.cpp source/configuration.cpp source/dlang_decls.cpp source/translate.cpp)
+add_executable(cpp_binder source/main.cpp source/cpp_type.cpp source/dlang_output.cpp source/cli.cpp source/cpp_decl.cpp source/configuration.cpp source/dlang_decls.cpp source/translate.cpp source/string.cpp)
 
 target_link_libraries(cpp_binder ${CLANG_LIBRARY_PATH} )
 target_link_libraries(cpp_binder ${CLANG_TOOLING_LIBRARY_PATH} )
