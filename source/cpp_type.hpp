@@ -70,8 +70,8 @@ namespace cpp
         Strategy strategy;
         string target_name;
 
-        static std::unordered_map<const clang::Type*, std::shared_ptr<Type>> type_map;
-        static std::unordered_map<std::string, std::shared_ptr<Type>> type_by_name;
+        static std::unordered_map<const clang::Type*, Type*> type_map;
+        static std::unordered_map<string, Type*> type_by_name;
 
         public:
         static void printTypeNames();
@@ -84,8 +84,8 @@ namespace cpp
         Type& operator=(const Type&) = delete;
         Type& operator=(Type&&) = delete;
 
-        static std::shared_ptr<Type> get(clang::QualType qType, const clang::PrintingPolicy* pp = nullptr);
-        static std::shared_ptr<Type> getByName(const std::string& name);
+        static Type* get(clang::QualType qType, const clang::PrintingPolicy* pp = nullptr);
+        static Type* getByName(const string& name);
 
         const clang::Type * cppType() const {
             return cpp_type;
@@ -160,7 +160,7 @@ namespace cpp
         private:
         // The TypeVisitor does not own this pointer
         const clang::Type * type_to_traverse;
-        std::shared_ptr<Type> type_in_progress;
+        Type* type_in_progress;
         const clang::PrintingPolicy* printPolicy; // Used for generating names of the type
 
         void allocateType(const clang::Type * t, Type::Kind k);
@@ -170,7 +170,7 @@ namespace cpp
         // Pass in the Type object that this visitor should fill in.
         explicit TypeVisitor(const clang::PrintingPolicy* s);
 
-        std::shared_ptr<Type> getType() {
+        Type* getType() {
             return type_in_progress;
         }
 
@@ -236,7 +236,7 @@ namespace cpp
             : NotWrappableException(), type(t)
         { }
 
-        const clang::Type * getType() const {
+        virtual const clang::Type * getType() const {
             return type;
         }
     };
@@ -256,7 +256,7 @@ namespace cpp
             : NotWrappableException(), type(t)
         { }
 
-        const clang::Type * getType() const {
+        virtual const clang::Type * getType() const {
             return type;
         }
     };

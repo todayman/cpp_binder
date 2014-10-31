@@ -145,7 +145,7 @@ namespace cpp
             remove_prefix = prefix;
         }
 
-        virtual std::shared_ptr<Type> getType() const = 0;
+        virtual Type* getType() const = 0;
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
         virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
@@ -181,8 +181,8 @@ namespace cpp
             return cpp_iter != other.cpp_iter;
         }
 
-        std::shared_ptr<TranslatorType> operator*();
-        std::shared_ptr<TranslatorType> operator->()
+        TranslatorType* operator*();
+        TranslatorType* operator->()
         {
             return operator*();
         }
@@ -268,7 +268,7 @@ func(Unwrappable)
             return _decl; \
         } \
 \
-        virtual std::shared_ptr<Type> getType() const override \
+        virtual Type* getType() const override \
         { \
             throw NotTypeDecl(); \
         } \
@@ -299,7 +299,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -327,7 +327,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -356,7 +356,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }
@@ -393,7 +393,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -407,7 +407,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitTypedef(*this);
         }
 
-        std::shared_ptr<Type> getTargetType() const
+        Type* getTargetType() const
         {
             return Type::get(_decl->getUnderlyingType());
         }
@@ -426,7 +426,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getIntegerType());
         }
@@ -463,7 +463,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -497,7 +497,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }
@@ -516,7 +516,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLanguageLinkage();
         }
 
-        virtual std::shared_ptr<Type> getReturnType() const
+        virtual Type* getReturnType() const
         {
             return Type::get(_decl->getReturnType());
         }
@@ -572,7 +572,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -600,7 +600,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();;
         }
@@ -623,7 +623,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->isVirtual();
         }
 
-        virtual std::shared_ptr<Type> getReturnType() const
+        virtual Type* getReturnType() const
         {
             return Type::get(_decl->getReturnType());
         }
@@ -654,7 +654,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -723,7 +723,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -770,7 +770,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl;
         }
 
-        virtual std::shared_ptr<Type> getType() const override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }
@@ -793,23 +793,23 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         private:
         template<class SourceType, class TargetType>
         void allocateDeclaration(SourceType * decl) {
-            decl_in_progress = std::make_shared<TargetType>(decl);
+            decl_in_progress = new TargetType(decl);
             declarations.insert(std::make_pair(decl, decl_in_progress));
             if( top_level_decls )
             {
-                free_declarations.insert(std::static_pointer_cast<Declaration>(decl_in_progress));
+                free_declarations.insert(static_cast<Declaration*>(decl_in_progress));
             }
         }
 
         bool registerDeclaration(clang::Decl* cppDecl, bool top_level = false);
 
         // All declarations ever
-        static std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> declarations;
+        static std::unordered_map<clang::Decl*, Declaration*> declarations;
         // Root level declarations, i.e. top level functions, namespaces, etc.
-        static std::unordered_set<std::shared_ptr<Declaration>> free_declarations;
+        static std::unordered_set<Declaration*> free_declarations;
 
         bool top_level_decls;
-        std::shared_ptr<Declaration> decl_in_progress;
+        Declaration* decl_in_progress;
         const clang::PrintingPolicy* print_policy;
 
         bool TraverseDeclContext(clang::DeclContext * cpp_context, bool top_level = false);
@@ -881,11 +881,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
 
-        static const std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>>& getDeclarations()
+        static const std::unordered_map<clang::Decl*, Declaration*>& getDeclarations()
         {
             return declarations;
         }
-        static const std::unordered_set<std::shared_ptr<Declaration>>& getFreeDeclarations()
+        static const std::unordered_set<Declaration*>& getFreeDeclarations()
         {
             return free_declarations;
         }

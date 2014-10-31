@@ -29,8 +29,8 @@
 #include "cpp_decl.hpp"
 using namespace cpp;
 
-std::unordered_map<const clang::Type*, std::shared_ptr<Type>> Type::type_map;
-std::unordered_map<std::string, std::shared_ptr<Type>> Type::type_by_name;
+std::unordered_map<const clang::Type*, Type*> Type::type_map;
+std::unordered_map<string, Type*> Type::type_by_name;
 
 void Type::printTypeNames()
 {
@@ -45,7 +45,7 @@ template<>
 struct hash<clang::BuiltinType::Kind> : public hash<unsigned> { };
 }
 
-std::shared_ptr<Type> Type::get(clang::QualType qType, const clang::PrintingPolicy* printPolicy)
+Type* Type::get(clang::QualType qType, const clang::PrintingPolicy* printPolicy)
 {
     // TODO could this really be NULL?
     // under what circumstances is that the case, and do I have to
@@ -64,14 +64,14 @@ std::shared_ptr<Type> Type::get(clang::QualType qType, const clang::PrintingPoli
     return type_map.find(cppType)->second;
 }
 
-std::shared_ptr<Type> Type::getByName(const std::string& name)
+Type* Type::getByName(const string& name)
 {
     decltype(type_by_name)::iterator iter = type_by_name.find(name);
     if( iter != Type::type_by_name.end() ) {
         return iter->second;
     }
     else {
-        return std::shared_ptr<Type>();
+        return nullptr;
     }
 }
 
@@ -94,7 +94,7 @@ bool TypeVisitor::TraverseType(clang::QualType type)
 
 void TypeVisitor::allocateType(const clang::Type * t, Type::Kind k)
 {
-    type_in_progress = std::make_shared<Type>(t, k);
+    type_in_progress = new Type(t, k);
     Type::type_map.insert(std::make_pair(t, type_in_progress));
 }
 
@@ -168,7 +168,7 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
 bool TypeVisitor::VisitBuiltinType(clang::BuiltinType* cppType)
 {
     assert(printPolicy != nullptr);
-    std::string name = cppType->getName(*printPolicy);
+    string name = cppType->getName(*printPolicy).data();
     Type::type_by_name.insert(std::make_pair(name, type_in_progress));
     return true;
 }
@@ -238,7 +238,7 @@ bool TypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
     bool result = TraverseType(type->getNamedType());
     // TODO nullptr
-    std::shared_ptr<Type> t = Type::type_map.find(type->getNamedType().getTypePtr())->second;
+    Type* t = Type::type_map.find(type->getNamedType().getTypePtr())->second;
     Type::type_map.insert(std::make_pair(type, t));
     return result;
 }
@@ -247,7 +247,7 @@ bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
 {
     bool result = TraverseType(type->getDecayedType());
     // TODO nullptr
-    std::shared_ptr<Type> t = Type::type_map.find(type->getDecayedType().getTypePtr())->second;
+    Type* t = Type::type_map.find(type->getDecayedType().getTypePtr())->second;
     Type::type_map.insert(std::make_pair(type, t));
     return result;
 }
@@ -256,7 +256,7 @@ bool TypeVisitor::WalkUpFromParenType(clang::ParenType* type)
 {
     bool result = TraverseType(type->getInnerType());
     // TODO nullptr
-    std::shared_ptr<Type> t = Type::type_map.find(type->getInnerType().getTypePtr())->second;
+    Type* t = Type::type_map.find(type->getInnerType().getTypePtr())->second;
     Type::type_map.insert(std::make_pair(type, t));
     return result;
 }
@@ -265,7 +265,7 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 {
     bool result = TraverseType(type->getUnderlyingType());
     // TODO nullptr
-    std::shared_ptr<Type> t = Type::type_map.find(type->getUnderlyingType().getTypePtr())->second;
+    Type* t = Type::type_map.find(type->getUnderlyingType().getTypePtr())->second;
     Type::type_map.insert(std::make_pair(type, t));
     return result;
 }

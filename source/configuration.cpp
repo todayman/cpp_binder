@@ -132,7 +132,7 @@ static void applyRootObjectForClang(const yajl_val_s& obj, std::vector<std::stri
 static void collectClangArguments(const yajl_val_s& obj_container, std::vector<std::string>& clang_args);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast);
-static void readStrategyConfiguration(const yajl_val_s& container, std::shared_ptr<cpp::Type> type);
+static void readStrategyConfiguration(const yajl_val_s& container, cpp::Type* type);
 
 static std::shared_ptr<yajl_val_s> parseJSON(const std::string& filename)
 {
@@ -263,7 +263,7 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
     }
 }
 
-static const std::shared_ptr<cpp::Declaration> getDecl(clang::Decl* decl)
+static cpp::Declaration* getDecl(clang::Decl* decl)
 {
     return cpp::DeclVisitor::getDeclarations().at(decl);
 }
@@ -316,7 +316,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         // be handled more gracefully.
         for( clang::NamedDecl* cppDecl : lookup_result )
         {
-            std::shared_ptr<cpp::Declaration> decl;
+            cpp::Declaration* decl;
             try {
                 decl = getDecl(cppDecl);
             }
@@ -413,7 +413,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         }
     }
     else {
-        std::shared_ptr<cpp::Type> type = cpp::Type::getByName(name);
+        cpp::Type* type = cpp::Type::getByName(name.c_str());
         if( !type )
         {
             // FIXME better error handling with stuff like localization
@@ -443,7 +443,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
 
 }
 
-static void readStrategyConfiguration(const yajl_val_s& container, std::shared_ptr<cpp::Type> type)
+static void readStrategyConfiguration(const yajl_val_s& container, cpp::Type* type)
 {
     for( size_t idx = 0; idx < container.u.object.len; ++idx )
     {

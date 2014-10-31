@@ -46,8 +46,8 @@ bool cpp::isCXXRecord(const clang::Decl* decl)
     return CXXRecordKinds.count(decl->getKind()) > 0;
 }
 
-std::unordered_map<clang::Decl*, std::shared_ptr<Declaration>> DeclVisitor::declarations;
-std::unordered_set<std::shared_ptr<Declaration>> DeclVisitor::free_declarations;
+std::unordered_map<clang::Decl*, Declaration*> DeclVisitor::declarations;
+std::unordered_set<Declaration*> DeclVisitor::free_declarations;
 
 void printPresumedLocation(const clang::NamedDecl* Declaration)
 {
@@ -58,7 +58,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
 }
 
 template<typename ClangType, typename TranslatorType>
-std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operator*()
+TranslatorType* cpp::Iterator<ClangType, TranslatorType>::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
     if( search_result == DeclVisitor::getDeclarations().end() )
@@ -66,14 +66,13 @@ std::shared_ptr<TranslatorType> cpp::Iterator<ClangType, TranslatorType>::operat
         (*cpp_iter)->dump();
         throw std::runtime_error("Lookup failed!");
     }
-    std::shared_ptr<cpp::Declaration> decl = search_result->second;
-    return std::dynamic_pointer_cast<TranslatorType>(decl);
+    cpp::Declaration* decl = search_result->second;
+    return dynamic_cast<TranslatorType*>(decl);
 }
-template std::shared_ptr<cpp::Declaration> cpp::Iterator<clang::DeclContext::decl_iterator, cpp::Declaration>::operator*();
-template std::shared_ptr<cpp::ArgumentDeclaration> cpp::Iterator<clang::FunctionDecl::param_const_iterator, cpp::ArgumentDeclaration>::operator*();
-template std::shared_ptr<cpp::FieldDeclaration> cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
-
-template std::shared_ptr<cpp::MethodDeclaration> cpp::Iterator<clang::CXXRecordDecl::method_iterator, cpp::MethodDeclaration>::operator*();
+template cpp::Declaration* cpp::Iterator<clang::DeclContext::decl_iterator, cpp::Declaration>::operator*();
+template cpp::ArgumentDeclaration* cpp::Iterator<clang::FunctionDecl::param_const_iterator, cpp::ArgumentDeclaration>::operator*();
+template cpp::FieldDeclaration* cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
+template cpp::MethodDeclaration* cpp::Iterator<clang::CXXRecordDecl::method_iterator, cpp::MethodDeclaration>::operator*();
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 {
@@ -460,7 +459,7 @@ bool DeclVisitor::VisitFieldDecl(clang::FieldDecl* cppDecl)
 class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
 {
     public:
-    std::shared_ptr<cpp::Declaration> maybe_emits;
+    cpp::Declaration* maybe_emits;
     std::set<boost::filesystem::path> filenames;
 
     template<typename ConstIterator>
