@@ -277,6 +277,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
         output.putItem("}");
         output.newline();
+        output.newline();
     }
 
     virtual void visitStruct(const dlang::Struct& structure) override
@@ -306,6 +307,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
 
         output.putItem("}");
         output.newline();
+        output.newline();
     }
 
     virtual void visitClass(const dlang::Class&) override
@@ -334,7 +336,6 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         output.newline();
 
         output.putItem("{");
-        //output.newline();
 
         dlang::DOutputContext innerContext(output, 4);
         DeclarationWriter innerWriter(innerContext);
