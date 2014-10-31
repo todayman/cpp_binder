@@ -966,6 +966,41 @@ static std::shared_ptr<dlang::Type> generateStruct(cpp::Type* cppType)
 
     return result;
 }
+static std::shared_ptr<dlang::Type> generateInterface(cpp::Type* cppType)
+{
+    if( cppType->getKind() != cpp::Type::Record )
+    {
+        throw std::logic_error("Attempted to generate an interface from a non-record type.");
+    }
+    const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
+    clang::RecordDecl * clang_decl = clang_type->getDecl();
+
+    auto& all_declarations = cpp::DeclVisitor::getDeclarations();
+    cpp::RecordDeclaration* cppDecl
+        = dynamic_cast<cpp::RecordDeclaration*>(
+                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+
+    auto search_result = translated.find(cppDecl);
+    std::shared_ptr<dlang::Type> result;
+    if( search_result == translated.end() )
+    {
+        TranslatorVisitor visitor("", "");
+        // translateTypedef does not try to place the declaration into a
+        // module or context, so this is OK to do here.  It either:
+        //  a) was already placed into the right spot
+        //  b) will get placed later, when we visit the declaration
+        result = std::static_pointer_cast<dlang::Type>(visitor.buildInterface(*cppDecl));
+    }
+    else
+    {
+        // This cast will succeed (unless something is wrong)
+        // becuase search_result->second is really a TypeAlias, which is a Type.
+        // We're going down and then up the type hierarchy.
+        result = std::dynamic_pointer_cast<dlang::Type>(search_result->second);
+    }
+
+    return result;
+}
 
 std::shared_ptr<dlang::Type> translateType(cpp::Type* cppType)
 {
@@ -989,6 +1024,7 @@ std::shared_ptr<dlang::Type> translateType(cpp::Type* cppType)
             result = generateStruct(cppType);
             break;
         case INTERFACE:
+            result = generateInterface(cppType);
             break;
         case CLASS:
             break;
