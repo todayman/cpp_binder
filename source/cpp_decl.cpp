@@ -207,7 +207,7 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
     if( hasTemplateParent(parent_decl) || cppDecl->isDeleted() )
     {
-        decl_in_progress->markUnwrappable();
+        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
         return true;
     }
 
