@@ -275,6 +275,8 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         CHECK_FOR_DECL(Interface)
 
         std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>();
+        translated.insert(std::make_pair(&cppDecl, result));
+        translated_types.insert(std::make_pair(cppDecl.getType(), result));
         result->name = cppDecl.getTargetName();
 
         // Set the linkage attributes for this interface
