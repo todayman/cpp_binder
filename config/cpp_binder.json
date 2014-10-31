@@ -5,10 +5,16 @@
         , "-fPIC"
     ],
     "binding_attributes": {
-        "string": {
+        "clang::PrintingPolicy": {
             "strategy": {
                   "name": "replace"
-                , "d_decl": "astring"
+                , "d_decl": "clang.PrintingPolicy"
+            }
+        }
+        , "string": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "cpp_string"
             }
         }
     }
