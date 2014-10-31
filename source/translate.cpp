@@ -533,6 +533,16 @@ static void placeIntoTargetModule(cpp::Declaration* declaration, std::shared_ptr
     {
         target_module = "unknown";
     }
+    else
+    {
+        // Root package is named empty, so target modules may start with '.', as in
+        // .std.stdio
+        // '.' messes with the lookup, so take it out if it's there
+        if( target_module.c_str()[0] == '.' )
+        {
+            target_module = string(target_module.begin() + 1, target_module.end());
+        }
+    }
     std::shared_ptr<dlang::Module> module = dlang::rootPackage->getOrCreateModulePath(target_module);
     if( translation )
     {
