@@ -73,13 +73,13 @@ namespace cpp
         string source_name;
         string _name;
 
-        void setSourceName(string name) {
+        virtual void setSourceName(string name) {
             source_name = name;
         }
 
         friend class DeclVisitor;
 
-        void markUnwrappable() {
+        virtual void markUnwrappable() {
             is_wrappable = false;
         }
 
@@ -89,10 +89,10 @@ namespace cpp
               visibility(UNSET), remove_prefix("")
         { }
 
-        const string& getSourceName() const {
+        virtual const string& getSourceName() const {
             return source_name;
         }
-        const string& getTargetName() const {
+        virtual const string& getTargetName() const {
             if( _name.size() == 0 )
             {
                 return source_name;
@@ -103,30 +103,30 @@ namespace cpp
             }
         }
 
-        bool isWrappable() const noexcept {
+        virtual bool isWrappable() const noexcept {
             return is_wrappable;
         }
 
-        void shouldBind(bool decision)
+        virtual void shouldBind(bool decision)
         {
             should_bind = decision;
         }
 
-        bool getShouldBind() const
+        virtual bool getShouldBind() const
         {
             return should_bind;
         }
 
-        void setTargetModule(string target)
+        virtual void setTargetModule(string target)
         {
             target_module = target;
         }
 
-        bool isTargetModuleSet() const
+        virtual bool isTargetModuleSet() const
         {
             return target_module.size() > 0;
         }
-        const string& getTargetModule() const
+        virtual const string& getTargetModule() const
         {
             return target_module;
         }
@@ -135,12 +135,12 @@ namespace cpp
         {
             return visibility;
         }
-        void setVisibility(Visibility vis)
+        virtual void setVisibility(Visibility vis)
         {
             visibility = vis;
         }
 
-        void removePrefix(string prefix)
+        virtual void removePrefix(string prefix)
         {
             remove_prefix = prefix;
         }
@@ -226,34 +226,6 @@ func(Unwrappable)
 #undef VISITOR_METHOD
     };
 
-#define DECLARATION_CLASS_TYPE(C, D) \
-    class D##Declaration : public Declaration \
-    { \
-        private: \
-        const clang::C##Decl* _decl; \
-\
-        public: \
-        D##Declaration(const clang::C##Decl* d) \
-            : _decl(d) \
-        { } \
-        virtual const clang::Decl* decl() override { \
-            return _decl; \
-        } \
-\
-        virtual std::shared_ptr<Type> getType() const override \
-        { \
-            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0)); \
-        }\
-\
-        virtual void visit(DeclarationVisitor& visitor) override \
-        { \
-            visitor.visit##D(*this); \
-        } \
-        virtual void visit(ConstDeclarationVisitor& visitor) const override \
-        { \
-            visitor.visit##D(*this); \
-        } \
-    }
 #define DECLARATION_CLASS_2(C, D) \
     class D##Declaration : public Declaration \
     { \
