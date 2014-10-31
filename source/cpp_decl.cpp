@@ -205,7 +205,7 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     bool old_top_level = top_level_decls;
     top_level_decls = false; // method are never top level
     const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
-    if( hasTemplateParent(parent_decl) )
+    if( hasTemplateParent(parent_decl) || cppDecl->isDeleted() )
     {
         decl_in_progress->markUnwrappable();
         return true;
