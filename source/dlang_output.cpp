@@ -187,8 +187,14 @@ class DeclarationWriter : public dlang::DeclarationVisitor
             }
             else if( nl.lang == dlang::LANG_CPP && old_linkage.lang != dlang::LANG_CPP )
             {
-                if( nl.name_space.size() > 0 )
+                if( nl.name_space.size() > 0 && nl.name_space != "::" )
                 {
+                    if(   nl.name_space.size() > 2
+                       && nl.name_space.c_str()[0] == ':'
+                       && nl.name_space.c_str()[1] == ':' )
+                    {
+                        nl.name_space = string(nl.name_space.begin() + 2, nl.name_space.end());
+                    }
                     writer.output.putItem(string("extern(C++, ") + nl.name_space + ")");
                 }
                 else
