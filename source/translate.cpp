@@ -574,7 +574,12 @@ void populateDAST()
                 translation = iter->second;
             }
 
-            placeIntoTargetModule(declaration, translation);
+            // some items, such as namespaces, don't need to be placed into a module
+            // visiting them just translates their children and puts them in modules
+            if( translation )
+            {
+                placeIntoTargetModule(declaration, translation);
+            }
         }
         catch( std::runtime_error& exc )
         {
