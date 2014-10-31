@@ -101,6 +101,8 @@ namespace dlang
         string name;
         DeclarationContainer * parent;
         Visibility visibility;
+
+        Declaration() : name(), parent(nullptr), visibility(PRIVATE) { }
         virtual ~Declaration() { }
 
         virtual void visit(DeclarationVisitor& visitor) const = 0;
