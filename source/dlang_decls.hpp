@@ -89,6 +89,8 @@ namespace dlang
         virtual void visitEnum(const Enum&) = 0;
         virtual void visitPointer(const PointerType&) = 0;
         virtual void visitUnion(const Union&) = 0;
+        virtual void visitClass(const Class&) = 0;
+        virtual void visitInterface(const Interface&) = 0;
     };
 
     class DeclarationContainer;
@@ -386,11 +388,16 @@ namespace dlang
         }
     };
 
-    class Class : public Declaration
+    class Class : public Declaration, public Type, public DeclarationContainer
     {
         public:
 
         virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitClass(*this);
+        }
+
+        virtual void visit(TypeVisitor& visitor) const override
         {
             visitor.visitClass(*this);
         }
@@ -409,13 +416,18 @@ namespace dlang
         }
     };
 
-    class Interface : public Declaration
+    class Interface : public Declaration, public Type, public DeclarationContainer
     {
         public:
         Linkage linkage;
         std::vector<std::shared_ptr<Declaration>> methods;
 
         virtual void visit(DeclarationVisitor& visitor) const override
+        {
+            visitor.visitInterface(*this);
+        }
+
+        virtual void visit(TypeVisitor& visitor) const override
         {
             visitor.visitInterface(*this);
         }

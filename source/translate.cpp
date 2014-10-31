@@ -179,10 +179,21 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
              children_iter != children_end;
              ++children_iter )
         {
-            TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
-            (*children_iter)->visit(subpackage_visitor);
+            try {
+                TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
+                (*children_iter)->visit(subpackage_visitor);
 
-            placeIntoTargetModule(*children_iter, subpackage_visitor.last_result);
+                // not all translations get placed, and some are unwrappable,
+                if( subpackage_visitor.last_result )
+                {
+                    placeIntoTargetModule(*children_iter, subpackage_visitor.last_result);
+                }
+            }
+            catch( std::runtime_error& exc )
+            {
+                (*children_iter)->decl()->dump();
+                std::cerr << "ERROR: " << exc.what() << "\n";
+            }
         }
 
         return module;
