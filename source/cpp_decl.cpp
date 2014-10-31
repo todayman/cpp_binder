@@ -302,6 +302,16 @@ bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDec
     return result;
 }
 
+bool DeclVisitor::TraverseNamespaceDecl(clang::NamespaceDecl* cppDecl)
+{
+    bool result = WalkUpFromNamespaceDecl(cppDecl);
+    if( result )
+    {
+        result = TraverseDeclContext(cppDecl, false);
+    }
+    return result;
+}
+
 bool DeclVisitor::TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl)
 {
     return TraverseDeclContext(cppDecl, top_level_decls);

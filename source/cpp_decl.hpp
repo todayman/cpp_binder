@@ -834,6 +834,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         bool TraverseDecl(clang::Decl * Declaration);
         bool TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
+        bool TraverseNamespaceDecl(clang::NamespaceDecl* cppDecl);
         bool TraverseFunctionDecl(clang::FunctionDecl* cppDecl);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
         bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
