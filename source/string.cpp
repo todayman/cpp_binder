@@ -69,7 +69,20 @@ bool string::operator==(const string& other) const
     {
         return strncmp(buffer, other.buffer, length) == 0;
     }
-    return true;
+    else {
+        return false;
+    }
+}
+
+bool string::operator!=(const string& other) const
+{
+    if( length == other.length )
+    {
+        return strncmp(buffer, other.buffer, length) != 0;
+    }
+    else {
+        return true;
+    }
 }
 
 string string::operator+(const string& other) const

@@ -67,6 +67,7 @@ class string
     }
 
     bool operator==(const string& other) const;
+    bool operator!=(const string& other) const;
 
     const char * c_str() const
     {
