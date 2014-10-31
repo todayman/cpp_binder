@@ -165,7 +165,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
              children_iter != children_end;
              ++children_iter )
         {
-            if( (*children_iter)->isTargetModuleSet() )
+            if( !(*children_iter)->isTargetModuleSet() )
             {
                 (*children_iter)->setTargetModule(this_package_name);
             }
