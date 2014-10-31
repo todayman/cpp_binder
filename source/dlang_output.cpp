@@ -156,6 +156,16 @@ class TypeWriter : public dlang::TypeVisitor
     {
         output.putItem(type.name);
     }
+
+    virtual void visitClass(const dlang::Class& type) override
+    {
+        output.putItem(type.name);
+    }
+
+    virtual void visitInterface(const dlang::Interface& type) override
+    {
+        output.putItem(type.name);
+    }
 };
 
 class DeclarationWriter : public dlang::DeclarationVisitor
