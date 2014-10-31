@@ -230,7 +230,7 @@ namespace dlang
 
             if( end_of_first_element == start ) // Also catches the case when start == finish
             {
-                throw 4;
+                throw std::logic_error("Attempted to find the package / module with the empty name ("")");
             }
 
             return children.find(string(start, end_of_first_element));

@@ -309,8 +309,8 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
                 last_result = std::static_pointer_cast<dlang::Declaration>(buildInterface(cppDecl));
                 break;
             default:
-                std::cout << "Strategy is: " << cppDecl.getType()->getStrategy() << "\n";
-                throw 32;
+                std::cerr << "Strategy is: " << cppDecl.getType()->getStrategy() << "\n";
+                std::logic_error("I don't know how to translate records using strategies other than STRUCT and INTERFACE yet.");
         }
     }
     std::shared_ptr<dlang::TypeAlias> translateTypedef(cpp::TypedefDeclaration& cppDecl)
@@ -512,6 +512,12 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
 static void placeIntoTargetModule(cpp::Declaration* declaration, std::shared_ptr<dlang::Declaration> translation)
 {
+    // FIXME sometimes this gets called multiple times on the same declaration,
+    // so it will get output multiple times, which is clearly wrong
+    if( translation->parent )
+    {
+        throw std::logic_error("Attempted to place a declaration into a module twice.");
+    }
     string target_module = declaration->getTargetModule();
     if( target_module.size() == 0 )
     {
