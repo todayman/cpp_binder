@@ -239,8 +239,16 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             cpp::MethodDeclaration* cpp_method = *iter;
             if( !cpp_method || !cpp_method->getShouldBind() )
                 continue;
-            // FIXME double dereference? really?
-            std::shared_ptr<dlang::Method> method = translateMethod(**iter);
+            std::shared_ptr<dlang::Method> method;
+            try {
+                // FIXME double dereference? really?
+                method = translateMethod(**iter);
+            }
+            catch( std::runtime_error& exc )
+            {
+                std::cerr << "ERROR: Cannot translate method " << cppDecl.getSourceName() << "::" << cpp_method->getSourceName() << ", skipping it\n";
+                continue;
+            }
             if( method->kind == dlang::Method::VIRTUAL )
             {
                 throw std::runtime_error("Methods on structs cannot be virtual!");
