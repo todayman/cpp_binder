@@ -268,13 +268,47 @@ static const std::shared_ptr<cpp::Declaration> getDecl(clang::Decl* decl)
     return cpp::DeclVisitor::getDeclarations().at(decl);
 }
 
+clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::ASTContext& ast, clang::DeclContext* context)
+{
+    std::string top_name;
+    auto scope_start = std::adjacent_find(begin(name), end(name), [](char a, char b) {
+                if( a != ':' ) return false;
+                return a == b;
+                });
+    top_name = std::string(begin(name), scope_start);
+
+    clang::IdentifierInfo& id_info = ast.Idents.get(top_name);
+    clang::DeclarationName decl_name = ast.DeclarationNames.getIdentifier(&id_info);
+
+    clang::DeclContextLookupResult result = context->lookup(decl_name);
+    if( scope_start == end(name) )
+    {
+        return result;
+    }
+    else
+    {
+        std::string remaining_name = std::string(scope_start + 2, end(name));
+        if( result.size() == 0 )
+        {
+            throw std::runtime_error("Looking for a decl contained by another decl, but the outer decl does not contain the inner decl.");
+        }
+        else if( result.size() > 1 )
+        {
+            throw std::runtime_error("Looking for a nested decl, but found many decls at one step on the path.");
+        }
+        else {
+            clang::NamedDecl * decl = result.front();
+            clang::DeclContext * next_context = clang::Decl::castToDeclContext(decl);
+            return lookupDeclName(remaining_name, ast, next_context);
+        }
+    }
+}
+
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast)
 {
     assert(YAJL_IS_OBJECT(&obj));
     // Find the thing to add attributes
-    clang::IdentifierInfo& id_info = ast.Idents.get(name);
-    clang::DeclarationName decl_name = ast.DeclarationNames.getIdentifier(&id_info);
-    clang::DeclContextLookupResult lookup_result = ast.getTranslationUnitDecl()->lookup(decl_name);
+    clang::DeclContextLookupResult lookup_result = lookupDeclName(name, ast, ast.getTranslationUnitDecl());
 
     if( lookup_result.size() > 0 )
     {
