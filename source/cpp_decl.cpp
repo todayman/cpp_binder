@@ -29,9 +29,7 @@
 
 #include "clang/AST/Decl.h"
 
-using namespace cpp;
-
-bool cpp::isCXXRecord(const clang::Decl* decl)
+bool isCXXRecord(const clang::Decl* decl)
 {
     // This set is of all the DeclKinds that are subclasses of CXXRecord
     #define ABSTRACT_DECL(Type)
@@ -58,7 +56,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
 }
 
 template<typename ClangType, typename TranslatorType>
-TranslatorType* cpp::Iterator<ClangType, TranslatorType>::operator*()
+TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
     if( search_result == DeclVisitor::getDeclarations().end() )
@@ -66,13 +64,13 @@ TranslatorType* cpp::Iterator<ClangType, TranslatorType>::operator*()
         (*cpp_iter)->dump();
         throw std::runtime_error("Lookup failed!");
     }
-    cpp::Declaration* decl = search_result->second;
+    Declaration* decl = search_result->second;
     return dynamic_cast<TranslatorType*>(decl);
 }
-template cpp::Declaration* cpp::Iterator<clang::DeclContext::decl_iterator, cpp::Declaration>::operator*();
-template cpp::ArgumentDeclaration* cpp::Iterator<clang::FunctionDecl::param_const_iterator, cpp::ArgumentDeclaration>::operator*();
-template cpp::FieldDeclaration* cpp::Iterator<clang::RecordDecl::field_iterator, cpp::FieldDeclaration>::operator*();
-template cpp::MethodDeclaration* cpp::Iterator<clang::CXXRecordDecl::method_iterator, cpp::MethodDeclaration>::operator*();
+template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::operator*();
+template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
+template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
+template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 {
@@ -155,7 +153,7 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
         try {
             RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
         }
-        catch( cpp::SkipUnwrappableType& e)
+        catch( SkipUnwrappableType& e)
         {
             if( decl_in_progress )
             {
@@ -469,7 +467,7 @@ bool DeclVisitor::VisitFieldDecl(clang::FieldDecl* cppDecl)
 class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
 {
     public:
-    cpp::Declaration* maybe_emits;
+    Declaration* maybe_emits;
     std::set<boost::filesystem::path> filenames;
 
     template<typename ConstIterator>

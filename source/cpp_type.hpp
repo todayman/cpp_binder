@@ -39,8 +39,8 @@ enum Strategy
     OPAQUE_CLASS,
 };
 
-namespace cpp
-{
+//namespace cpp
+//{
     // This is a place for all of the different pieces of
     // knowledge we need about each C++ type.  They all
     // get landed here, and we basically use this as the value
@@ -299,6 +299,6 @@ namespace cpp
             return "Skipping type due to a C++ member pointer.";
         }
     };
-}
+//} namespace cpp
 
 #endif // __CPP_TYPE_HPP__

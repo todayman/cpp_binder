@@ -45,8 +45,8 @@ enum Visibility
     EXPORT,
 };
 
-namespace cpp
-{
+//namespace cpp
+//{
     class DeclarationVisitor;
     class ConstDeclarationVisitor;
 
@@ -871,7 +871,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         { }
     };
 
-} // namespace cpp
+//} // namespace cpp
 
 extern const clang::SourceManager * source_manager;
 

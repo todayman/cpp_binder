@@ -21,8 +21,8 @@
 
 #include <stdexcept>
 
-namespace cpp
-{
+//namespace cpp
+//{
     class NotWrappableException : public std::runtime_error
     {
         public:
@@ -30,6 +30,6 @@ namespace cpp
             : std::runtime_error("No way to wrap this thing!")
         { }
     };
-} // namespace cpp
+//} // namespace cpp
 
 #endif // __CPP_EXCEPTION_HPP__

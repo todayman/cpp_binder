@@ -67,11 +67,11 @@ int main(int argc, const char **argv)
     std::unique_ptr<clang::ASTUnit> ast(clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, "cpp_binder.cpp"));
     source_manager = &ast->getSourceManager();
 
-    cpp::DeclVisitor declVisitor(&ast->getASTContext().getPrintingPolicy());
+    DeclVisitor declVisitor(&ast->getASTContext().getPrintingPolicy());
 
     declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 
-    cpp::DeclVisitor::enableDeclarationsInFiles(args.header_files);
+    DeclVisitor::enableDeclarationsInFiles(args.header_files);
 
     try {
         parseAndApplyConfiguration(args.config_files, ast->getASTContext());

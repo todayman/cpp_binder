@@ -27,7 +27,7 @@
 
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
-using namespace cpp;
+//using namespace cpp;
 
 std::unordered_map<const clang::Type*, Type*> Type::type_map;
 std::unordered_map<string, Type*> Type::type_by_name;

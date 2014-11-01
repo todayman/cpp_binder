@@ -132,7 +132,7 @@ static void applyRootObjectForClang(const yajl_val_s& obj, std::vector<std::stri
 static void collectClangArguments(const yajl_val_s& obj_container, std::vector<std::string>& clang_args);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast);
-static void readStrategyConfiguration(const yajl_val_s& container, cpp::Type* type);
+static void readStrategyConfiguration(const yajl_val_s& container, Type* type);
 
 static std::shared_ptr<yajl_val_s> parseJSON(const std::string& filename)
 {
@@ -263,9 +263,9 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
     }
 }
 
-static cpp::Declaration* getDecl(clang::Decl* decl)
+static Declaration* getDecl(clang::Decl* decl)
 {
-    return cpp::DeclVisitor::getDeclarations().at(decl);
+    return DeclVisitor::getDeclarations().at(decl);
 }
 
 clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::ASTContext& ast, clang::DeclContext* context)
@@ -316,7 +316,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         // be handled more gracefully.
         for( clang::NamedDecl* cppDecl : lookup_result )
         {
-            cpp::Declaration* decl;
+            Declaration* decl;
             try {
                 decl = getDecl(cppDecl);
             }
@@ -413,7 +413,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         }
     }
     else {
-        cpp::Type* type = cpp::Type::getByName(name.c_str());
+        Type* type = Type::getByName(name.c_str());
         if( !type )
         {
             // FIXME better error handling with stuff like localization
@@ -443,7 +443,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
 
 }
 
-static void readStrategyConfiguration(const yajl_val_s& container, cpp::Type* type)
+static void readStrategyConfiguration(const yajl_val_s& container, Type* type)
 {
     for( size_t idx = 0; idx < container.u.object.len; ++idx )
     {

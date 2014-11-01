@@ -22,22 +22,22 @@
 #include "cpp_decl.hpp"
 #include "dlang_decls.hpp"
 
-static std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> translated_types;
-static std::unordered_map<cpp::Declaration*, std::shared_ptr<dlang::Declaration>> translated;
+static std::unordered_map<Type*, std::shared_ptr<dlang::Type>> translated_types;
+static std::unordered_map<Declaration*, std::shared_ptr<dlang::Declaration>> translated;
 
-std::shared_ptr<dlang::Type> translateType(cpp::Type* cppType);
+std::shared_ptr<dlang::Type> translateType(Type* cppType);
 
-void determineRecordStrategy(cpp::Type* cppType);
+void determineRecordStrategy(Type* cppType);
 
 #define CHECK_FOR_DECL(x) \
-        auto search = translated.find(static_cast<cpp::Declaration*>(&cppDecl)); \
+        auto search = translated.find(static_cast<Declaration*>(&cppDecl)); \
         if( search != translated.end() ) \
         { \
             return std::dynamic_pointer_cast<dlang::x>(search->second); \
         }
 // ^ This cast failing is a huge internal programmer error
 
-static dlang::Linkage translateLinkage(cpp::FunctionDeclaration& cppDecl)
+static dlang::Linkage translateLinkage(FunctionDeclaration& cppDecl)
 {
     dlang::Linkage result;
     if( cppDecl.getLinkLanguage() == clang::CLanguageLinkage )
@@ -79,10 +79,10 @@ static dlang::Visibility translateVisibility(::Visibility access)
 }
 
 class TranslatorVisitor;
-static void placeIntoTargetModule(cpp::Declaration* declaration, std::shared_ptr<dlang::Declaration> translation);
+static void placeIntoTargetModule(Declaration* declaration, std::shared_ptr<dlang::Declaration> translation);
 
 // Would kind of like a WhiteHole for these
-class TranslatorVisitor : public cpp::DeclarationVisitor
+class TranslatorVisitor : public DeclarationVisitor
 {
     string parent_package_name;
     string namespace_path;
@@ -93,7 +93,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         : parent_package_name(parent), namespace_path(nsp), last_result()
     { }
 
-    std::shared_ptr<dlang::Function> translateFunction(cpp::FunctionDeclaration& cppDecl)
+    std::shared_ptr<dlang::Function> translateFunction(FunctionDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Function)
 
@@ -122,7 +122,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
         return d_decl;
     }
-    virtual void visitFunction(cpp::FunctionDeclaration& cppDecl) override
+    virtual void visitFunction(FunctionDeclaration& cppDecl) override
     {
         if( reinterpret_cast<const clang::FunctionDecl*>(cppDecl.decl())->isOverloadedOperator() )
         {
@@ -134,14 +134,14 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
     }
 
-    std::shared_ptr<dlang::Module> translateNamespace(cpp::NamespaceDeclaration& cppDecl)
+    std::shared_ptr<dlang::Module> translateNamespace(NamespaceDeclaration& cppDecl)
     {
         // TODO I probably shouldn't even be doing this,
         // just looping over all of the items in the namespace and setting the
         // target_module attribute (if it's not already set),
         // and then visiting those nodes.  Then the modules / packages get
         // created when something goes in them.
-        auto search = translated.find(static_cast<cpp::Declaration*>(&cppDecl));
+        auto search = translated.find(static_cast<Declaration*>(&cppDecl));
         std::shared_ptr<dlang::Module> module;
         if( search != translated.end() )
         {
@@ -160,7 +160,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         }
 
         string this_package_name = parent_package_name + "." + module->getName();
-        for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
+        for( DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              children_iter != children_end;
              ++children_iter )
@@ -174,7 +174,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // This is the translated name, but really I want the C++ name
         string this_namespace_path = namespace_path + "::" + module->getName();
         // visit and translate all of the children
-        for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
+        for( DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              children_iter != children_end;
              ++children_iter )
@@ -199,13 +199,13 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         return module;
     }
 
-    virtual void visitNamespace(cpp::NamespaceDeclaration& cppDecl) override
+    virtual void visitNamespace(NamespaceDeclaration& cppDecl) override
     {
         translateNamespace(cppDecl);
         last_result = std::shared_ptr<dlang::Declaration>();
     }
 
-    std::shared_ptr<dlang::Struct> buildStruct(cpp::RecordDeclaration& cppDecl)
+    std::shared_ptr<dlang::Struct> buildStruct(RecordDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Struct)
 
@@ -236,7 +236,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         {
             // sometimes, e.g. for implicit destructors, the lookup from clang
             // type to my types fails.  So we should skip those.
-            cpp::MethodDeclaration* cpp_method = *iter;
+            MethodDeclaration* cpp_method = *iter;
             if( !cpp_method || !cpp_method->getShouldBind() )
                 continue;
             std::shared_ptr<dlang::Method> method;
@@ -262,7 +262,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
             iter != finish;
             ++iter )
         {
-            if( cpp::EnumDeclaration* enumDecl = dynamic_cast<cpp::EnumDeclaration*>(*iter) )
+            if( EnumDeclaration* enumDecl = dynamic_cast<EnumDeclaration*>(*iter) )
             {
                 result->insert(translateEnum(*enumDecl));
             }
@@ -270,7 +270,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         return result;
     }
 
-    std::shared_ptr<dlang::Interface> buildInterface(cpp::RecordDeclaration& cppDecl)
+    std::shared_ptr<dlang::Interface> buildInterface(RecordDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Interface)
 
@@ -291,7 +291,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         {
             // sometimes, e.g. for implicit destructors, the lookup from clang
             // type to my types fails.  So we should skip those.
-            cpp::MethodDeclaration* cpp_method = *iter;
+            MethodDeclaration* cpp_method = *iter;
             if( !cpp_method || !cpp_method->getShouldBind() )
                 continue;
             // FIXME double dereference? really?
@@ -307,7 +307,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         return result;
     }
 
-    virtual void visitRecord(cpp::RecordDeclaration& cppDecl) override
+    virtual void visitRecord(RecordDeclaration& cppDecl) override
     {
         determineRecordStrategy(cppDecl.getType());
         switch( cppDecl.getType()->getStrategy() )
@@ -323,7 +323,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
                 std::logic_error("I don't know how to translate records using strategies other than STRUCT and INTERFACE yet.");
         }
     }
-    std::shared_ptr<dlang::TypeAlias> translateTypedef(cpp::TypedefDeclaration& cppDecl)
+    std::shared_ptr<dlang::TypeAlias> translateTypedef(TypedefDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(TypeAlias)
 
@@ -333,12 +333,12 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         return result;
     }
-    virtual void visitTypedef(cpp::TypedefDeclaration& cppDecl) override
+    virtual void visitTypedef(TypedefDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateTypedef(cppDecl));
     }
 
-    std::shared_ptr<dlang::Enum> translateEnum(cpp::EnumDeclaration& cppDecl)
+    std::shared_ptr<dlang::Enum> translateEnum(EnumDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Enum)
 
@@ -348,12 +348,12 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         result->name = cppDecl.getTargetName();
 
         // visit and translate all of the constants
-        for( cpp::DeclarationIterator children_iter = cppDecl.getChildBegin(),
+        for( DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              children_iter != children_end;
              ++children_iter )
         {
-            cpp::EnumConstantDeclaration* constant = dynamic_cast<cpp::EnumConstantDeclaration*>(*children_iter);
+            EnumConstantDeclaration* constant = dynamic_cast<EnumConstantDeclaration*>(*children_iter);
             if( !constant )
             {
                 std::cout << "Error translating enum constant.\n";
@@ -365,12 +365,12 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         return result;
     }
-    virtual void visitEnum(cpp::EnumDeclaration& cppDecl) override
+    virtual void visitEnum(EnumDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateEnum(cppDecl));
     }
 
-    std::shared_ptr<dlang::EnumConstant> translateEnumConstant(cpp::EnumConstantDeclaration& cppDecl)
+    std::shared_ptr<dlang::EnumConstant> translateEnumConstant(EnumConstantDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(EnumConstant)
         std::shared_ptr<dlang::EnumConstant> result = std::make_shared<dlang::EnumConstant>();
@@ -379,7 +379,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         return result;
     }
-    virtual void visitEnumConstant(cpp::EnumConstantDeclaration&) override
+    virtual void visitEnumConstant(EnumConstantDeclaration&) override
     {
         // Getting here means that there is an enum constant declaration
         // outside of an enum declaration, since visitEnum calls
@@ -387,7 +387,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         throw std::logic_error("Attempted to translate an enum constant directly, instead of via an enum.");
     }
 
-    std::shared_ptr<dlang::Field> translateField(cpp::FieldDeclaration& cppDecl)
+    std::shared_ptr<dlang::Field> translateField(FieldDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Field)
         std::shared_ptr<dlang::Field> result = std::make_shared<dlang::Field>();
@@ -396,7 +396,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         result->visibility = translateVisibility(cppDecl.getVisibility());
         return result;
     }
-    virtual void visitField(cpp::FieldDeclaration&) override
+    virtual void visitField(FieldDeclaration&) override
     {
         // Getting here means that there is a field declaration
         // outside of a record declaration, since the struct / interface building
@@ -404,7 +404,7 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         throw std::logic_error("Attempted to translate a field directly, instead of via a record.");
     }
 
-    std::shared_ptr<dlang::Union> translateUnion(cpp::UnionDeclaration& cppDecl)
+    std::shared_ptr<dlang::Union> translateUnion(UnionDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Union)
 
@@ -424,12 +424,12 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         // TODO static methods and other things?
         return result;
     }
-    virtual void visitUnion(cpp::UnionDeclaration& cppDecl) override
+    virtual void visitUnion(UnionDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateUnion(cppDecl));
     }
 
-    std::shared_ptr<dlang::Method> translateMethod(cpp::MethodDeclaration& cppDecl)
+    std::shared_ptr<dlang::Method> translateMethod(MethodDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Method)
 
@@ -471,23 +471,23 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
         return result;
     }
 
-    virtual void visitMethod(cpp::MethodDeclaration&) override
+    virtual void visitMethod(MethodDeclaration&) override
     {
         // Getting here means that there is a method declaration
         // outside of a record declaration, since the struct / interface building
         // functions call translateMethod directly.
         throw std::runtime_error("Attempting to translate a method as if it were top level, but methods are never top level.");
     }
-    virtual void visitConstructor(cpp::ConstructorDeclaration&) override
+    virtual void visitConstructor(ConstructorDeclaration&) override
     {
         // the C++ interface page on dlang.org says that D cannot call constructors
     }
-    virtual void visitDestructor(cpp::DestructorDeclaration&) override
+    virtual void visitDestructor(DestructorDeclaration&) override
     {
         // the C++ interface page on dlang.org says that D cannot call destructors
     }
 
-    std::shared_ptr<dlang::Argument> translateArgument(cpp::ArgumentDeclaration& cppDecl)
+    std::shared_ptr<dlang::Argument> translateArgument(ArgumentDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Argument)
         std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
@@ -496,12 +496,12 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         return arg;
     }
-    virtual void visitArgument(cpp::ArgumentDeclaration& cppDecl) override
+    virtual void visitArgument(ArgumentDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateArgument(cppDecl));
     }
 
-    std::shared_ptr<dlang::Variable> translateVariable(cpp::VariableDeclaration& cppDecl)
+    std::shared_ptr<dlang::Variable> translateVariable(VariableDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Variable)
         std::shared_ptr<dlang::Variable> var = std::make_shared<dlang::Variable>();
@@ -510,17 +510,17 @@ class TranslatorVisitor : public cpp::DeclarationVisitor
 
         return var;
     }
-    virtual void visitVariable(cpp::VariableDeclaration& cppDecl) override
+    virtual void visitVariable(VariableDeclaration& cppDecl) override
     {
         last_result = std::static_pointer_cast<dlang::Declaration>(translateVariable(cppDecl));
     }
-    virtual void visitUnwrappable(cpp::UnwrappableDeclaration&) override
+    virtual void visitUnwrappable(UnwrappableDeclaration&) override
     {
         // Cannot wrap unwrappable declarations, ;)
     }
 };
 
-static void placeIntoTargetModule(cpp::Declaration* declaration, std::shared_ptr<dlang::Declaration> translation)
+static void placeIntoTargetModule(Declaration* declaration, std::shared_ptr<dlang::Declaration> translation)
 {
     // FIXME sometimes this gets called multiple times on the same declaration,
     // so it will get output multiple times, which is clearly wrong
@@ -553,7 +553,7 @@ static void placeIntoTargetModule(cpp::Declaration* declaration, std::shared_ptr
 void populateDAST()
 {
     // May cause problems because root package won't check for empty path.
-    for( auto declaration : cpp::DeclVisitor::getFreeDeclarations() )
+    for( auto declaration : DeclVisitor::getFreeDeclarations() )
     {
         if( !declaration->getShouldBind() )
         {
@@ -590,18 +590,18 @@ void populateDAST()
     }
 }
 
-std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
+std::unordered_map<Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
 std::unordered_map<string, std::shared_ptr<dlang::Type>> types_by_name;
-std::unordered_map<cpp::Type*, std::shared_ptr<dlang::Type>> resolved_replacements;
+std::unordered_map<Type*, std::shared_ptr<dlang::Type>> resolved_replacements;
 
-std::shared_ptr<dlang::Type> replacePointer(cpp::Type* cppType);
-std::shared_ptr<dlang::Type> replaceReference(cpp::Type* cppType);
-std::shared_ptr<dlang::Type> replaceTypedef(cpp::Type* cppType);
-std::shared_ptr<dlang::Type> replaceEnum(cpp::Type* cppType);
-std::shared_ptr<dlang::Type> replaceFunction(cpp::Type* cppType);
-std::shared_ptr<dlang::Type> replaceUnion(cpp::Type* cppType);
+std::shared_ptr<dlang::Type> replacePointer(Type* cppType);
+std::shared_ptr<dlang::Type> replaceReference(Type* cppType);
+std::shared_ptr<dlang::Type> replaceTypedef(Type* cppType);
+std::shared_ptr<dlang::Type> replaceEnum(Type* cppType);
+std::shared_ptr<dlang::Type> replaceFunction(Type* cppType);
+std::shared_ptr<dlang::Type> replaceUnion(Type* cppType);
 
-void determineStrategy(cpp::Type* cppType)
+void determineStrategy(Type* cppType)
 {
     if( cppType->getStrategy() != UNKNOWN )
     {
@@ -610,45 +610,45 @@ void determineStrategy(cpp::Type* cppType)
 
     switch( cppType->getKind() )
     {
-        case cpp::Type::Invalid:
+        case Type::Invalid:
             cppType->cppType()->dump();
             throw std::runtime_error("Attempting to determine strategy for invalid type.");
             break;
-        case cpp::Type::Builtin:
+        case Type::Builtin:
             std::cerr << "I don't know how to translate the builtin C++ type:\n";
             cppType->cppType()->dump();
             std::cerr << "\n";
             std::runtime_error("Cannot translate builtin.");
             break;
-        case cpp::Type::Pointer:
-        case cpp::Type::Reference:
-        case cpp::Type::Typedef:
-        case cpp::Type::Enum:
-        case cpp::Type::Function:
+        case Type::Pointer:
+        case Type::Reference:
+        case Type::Typedef:
+        case Type::Enum:
+        case Type::Function:
             cppType->chooseReplaceStrategy(""); // FIXME empty string means resolve to an actual AST type, not a string?
             break;
 
-        case cpp::Type::Record:
+        case Type::Record:
             determineRecordStrategy(cppType);
             break;
-        case cpp::Type::Union:
+        case Type::Union:
             cppType->chooseReplaceStrategy(""); // FIXME see note for Function
             break;
-        case cpp::Type::Array:
+        case Type::Array:
             break;
-        case cpp::Type::Vector:
+        case Type::Vector:
             throw std::logic_error("Cannot translate vector (e.g. SSE, AVX) types.");
     }
 }
 
 struct NoDefinitionException : public std::runtime_error
 {
-    NoDefinitionException(cpp::Declaration* decl)
+    NoDefinitionException(Declaration* decl)
       : std::runtime_error((decl->getSourceName() + " has no definition, so I cannot determine a translation strategy.").c_str())
     { }
 };
 
-void determineRecordStrategy(cpp::Type* cppType)
+void determineRecordStrategy(Type* cppType)
 {
     // There are some paths that don't come through determineStrategy,
     // so filter those out.
@@ -664,12 +664,12 @@ void determineRecordStrategy(cpp::Type* cppType)
     // so it's not perfect
 
     const clang::RecordType * cpp_record = cppType->cppType()->castAs<clang::RecordType>();
-    cpp::RecordDeclaration* cpp_decl =
-        dynamic_cast<cpp::RecordDeclaration*>(
-                cpp::DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
+    RecordDeclaration* cpp_decl =
+        dynamic_cast<RecordDeclaration*>(
+                DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
                 );
 
-    if( !cpp::isCXXRecord(cpp_decl->decl()) )
+    if( !isCXXRecord(cpp_decl->decl()) )
     {
         cppType->setStrategy(STRUCT);
     }
@@ -695,7 +695,7 @@ void determineRecordStrategy(cpp::Type* cppType)
     }
 }
 
-std::shared_ptr<dlang::Type> replaceType(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> replaceType(Type* cppType)
 {
     std::shared_ptr<dlang::Type> result;
     const string& replacement_name = cppType->getReplacement();
@@ -724,52 +724,52 @@ std::shared_ptr<dlang::Type> replaceType(cpp::Type* cppType)
 
         switch( cppType->getKind() )
         {
-            case cpp::Type::Invalid:
+            case Type::Invalid:
                 throw 16;
                 break;
-            case cpp::Type::Builtin:
+            case Type::Builtin:
                 throw 18;
-            case cpp::Type::Pointer:
+            case Type::Pointer:
                 return replacePointer(cppType);
-            case cpp::Type::Reference:
+            case Type::Reference:
                 return replaceReference(cppType);
-            case cpp::Type::Typedef:
+            case Type::Typedef:
                 return replaceTypedef(cppType);
-            case cpp::Type::Enum:
+            case Type::Enum:
                 return replaceEnum(cppType);
-            case cpp::Type::Function:
+            case Type::Function:
                 return replaceFunction(cppType);
 
-            case cpp::Type::Record:
+            case Type::Record:
                 throw 24;
                 break;
-            case cpp::Type::Union:
+            case Type::Union:
                 return replaceUnion(cppType);
                 break;
-            case cpp::Type::Array:
+            case Type::Array:
                 // TODO
                 throw 19;
                 break;
-            case cpp::Type::Vector:
+            case Type::Vector:
                 throw 17;
         }
 
     }
 }
 
-static std::shared_ptr<dlang::Type> replacePointerOrReference(cpp::Type* cppType, dlang::PointerType::PointerOrRef ptr_or_ref)
+static std::shared_ptr<dlang::Type> replacePointerOrReference(Type* cppType, dlang::PointerType::PointerOrRef ptr_or_ref)
 {
     const clang::Type * clang_type = cppType->cppType();
-    cpp::Type* target_type;
+    Type* target_type;
     if( ptr_or_ref == dlang::PointerType::POINTER )
     {
         const clang::PointerType * ptr_type = clang_type->castAs<clang::PointerType>();
-        target_type = cpp::Type::get(ptr_type->getPointeeType());
+        target_type = Type::get(ptr_type->getPointeeType());
     }
     else if( ptr_or_ref == dlang::PointerType::REFERENCE )
     {
         const clang::ReferenceType * ref_type = clang_type->castAs<clang::ReferenceType>();
-        target_type = cpp::Type::get(ref_type->getPointeeType());
+        target_type = Type::get(ref_type->getPointeeType());
     }
     else
     {
@@ -812,21 +812,21 @@ static std::shared_ptr<dlang::Type> replacePointerOrReference(cpp::Type* cppType
     return result;
 }
 
-std::shared_ptr<dlang::Type> replacePointer(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> replacePointer(Type* cppType)
 {
     return replacePointerOrReference(cppType, dlang::PointerType::POINTER);
 }
-std::shared_ptr<dlang::Type> replaceReference(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> replaceReference(Type* cppType)
 {
     return replacePointerOrReference(cppType, dlang::PointerType::REFERENCE);
 }
 
-std::shared_ptr<dlang::Type> replaceTypedef(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> replaceTypedef(Type* cppType)
 {
     const clang::TypedefType * clang_type = cppType->cppType()->getAs<clang::TypedefType>();
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
-    auto all_declarations = cpp::DeclVisitor::getDeclarations();
+    auto all_declarations = DeclVisitor::getDeclarations();
     auto this_declaration = all_declarations.find(static_cast<clang::Decl*>(clang_decl));
     if( this_declaration == all_declarations.end() )
     {
@@ -834,8 +834,8 @@ std::shared_ptr<dlang::Type> replaceTypedef(cpp::Type* cppType)
         throw std::runtime_error("Found a declaration that I'm not wrapping.");
     }
 
-    cpp::TypedefDeclaration* cppDecl
-        = dynamic_cast<cpp::TypedefDeclaration*>(this_declaration->second);
+    TypedefDeclaration* cppDecl
+        = dynamic_cast<TypedefDeclaration*>(this_declaration->second);
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
@@ -859,14 +859,14 @@ std::shared_ptr<dlang::Type> replaceTypedef(cpp::Type* cppType)
 }
 // FIXME There's a way to generalize this and combine it with replaceTypedef,
 // but I don't see it upon cursory inspection, so I'll get to it later.
-std::shared_ptr<dlang::Type> replaceEnum(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> replaceEnum(Type* cppType)
 {
     const clang::EnumType * clang_type = cppType->cppType()->castAs<clang::EnumType>();
     clang::EnumDecl * clang_decl = clang_type->getDecl();
 
-    auto all_declarations = cpp::DeclVisitor::getDeclarations();
-    cpp::EnumDeclaration* cppDecl
-        = dynamic_cast<cpp::EnumDeclaration*>(
+    auto all_declarations = DeclVisitor::getDeclarations();
+    EnumDeclaration* cppDecl
+        = dynamic_cast<EnumDeclaration*>(
                 all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
@@ -890,7 +890,7 @@ std::shared_ptr<dlang::Type> replaceEnum(cpp::Type* cppType)
     return result;
 }
 
-std::shared_ptr<dlang::Type> replaceFunction(cpp::Type*)
+std::shared_ptr<dlang::Type> replaceFunction(Type*)
 {
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
@@ -899,14 +899,14 @@ std::shared_ptr<dlang::Type> replaceFunction(cpp::Type*)
 
 // FIXME There's a way to generalize this and combine it with replaceTypedef,
 // but I don't see it upon cursory inspection, so I'll get to it later.
-std::shared_ptr<dlang::Type> replaceUnion(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> replaceUnion(Type* cppType)
 {
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    auto all_declarations = cpp::DeclVisitor::getDeclarations();
-    cpp::UnionDeclaration* cppDecl
-        = dynamic_cast<cpp::UnionDeclaration*>(
+    auto all_declarations = DeclVisitor::getDeclarations();
+    UnionDeclaration* cppDecl
+        = dynamic_cast<UnionDeclaration*>(
                 all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
@@ -931,18 +931,18 @@ std::shared_ptr<dlang::Type> replaceUnion(cpp::Type* cppType)
 }
 
 // TODO combine with replaceEnum and replaceTypedef?
-static std::shared_ptr<dlang::Type> generateStruct(cpp::Type* cppType)
+static std::shared_ptr<dlang::Type> generateStruct(Type* cppType)
 {
-    if( cppType->getKind() != cpp::Type::Record )
+    if( cppType->getKind() != Type::Record )
     {
         throw std::logic_error("Attempted to generate a struct from a non-record type.");
     }
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    auto& all_declarations = cpp::DeclVisitor::getDeclarations();
-    cpp::RecordDeclaration* cppDecl
-        = dynamic_cast<cpp::RecordDeclaration*>(
+    auto& all_declarations = DeclVisitor::getDeclarations();
+    RecordDeclaration* cppDecl
+        = dynamic_cast<RecordDeclaration*>(
                 all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
 
     auto search_result = translated.find(cppDecl);
@@ -966,18 +966,18 @@ static std::shared_ptr<dlang::Type> generateStruct(cpp::Type* cppType)
 
     return result;
 }
-static std::shared_ptr<dlang::Type> generateInterface(cpp::Type* cppType)
+static std::shared_ptr<dlang::Type> generateInterface(Type* cppType)
 {
-    if( cppType->getKind() != cpp::Type::Record )
+    if( cppType->getKind() != Type::Record )
     {
         throw std::logic_error("Attempted to generate an interface from a non-record type.");
     }
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    auto& all_declarations = cpp::DeclVisitor::getDeclarations();
-    cpp::RecordDeclaration* cppDecl
-        = dynamic_cast<cpp::RecordDeclaration*>(
+    auto& all_declarations = DeclVisitor::getDeclarations();
+    RecordDeclaration* cppDecl
+        = dynamic_cast<RecordDeclaration*>(
                 all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
 
     auto search_result = translated.find(cppDecl);
@@ -1002,7 +1002,7 @@ static std::shared_ptr<dlang::Type> generateInterface(cpp::Type* cppType)
     return result;
 }
 
-std::shared_ptr<dlang::Type> translateType(cpp::Type* cppType)
+std::shared_ptr<dlang::Type> translateType(Type* cppType)
 {
     auto search_result = translated_types.find(cppType);
     if( search_result != translated_types.end() )
