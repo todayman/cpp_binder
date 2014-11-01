@@ -11,6 +11,12 @@
                 , "d_decl": "clang.PrintingPolicy"
             }
         }
+        , "clang::SourceManager": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.SourceManager"
+            }
+        }
         , "string": {
             "strategy": {
                   "name": "replace"
