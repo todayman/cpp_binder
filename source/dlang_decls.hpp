@@ -438,6 +438,7 @@ namespace dlang
     class Variable : public Declaration
     {
         public:
+        Linkage linkage;
         std::shared_ptr<Type> type;
 
         virtual void visit(DeclarationVisitor& visitor) const override

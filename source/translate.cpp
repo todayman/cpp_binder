@@ -37,7 +37,8 @@ void determineRecordStrategy(Type* cppType);
         }
 // ^ This cast failing is a huge internal programmer error
 
-static dlang::Linkage translateLinkage(FunctionDeclaration& cppDecl)
+template<typename T>
+static dlang::Linkage translateLinkage(T& cppDecl)
 {
     dlang::Linkage result;
     if( cppDecl.getLinkLanguage() == clang::CLanguageLinkage )
@@ -505,6 +506,9 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Variable)
         std::shared_ptr<dlang::Variable> var = std::make_shared<dlang::Variable>();
+
+        var->linkage = translateLinkage(cppDecl);
+        var->linkage.name_space = namespace_path;
         var->name = cppDecl.getTargetName();
         var->type = translateType(cppDecl.getType());
 

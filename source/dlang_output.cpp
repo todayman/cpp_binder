@@ -252,9 +252,17 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         }
     }
 
-    virtual void visitVariable(const dlang::Variable&) override
+    virtual void visitVariable(const dlang::Variable& variable) override
     {
-        throw std::logic_error("Have not implemented DeclarationWriter::visitVariable yet.");
+        LinkageSegment ls(*this, variable.linkage);
+        TypeWriter type(output);
+        variable.type->visit(type);
+
+        output.putItem(variable.name);
+
+        output.semicolon();
+        output.newline();
+        output.newline();
     }
 
     virtual void visitInterface(const dlang::Interface& interface) override

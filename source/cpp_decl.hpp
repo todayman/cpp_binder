@@ -276,6 +276,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(_decl->getType());
         }
 
+        virtual clang::LanguageLinkage getLinkLanguage() const
+        {
+            return _decl->getLanguageLinkage();
+        }
+
         virtual void visit(DeclarationVisitor& visitor) override
         {
             visitor.visitVariable(*this);
