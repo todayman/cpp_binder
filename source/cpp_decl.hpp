@@ -45,6 +45,8 @@ enum Visibility
     EXPORT,
 };
 
+Visibility accessSpecToVisibility(clang::AccessSpecifier as);
+
 //namespace cpp
 //{
     class DeclarationVisitor;
@@ -527,21 +529,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             if( visibility == UNSET )
             {
-                switch( _decl->getAccess() )
-                {
-                    case clang::AS_public:
-                        return ::PUBLIC;
-                    case clang::AS_private:
-                        return ::PRIVATE;
-                    case clang::AS_protected:
-                        return ::PROTECTED;
-                    case clang::AS_none:
-                        // This means different things in different contexts,
-                        // and I don't know what any of them are.
-                        throw 29;
-                    default:
-                        throw 30;
-                }
+                return accessSpecToVisibility(_decl->getAccess());
             }
             else
             {
@@ -618,6 +606,15 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
     typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
     typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
 
+    class RecordDeclaration;
+
+    struct Superclass
+    {
+        bool isVirtual;
+        Visibility visibility;
+        Type * base;
+    };
+
     class RecordDeclaration : public Declaration
     {
         private:
@@ -683,6 +680,33 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             else
             {
                 return MethodIterator(clang::CXXRecordDecl::method_iterator());
+            }
+        }
+
+        typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
+
+        virtual SuperclassIterator getSuperclassBegin()
+        {
+            if( !isCXXRecord(_decl) )
+            {
+                return SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
+            }
+            else
+            {
+                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
+                return SuperclassIterator(record->bases_begin());
+            }
+        }
+        virtual SuperclassIterator getSuperclassEnd()
+        {
+            if( !isCXXRecord(_decl) )
+            {
+                return SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
+            }
+            else
+            {
+                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
+                return SuperclassIterator(record->bases_end());
             }
         }
     };

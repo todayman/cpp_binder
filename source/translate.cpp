@@ -285,6 +285,31 @@ class TranslatorVisitor : public DeclarationVisitor
         result->linkage.lang = dlang::LANG_CPP;
         result->linkage.name_space = namespace_path;
 
+        // Find the superclasses of this interface
+        for( auto iter = cppDecl.getSuperclassBegin(),
+                finish = cppDecl.getSuperclassEnd();
+             iter != finish;
+             ++iter )
+        {
+            Superclass * super = *iter;
+            if( super->visibility != PUBLIC )
+            {
+                throw std::runtime_error("Don't know how to translate non-public inheritance of interfaces.");
+            }
+            if( super->isVirtual )
+            {
+                throw std::runtime_error("Don't know how to translate virtual inheritance of interfaces.");
+            }
+            std::shared_ptr<dlang::Type> superType = translateType(super->base);
+            std::shared_ptr<dlang::Interface> superInterface =
+                std::dynamic_pointer_cast<dlang::Interface>(superType);
+            if( !superInterface )
+            {
+                throw std::runtime_error("Superclass of an interface is not an interface.");
+            }
+            result->superclasses.push_back(superInterface);
+        }
+
         for( auto iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
              iter != finish;

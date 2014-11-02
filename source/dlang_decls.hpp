@@ -378,6 +378,7 @@ namespace dlang
     {
         public:
         Linkage linkage;
+        std::shared_ptr<Struct> superclass;
         std::vector<std::shared_ptr<Method>> methods;
 
         virtual void visit(TypeVisitor& visitor) const override
@@ -422,6 +423,7 @@ namespace dlang
     {
         public:
         Linkage linkage;
+        std::vector<std::shared_ptr<Interface>> superclasses;
         std::vector<std::shared_ptr<Declaration>> methods;
 
         virtual void visit(DeclarationVisitor& visitor) const override

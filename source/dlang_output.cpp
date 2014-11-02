@@ -270,6 +270,20 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         LinkageSegment ls(*this, interface.linkage);
         output.putItem("interface");
         output.putItem(interface.name);
+
+        TypeWriter type(output);
+        if( interface.superclasses.size() > 0 )
+        {
+            output.putItem(":");
+            output.beginList("");
+            for( std::shared_ptr<dlang::Interface> super : interface.superclasses )
+            {
+                output.listItem();
+                super->visit(type);
+            }
+            output.endList("");
+        }
+
         output.newline();
 
         output.putItem("{");

@@ -29,6 +29,25 @@
 
 #include "clang/AST/Decl.h"
 
+Visibility accessSpecToVisibility(clang::AccessSpecifier as)
+{
+    switch( as )
+    {
+        case clang::AS_public:
+            return ::PUBLIC;
+        case clang::AS_private:
+            return ::PRIVATE;
+        case clang::AS_protected:
+            return ::PROTECTED;
+        case clang::AS_none:
+            // This means different things in different contexts,
+            // and I don't know what any of them are.
+            throw 29;
+        default:
+            throw 30;
+    }
+}
+
 bool isCXXRecord(const clang::Decl* decl)
 {
     // This set is of all the DeclKinds that are subclasses of CXXRecord
@@ -71,6 +90,18 @@ template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::
 template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
 template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
 template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
+template<>
+Superclass* Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass>::operator*()
+{
+    const clang::CXXBaseSpecifier * base = cpp_iter;
+    Superclass * result = new Superclass;
+    result->isVirtual = base->isVirtual();
+    result->visibility = accessSpecToVisibility(base->getAccessSpecifier());
+
+    result->base = Type::get(base->getType());
+
+    return result;
+}
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 {
