@@ -347,11 +347,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitNamespace(*this);
         }
 
-        DeclarationIterator getChildBegin()
+        virtual DeclarationIterator getChildBegin()
         {
             return DeclarationIterator(_decl->decls_begin());
         }
-        DeclarationIterator getChildEnd()
+        virtual DeclarationIterator getChildEnd()
         {
             return DeclarationIterator(_decl->decls_end());
         }
@@ -384,7 +384,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitTypedef(*this);
         }
 
-        Type* getTargetType() const
+        virtual Type* getTargetType() const
         {
             return Type::get(_decl->getUnderlyingType());
         }
@@ -417,11 +417,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitEnum(*this);
         }
 
-        DeclarationIterator getChildBegin()
+        virtual DeclarationIterator getChildBegin()
         {
             return DeclarationIterator(_decl->decls_begin());
         }
-        DeclarationIterator getChildEnd()
+        virtual DeclarationIterator getChildEnd()
         {
             return DeclarationIterator(_decl->decls_end());
         }
@@ -454,7 +454,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitEnumConstant(*this);
         }
 
-        llvm::APSInt getValue() const
+        virtual llvm::APSInt getValue() const
         {
             return _decl->getInitVal();
         }
@@ -488,7 +488,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitFunction(*this);
         }
 
-        clang::LanguageLinkage getLinkLanguage() const
+        virtual clang::LanguageLinkage getLinkLanguage() const
         {
             return _decl->getLanguageLinkage();
         }
@@ -591,11 +591,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitMethod(*this);
         }
 
-        bool isStatic() const
+        virtual bool isStatic() const
         {
             return _decl->isStatic();
         }
-        bool isVirtual() const
+        virtual bool isVirtual() const
         {
             return _decl->isVirtual();
         }
@@ -645,24 +645,24 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitRecord(*this);
         }
 
-        FieldIterator getFieldBegin()
+        virtual FieldIterator getFieldBegin()
         {
             return FieldIterator(_decl->field_begin());
         }
-        FieldIterator getFieldEnd()
+        virtual FieldIterator getFieldEnd()
         {
             return FieldIterator(_decl->field_end());
         }
-        DeclarationIterator getChildBegin()
+        virtual DeclarationIterator getChildBegin()
         {
             return DeclarationIterator(_decl->decls_begin());
         }
-        DeclarationIterator getChildEnd()
+        virtual DeclarationIterator getChildEnd()
         {
             return DeclarationIterator(_decl->decls_end());
         }
 
-        MethodIterator getMethodBegin()
+        virtual MethodIterator getMethodBegin()
         {
             if( isCXXRecord(_decl) )
             {
@@ -674,7 +674,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
                 return MethodIterator(clang::CXXRecordDecl::method_iterator());
             }
         }
-        MethodIterator getMethodEnd()
+        virtual MethodIterator getMethodEnd()
         {
             if( isCXXRecord(_decl) )
             {
@@ -714,19 +714,19 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitUnion(*this);
         }
 
-        FieldIterator getFieldBegin()
+        virtual FieldIterator getFieldBegin()
         {
             return FieldIterator(_decl->field_begin());
         }
-        FieldIterator getFieldEnd()
+        virtual FieldIterator getFieldEnd()
         {
             return FieldIterator(_decl->field_end());
         }
-        DeclarationIterator getChildBegin()
+        virtual DeclarationIterator getChildBegin()
         {
             return DeclarationIterator(_decl->decls_begin());
         }
-        DeclarationIterator getChildEnd()
+        virtual DeclarationIterator getChildEnd()
         {
             return DeclarationIterator(_decl->decls_end());
         }
