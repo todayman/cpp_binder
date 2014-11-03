@@ -606,8 +606,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
     typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
     typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
 
-    class RecordDeclaration;
-
     struct Superclass
     {
         bool isVirtual;
