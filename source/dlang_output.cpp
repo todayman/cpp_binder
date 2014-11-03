@@ -170,7 +170,7 @@ class TypeWriter : public dlang::TypeVisitor
         string answer;
         if( parent_decl )
         {
-            answer = writeContainingScope(*parent_decl);
+            answer = writeContainingScope(*parent_decl) + parent_decl->name + ".";
         }
         else {
             dlang::FileDir * parent_module = dynamic_cast<dlang::FileDir*>(decl.parent);
