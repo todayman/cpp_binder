@@ -178,10 +178,10 @@ class TypeWriter : public dlang::TypeVisitor
             {
                 answer = writeModulePath(*parent_module);
             }
-            else
+            else if( !dynamic_cast<const dlang::StringType*>(&decl) )
             {
-                std::cerr << "WARNING: Cannot produce scope for decl " << decl.name << " derived from:\n";
-                decl.derived_from->decl()->dump();
+                std::cerr << "WARNING: Cannot produce scope for decl " << decl.name << " derived from (" << decl.derived_from << "):\n";
+                //decl.derived_from->decl()->dump();
             }
         }
         return answer;

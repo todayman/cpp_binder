@@ -159,6 +159,7 @@ namespace dlang
     {
         public:
         string name;
+
         explicit StringType(string n)
             : name(n)
         { }
