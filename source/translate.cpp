@@ -98,7 +98,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Function)
 
-        std::shared_ptr<dlang::Function> d_decl = std::make_shared<dlang::Function>();
+        std::shared_ptr<dlang::Function> d_decl = std::make_shared<dlang::Function>(&cppDecl);
         // Set the linkage attributes for this function
         d_decl->linkage = translateLinkage(cppDecl);
         d_decl->linkage.name_space = namespace_path;
@@ -210,7 +210,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Struct)
 
-        std::shared_ptr<dlang::Struct> result = std::make_shared<dlang::Struct>();
+        std::shared_ptr<dlang::Struct> result = std::make_shared<dlang::Struct>(&cppDecl);
         translated.insert(std::make_pair(&cppDecl, result));
         translated_types.insert(std::make_pair(cppDecl.getType(), result));
         result->name = cppDecl.getTargetName();
@@ -275,7 +275,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Interface)
 
-        std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>();
+        std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>(&cppDecl);
         translated.insert(std::make_pair(&cppDecl, result));
         translated_types.insert(std::make_pair(cppDecl.getType(), result));
         result->name = cppDecl.getTargetName();
@@ -353,7 +353,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(TypeAlias)
 
-        std::shared_ptr<dlang::TypeAlias> result = std::make_shared<dlang::TypeAlias>();
+        std::shared_ptr<dlang::TypeAlias> result = std::make_shared<dlang::TypeAlias>(&cppDecl);
         result->name = cppDecl.getTargetName();
         result->target_type = translateType(cppDecl.getTargetType());
 
@@ -368,7 +368,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Enum)
 
-        std::shared_ptr<dlang::Enum> result = std::make_shared<dlang::Enum>();
+        std::shared_ptr<dlang::Enum> result = std::make_shared<dlang::Enum>(&cppDecl);
 
         result->type = translateType(cppDecl.getType());
         result->name = cppDecl.getTargetName();
@@ -399,7 +399,7 @@ class TranslatorVisitor : public DeclarationVisitor
     std::shared_ptr<dlang::EnumConstant> translateEnumConstant(EnumConstantDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(EnumConstant)
-        std::shared_ptr<dlang::EnumConstant> result = std::make_shared<dlang::EnumConstant>();
+        std::shared_ptr<dlang::EnumConstant> result = std::make_shared<dlang::EnumConstant>(&cppDecl);
         result->name = cppDecl.getTargetName(); // TODO remove prefix
         result->value = cppDecl.getValue();
 
@@ -416,7 +416,7 @@ class TranslatorVisitor : public DeclarationVisitor
     std::shared_ptr<dlang::Field> translateField(FieldDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Field)
-        std::shared_ptr<dlang::Field> result = std::make_shared<dlang::Field>();
+        std::shared_ptr<dlang::Field> result = std::make_shared<dlang::Field>(&cppDecl);
         result->name = cppDecl.getTargetName();
         result->type = translateType(cppDecl.getType());
         result->visibility = translateVisibility(cppDecl.getVisibility());
@@ -434,7 +434,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Union)
 
-        std::shared_ptr<dlang::Union> result = std::make_shared<dlang::Union>();
+        std::shared_ptr<dlang::Union> result = std::make_shared<dlang::Union>(&cppDecl);
         result->name = cppDecl.getTargetName();
 
         for( auto iter = cppDecl.getFieldBegin(),
@@ -459,7 +459,7 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Method)
 
-        std::shared_ptr<dlang::Method> result = std::make_shared<dlang::Method>();
+        std::shared_ptr<dlang::Method> result = std::make_shared<dlang::Method>(&cppDecl);
 
         if( cppDecl.isStatic() )
         {
@@ -516,7 +516,7 @@ class TranslatorVisitor : public DeclarationVisitor
     std::shared_ptr<dlang::Argument> translateArgument(ArgumentDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Argument)
-        std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>();
+        std::shared_ptr<dlang::Argument> arg = std::make_shared<dlang::Argument>(&cppDecl);
         arg->name = cppDecl.getTargetName();
         arg->type = translateType(cppDecl.getType());
 
@@ -530,7 +530,7 @@ class TranslatorVisitor : public DeclarationVisitor
     std::shared_ptr<dlang::Variable> translateVariable(VariableDeclaration& cppDecl)
     {
         CHECK_FOR_DECL(Variable)
-        std::shared_ptr<dlang::Variable> var = std::make_shared<dlang::Variable>();
+        std::shared_ptr<dlang::Variable> var = std::make_shared<dlang::Variable>(&cppDecl);
 
         var->linkage = translateLinkage(cppDecl);
         var->linkage.name_space = namespace_path;

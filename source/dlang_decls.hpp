@@ -29,6 +29,8 @@
 
 #include "string.hpp"
 
+class Declaration;
+
 namespace dlang
 {
     enum Visibility
@@ -101,8 +103,11 @@ namespace dlang
         string name;
         DeclarationContainer * parent;
         Visibility visibility;
+        ::Declaration * derived_from;
 
-        Declaration() : name(), parent(nullptr), visibility(PRIVATE) { }
+        Declaration(::Declaration * df)
+            : name(), parent(nullptr), visibility(PRIVATE), derived_from(df)
+        { }
         virtual ~Declaration() { }
 
         virtual void visit(DeclarationVisitor& visitor) const = 0;
@@ -373,6 +378,10 @@ namespace dlang
         std::shared_ptr<Type> return_type;
         std::vector<std::shared_ptr<Argument>> arguments;
 
+        Method(::Declaration * cpp)
+            : Declaration(cpp), kind(VIRTUAL), return_type(), arguments()
+        { }
+
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitMethod(*this);
@@ -385,6 +394,10 @@ namespace dlang
         Linkage linkage;
         std::shared_ptr<Struct> superclass;
         std::vector<std::shared_ptr<Method>> methods;
+
+        Struct(::Declaration * cpp)
+            : Declaration(cpp), linkage(), superclass(), methods()
+        { }
 
         virtual void visit(TypeVisitor& visitor) const override
         {
@@ -399,6 +412,9 @@ namespace dlang
     class Class : public Declaration, public Type, public DeclarationContainer
     {
         public:
+        Class(::Declaration * cpp)
+            : Declaration(cpp)
+        { }
 
         virtual void visit(DeclarationVisitor& visitor) const override
         {
@@ -418,6 +434,10 @@ namespace dlang
         Visibility visibility;
         // const, immutable, etc.
 
+        Field(::Declaration * cpp)
+            : Declaration(cpp), type(), visibility()
+        { }
+
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitField(*this);
@@ -430,6 +450,10 @@ namespace dlang
         Linkage linkage;
         std::vector<std::shared_ptr<Interface>> superclasses;
         std::vector<std::shared_ptr<Declaration>> methods;
+
+        Interface(::Declaration * cpp)
+            : Declaration(cpp), linkage(), superclasses(), methods()
+        { }
 
         virtual void visit(DeclarationVisitor& visitor) const override
         {
@@ -448,6 +472,10 @@ namespace dlang
         Linkage linkage;
         std::shared_ptr<Type> type;
 
+        Variable(::Declaration * cpp)
+            : Declaration(cpp), linkage(), type()
+        { }
+
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitVariable(*this);
@@ -458,6 +486,10 @@ namespace dlang
     {
         public:
         std::shared_ptr<Type> type;
+
+        Argument(::Declaration * cpp)
+            : Declaration(cpp)
+        { }
 
         virtual void visit(DeclarationVisitor& visitor) const override
         {
@@ -472,6 +504,10 @@ namespace dlang
         std::vector<std::shared_ptr<Argument>> arguments;
         Linkage linkage;
 
+        Function(::Declaration * cpp)
+            : Declaration(cpp), return_type(), arguments(), linkage()
+        { }
+
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitFunction(*this);
@@ -482,6 +518,10 @@ namespace dlang
     {
         public:
         std::shared_ptr<Type> target_type;
+
+        TypeAlias(::Declaration * cpp)
+            : Declaration(cpp), target_type()
+        { }
 
         virtual void visit(TypeVisitor& visitor) const override
         {
@@ -498,6 +538,10 @@ namespace dlang
         public:
         llvm::APSInt value;
 
+        EnumConstant(::Declaration * cpp)
+            : Declaration(cpp), value()
+        { }
+
         virtual void visit(DeclarationVisitor& visitor) const override
         {
             visitor.visitEnumConstant(*this);
@@ -509,6 +553,10 @@ namespace dlang
         public:
         std::shared_ptr<Type> type;
         std::vector<std::shared_ptr<EnumConstant>> values;
+
+        Enum(::Declaration * cpp)
+            : Declaration(cpp), type(), values()
+        { }
 
         virtual void visit(TypeVisitor& visitor) const override
         {
@@ -523,6 +571,10 @@ namespace dlang
     class Union : public Declaration, public Type, public DeclarationContainer
     {
         public:
+        Union(::Declaration * cpp)
+            : Declaration(cpp)
+        { }
+
         virtual void visit(TypeVisitor& visitor) const override
         {
             visitor.visitUnion(*this);
