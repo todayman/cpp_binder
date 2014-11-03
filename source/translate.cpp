@@ -370,9 +370,20 @@ class TranslatorVisitor : public DeclarationVisitor
         CHECK_FOR_DECL(Enum)
 
         std::shared_ptr<dlang::Enum> result = std::make_shared<dlang::Enum>(&cppDecl);
+        translated.insert(std::make_pair(&cppDecl, result));
+        translated_types.insert(std::make_pair(cppDecl.getType(), result));
 
         result->type = translateType(cppDecl.getType());
         result->name = cppDecl.getTargetName();
+        try {
+            result->visibility = translateVisibility(cppDecl.getVisibility());
+        }
+        catch( std::runtime_error& )
+        {
+            // catch when visibility is unset.
+            // FIXME is this the right thing?
+            result->visibility = dlang::PUBLIC;
+        }
 
         // visit and translate all of the constants
         for( DeclarationIterator children_iter = cppDecl.getChildBegin(),

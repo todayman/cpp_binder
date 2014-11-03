@@ -338,6 +338,7 @@ bool DeclVisitor::TraverseNamespaceDecl(clang::NamespaceDecl* cppDecl)
     {
         result = TraverseDeclContext(cppDecl, false);
     }
+
     return result;
 }
 
