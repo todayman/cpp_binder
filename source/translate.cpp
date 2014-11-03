@@ -157,7 +157,8 @@ class TranslatorVisitor : public DeclarationVisitor
         }
         else
         {
-            module = std::make_shared<dlang::Module>(cppDecl.getTargetName());
+            const string& name = cppDecl.getTargetName();
+            module = dlang::rootPackage->getOrCreateModulePath(std::begin(name), std::end(name));
         }
 
         string this_package_name = parent_package_name + "." + module->getName();

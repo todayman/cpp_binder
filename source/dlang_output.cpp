@@ -23,6 +23,7 @@
 #include "boost/filesystem.hpp"
 
 #include "dlang_output.hpp"
+#include "cpp_decl.hpp"
 
 dlang::DOutputContext::DOutputContext(std::ostream& strm, int indentLevel)
     : needSpaceBeforeNextItem(false), listStatus(NO_LIST),
@@ -112,6 +113,41 @@ void dlang::DOutputContext::semicolon()
     startingLine = false;
 }
 
+class PackagePathWriter : public dlang::PackageVisitor
+{
+    public:
+    string result;
+    PackagePathWriter()
+        : result()
+    { }
+
+    virtual void visitPackage(const dlang::Package& package) override
+    {
+        if( package.getParent() )
+        {
+            package.getParent()->visit(*this);
+        }
+
+        if( package.getName().size() > 0 )
+        {
+            result += package.getName() + ".";
+        }
+    }
+
+    virtual void visitModule(const dlang::Module& module) override
+    {
+        if( module.getParent() )
+        {
+            module.getParent()->visit(*this);
+        }
+
+        if( module.getName().size() > 0 )
+        {
+            result += module.getName() + ".";
+        }
+    }
+};
+
 class TypeWriter : public dlang::TypeVisitor
 {
     dlang::DOutputContext& output;
@@ -120,6 +156,37 @@ class TypeWriter : public dlang::TypeVisitor
         : output(o)
     { }
 
+    virtual string writeModulePath(const dlang::FileDir& fd)
+    {
+        PackagePathWriter pkgWriter;
+        fd.visit(pkgWriter);
+        return pkgWriter.result;
+    }
+
+    virtual string writeContainingScope(const dlang::Declaration& decl)
+    {
+        // FIXME!
+        dlang::Declaration * parent_decl = dynamic_cast<dlang::Declaration*>(decl.parent);
+        string answer;
+        if( parent_decl )
+        {
+            answer = writeContainingScope(*parent_decl);
+        }
+        else {
+            dlang::FileDir * parent_module = dynamic_cast<dlang::FileDir*>(decl.parent);
+            if( parent_module )
+            {
+                answer = writeModulePath(*parent_module);
+            }
+            else
+            {
+                std::cerr << "WARNING: Cannot produce scope for decl " << decl.name << " derived from:\n";
+                decl.derived_from->decl()->dump();
+            }
+        }
+        return answer;
+    }
+
     virtual void visitString(const dlang::StringType& strType) override
     {
         output.putItem(strType.name);
@@ -127,16 +194,16 @@ class TypeWriter : public dlang::TypeVisitor
 
     virtual void visitStruct(const dlang::Struct& type) override
     {
-        output.putItem(type.name);
+        output.putItem(writeContainingScope(type) + type.name);
     }
 
     virtual void visitTypeAlias(const dlang::TypeAlias& type) override
     {
-        output.putItem(type.name);
+        output.putItem(writeContainingScope(type) + type.name);
     }
     virtual void visitEnum(const dlang::Enum& type) override
     {
-        output.putItem(type.name);
+        output.putItem(writeContainingScope(type) + type.name);
     }
     virtual void visitPointer(const dlang::PointerType& type) override
     {
@@ -154,17 +221,17 @@ class TypeWriter : public dlang::TypeVisitor
 
     virtual void visitUnion(const dlang::Union& type) override
     {
-        output.putItem(type.name);
+        output.putItem(writeContainingScope(type) + type.name);
     }
 
     virtual void visitClass(const dlang::Class& type) override
     {
-        output.putItem(type.name);
+        output.putItem(writeContainingScope(type) + type.name);
     }
 
     virtual void visitInterface(const dlang::Interface& type) override
     {
-        output.putItem(type.name);
+        output.putItem(writeContainingScope(type) + type.name);
     }
 };
 
