@@ -71,11 +71,11 @@ class ExpectedArray : ConfigurationException
     { }
 };
 
-class UnknownVisiblity : ConfigurationException
+class UnknownVisibility : ConfigurationException
 {
     public:
     // TODO add context
-    UnknownVisiblity(const std::string& str)
+    UnknownVisibility(const std::string& str)
         : ConfigurationException("Unknown visibility \"" + str + "\".")
     { }
 };
@@ -382,7 +382,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                         decl->setVisibility(EXPORT);
                     }
                     else {
-                        throw UnknownVisiblity(vis_str);
+                        throw UnknownVisibility(vis_str);
                     }
                 }
                 else if( attrib_name == "remove_prefix")

@@ -293,7 +293,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         DeclarationWriter innerWriter(innerContext);
         for( auto method : interface.methods )
         {
-            innerWriter.putVisiblity(method->visibility);
+            innerWriter.putVisibility(method->visibility);
             method->visit(innerWriter);
         }
 
@@ -316,14 +316,14 @@ class DeclarationWriter : public dlang::DeclarationVisitor
         DeclarationWriter innerWriter(innerContext);
         for( auto field : structure.getChildren() )
         {
-            innerWriter.putVisiblity(field->visibility);
+            innerWriter.putVisibility(field->visibility);
             field->visit(innerWriter);
         }
 
         output.newline();
         for( auto method : structure.methods )
         {
-            innerWriter.putVisiblity(method->visibility);
+            innerWriter.putVisibility(method->visibility);
             innerWriter.visitMethod(*method, false);
         }
 
@@ -437,7 +437,7 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     }
 
     private:
-    void putVisiblity(dlang::Visibility visibility)
+    void putVisibility(dlang::Visibility visibility)
     {
         switch( visibility )
         {
