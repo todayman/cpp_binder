@@ -51,7 +51,7 @@ static dlang::Linkage translateLinkage(T& cppDecl)
     }
     else if( cppDecl.getLinkLanguage() == clang::NoLanguageLinkage )
     {
-        cppDecl.decl()->dump();
+        cppDecl.dump();
         std::cerr << "WARNING: symbol has no language linkage.  Assuming C++.\n";
         result.lang = dlang::LANG_CPP;
     }
@@ -125,7 +125,7 @@ class TranslatorVisitor : public DeclarationVisitor
     }
     virtual void visitFunction(FunctionDeclaration& cppDecl) override
     {
-        if( reinterpret_cast<const clang::FunctionDecl*>(cppDecl.decl())->isOverloadedOperator() )
+        if( cppDecl.isOverloadedOperator() )
         {
             std::cout << "ERROR: Cannot translate overloaded operator.\n";
         }
@@ -193,7 +193,7 @@ class TranslatorVisitor : public DeclarationVisitor
             }
             catch( std::runtime_error& exc )
             {
-                (*children_iter)->decl()->dump();
+                (*children_iter)->dump();
                 std::cerr << "ERROR: " << exc.what() << "\n";
             }
         }
@@ -485,7 +485,7 @@ class TranslatorVisitor : public DeclarationVisitor
 
         result->return_type = translateType(cppDecl.getReturnType());
         if( cppDecl.getVisibility() == UNSET )
-            cppDecl.decl()->dump();
+            cppDecl.dump();
         result->visibility = translateVisibility(cppDecl.getVisibility());
 
         for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
@@ -613,7 +613,7 @@ void populateDAST()
         }
         catch( std::runtime_error& exc )
         {
-            declaration->decl()->dump();
+            declaration->dump();
             std::cerr << "ERROR: " <<  exc.what() << "\n";
         }
 
@@ -699,20 +699,18 @@ void determineRecordStrategy(Type* cppType)
                 DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
                 );
 
-    if( !isCXXRecord(cpp_decl->decl()) )
+    if( !cpp_decl->isCXXRecord() )
     {
         cppType->setStrategy(STRUCT);
     }
     else
     {
-        //std::cout << "Determining strategy for " << cppType->getName()
         std::cerr << "Determinining strategy for: " << cpp_decl->getSourceName() << " (" << cpp_record << ")\n";
-        const clang::CXXRecordDecl* cxxRecord = reinterpret_cast<const clang::CXXRecordDecl*>(cpp_decl->decl());
-        if( !cxxRecord->hasDefinition() ) {
+        if( !cpp_decl->hasDefinition() ) {
             throw NoDefinitionException(cpp_decl);
         }
 
-        if( cxxRecord->isDynamicClass() )
+        if( cpp_decl->isDynamicClass() )
         {
             cppType->setStrategy(INTERFACE);
             std::cerr << "\tChose INTERFACE\n";
@@ -736,6 +734,8 @@ std::shared_ptr<dlang::Type> replaceType(Type* cppType)
         {
             result = std::shared_ptr<dlang::Type>(new dlang::StringType(replacement_name));
             types_by_name.insert(std::make_pair(replacement_name, result));
+
+            // FIXME Which package / module do these go in?
         }
         else
         {

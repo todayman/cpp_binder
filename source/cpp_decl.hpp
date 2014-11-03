@@ -69,8 +69,6 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         Visibility visibility;
         string remove_prefix;
 
-        public:
-        virtual const clang::Decl* decl() = 0;
         protected:
         string source_name;
         string _name;
@@ -151,6 +149,8 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
         virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
+
+        virtual void dump() const = 0;
     };
 
     struct NotTypeDecl : public std::runtime_error
@@ -238,9 +238,6 @@ func(Unwrappable)
         D##Declaration(const clang::C##Decl* d) \
             : _decl(d) \
         { } \
-        virtual const clang::Decl* decl() override { \
-            return _decl; \
-        } \
 \
         virtual Type* getType() const override \
         { \
@@ -254,6 +251,11 @@ func(Unwrappable)
         virtual void visit(ConstDeclarationVisitor& visitor) const override \
         { \
             visitor.visit##D(*this); \
+        } \
+\
+        virtual void dump() const override \
+        { \
+            _decl->dump(); \
         } \
     }
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
@@ -269,9 +271,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         VariableDeclaration(const clang::VarDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -291,6 +290,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitVariable(*this);
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     class ArgumentDeclaration : public Declaration
@@ -302,9 +306,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         ArgumentDeclaration(const clang::ParmVarDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -319,6 +320,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitArgument(*this);
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
 
@@ -331,9 +337,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         NamespaceDeclaration(const clang::NamespaceDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -357,6 +360,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return DeclarationIterator(_decl->decls_end());
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     class TypedefDeclaration : public Declaration
@@ -368,9 +376,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         TypedefDeclaration(const clang::TypedefDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -390,6 +395,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return Type::get(_decl->getUnderlyingType());
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     class EnumDeclaration : public Declaration
@@ -401,9 +411,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         EnumDeclaration(const clang::EnumDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -427,6 +434,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return DeclarationIterator(_decl->decls_end());
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
     // TODO change this to a generic constant class
     class EnumConstantDeclaration : public Declaration
@@ -438,9 +450,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         EnumConstantDeclaration(const clang::EnumConstantDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -460,6 +469,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return _decl->getInitVal();
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     typedef Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration> ArgumentIterator;
@@ -472,9 +486,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         FunctionDeclaration(const clang::FunctionDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -509,6 +520,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return ArgumentIterator(_decl->param_end());
         }
+
+        virtual bool isOverloadedOperator() const
+        {
+            return _decl->isOverloadedOperator();
+        }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     class FieldDeclaration : public Declaration
@@ -520,9 +541,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         FieldDeclaration(const clang::FieldDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         // Fields can infer visibility from C++ AST
         virtual ::Visibility getVisibility() const override
@@ -550,6 +568,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitField(*this);
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     class MethodDeclaration : public Declaration
@@ -561,9 +584,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         MethodDeclaration(const clang::CXXMethodDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -601,6 +621,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return ArgumentIterator(_decl->param_end());
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
@@ -622,9 +647,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         RecordDeclaration(const clang::RecordDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -659,7 +681,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual MethodIterator getMethodBegin()
         {
-            if( isCXXRecord(_decl) )
+            if( isCXXRecord() )
             {
                 const clang::CXXRecordDecl* record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
                 return MethodIterator(record->method_begin());
@@ -671,7 +693,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
         virtual MethodIterator getMethodEnd()
         {
-            if( isCXXRecord(_decl) )
+            if( isCXXRecord() )
             {
                 return MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_end());
             }
@@ -685,7 +707,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual SuperclassIterator getSuperclassBegin()
         {
-            if( !isCXXRecord(_decl) )
+            if( !isCXXRecord() )
             {
                 return SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
             }
@@ -697,7 +719,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
         virtual SuperclassIterator getSuperclassEnd()
         {
-            if( !isCXXRecord(_decl) )
+            if( !isCXXRecord() )
             {
                 return SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
             }
@@ -706,6 +728,28 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
                 const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
                 return SuperclassIterator(record->bases_end());
             }
+        }
+
+        virtual bool isCXXRecord() const
+        {
+            return ::isCXXRecord(_decl);
+        }
+
+        virtual bool hasDefinition() const
+        {
+            if( !isCXXRecord() ) throw std::logic_error("Can only call hasDefinition on CXX records, and this is just a record.");
+            return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->hasDefinition();
+        }
+
+        virtual bool isDynamicClass() const
+        {
+            if( !isCXXRecord() ) return false;
+            return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->isDynamicClass();
+        }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
         }
     };
 
@@ -718,9 +762,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         UnionDeclaration(const clang::RecordDecl* d)
             : _decl(d)
         { }
-        virtual const clang::Decl* decl() override {
-            return _decl;
-        }
 
         virtual Type* getType() const override
         {
@@ -752,6 +793,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return DeclarationIterator(_decl->decls_end());
         }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
+        }
     };
 
     class UnwrappableDeclaration : public Declaration
@@ -764,9 +810,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         {
             markUnwrappable();
-        }
-        virtual const clang::Decl* decl() override {
-            return _decl;
         }
 
         virtual Type* getType() const override
@@ -781,6 +824,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitUnwrappable(*this);
+        }
+
+        virtual void dump() const override
+        {
+            _decl->dump();
         }
     };
 
