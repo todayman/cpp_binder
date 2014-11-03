@@ -114,6 +114,7 @@ namespace dlang
 
         public:
         DeclarationContainer() = default;
+        virtual ~DeclarationContainer() = default;
 
         void insert(std::shared_ptr<Declaration> decl)
         {
@@ -190,25 +191,35 @@ namespace dlang
     // Need a superclass for Module and Package to use Composite pattern
     class FileDir
     {
+        string name;
+        Package* parent;
+
         public:
+        FileDir(string n, Package * p)
+            : name(n), parent(p)
+        { }
         virtual ~FileDir() { }
+
+        const string& getName() const
+        {
+            return name;
+        }
+
+        virtual Package* getParent() const
+        {
+            return parent;
+        }
 
         virtual void visit(PackageVisitor& visitor) const = 0;
     };
 
     class Module : public DeclarationContainer, public FileDir
     {
-        string name;
 
         public:
-        explicit Module(string n)
-            : DeclarationContainer(), FileDir(), name(n)
+        explicit Module(string n, Package * p)
+            : DeclarationContainer(), FileDir(n, p)
         { }
-
-        const string& getName() const
-        {
-            return name;
-        }
 
         virtual void visit(PackageVisitor& visitor) const override
         {
@@ -218,7 +229,6 @@ namespace dlang
 
     class Package : public FileDir
     {
-        string name;
         std::unordered_map<string, std::shared_ptr<FileDir>> children;
 
         template<typename ConstIterator>
@@ -237,14 +247,9 @@ namespace dlang
         }
         public:
         Package() = default;
-        explicit Package(string n)
-            : name(n), children()
+        explicit Package(string n, Package * p)
+            : FileDir(n, p), children()
         { }
-
-        const string& getName() const
-        {
-            return name;
-        }
 
         const decltype(children)& getChildren() const
         {
@@ -305,13 +310,13 @@ namespace dlang
                 // Create
                 if( end_of_first_element == finish )
                 {
-                    std::shared_ptr<Module> mod = std::make_shared<Module>(next_name);
+                    std::shared_ptr<Module> mod = std::make_shared<Module>(next_name, this);
                     std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(mod);
                     children.insert(std::make_pair(next_name, result));
                     return mod;
                 }
                 else {
-                    std::shared_ptr<Package> package = std::make_shared<Package>(next_name);
+                    std::shared_ptr<Package> package = std::make_shared<Package>(next_name, this);
                     std::shared_ptr<FileDir> result = std::static_pointer_cast<FileDir>(package);
                     children.insert(std::make_pair(next_name, result));
                     return package->getOrCreateModulePath(end_of_first_element + 1, finish);
