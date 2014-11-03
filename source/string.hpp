@@ -77,6 +77,11 @@ class string
     string operator+(const string& other) const;
     string& operator=(const string& other);
     string& operator=(string&& other);
+
+    void operator+=(const string& other)
+    {
+        (*this) = (*this) + other;
+    }
 };
 
 namespace std {
