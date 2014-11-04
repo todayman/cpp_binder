@@ -208,11 +208,16 @@ DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
 bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
 {
     bool result = true;
-    if( declarations.find(cppDecl) == declarations.end() )
+    auto search_result = declarations.find(cppDecl);
+    if( search_result == declarations.end() )
     {
         DeclVisitor next_visitor(print_policy);
         next_visitor.top_level_decls = top_level;
         result = next_visitor.TraverseDecl(cppDecl);
+    }
+    else if( top_level && !free_declarations.count(search_result->second) )
+    {
+        free_declarations.insert(search_result->second);
     }
 
     return result;
@@ -242,6 +247,7 @@ bool DeclVisitor::TraverseDeclContext(clang::DeclContext* context, bool top_leve
     {
         result = registerDeclaration(*iter, top_level);
     }
+
     return result;
 }
 
