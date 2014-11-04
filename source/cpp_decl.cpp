@@ -629,6 +629,7 @@ void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& file
     {
         clang::Decl * cppDecl = decl_pair.first;
         visitor.maybe_emits = decl_pair.second;
-        visitor.TraverseDecl(cppDecl);
+        if( visitor.maybe_emits )
+            visitor.TraverseDecl(cppDecl);
     }
 }
