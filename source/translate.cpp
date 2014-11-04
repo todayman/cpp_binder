@@ -729,7 +729,6 @@ void determineRecordStrategy(Type* cppType)
     }
     else
     {
-        std::cerr << "Determinining strategy for: " << cpp_decl->getSourceName() << " (" << cpp_record << ")\n";
         if( !cpp_decl->hasDefinition() ) {
             throw NoDefinitionException(cpp_decl);
         }
@@ -737,12 +736,10 @@ void determineRecordStrategy(Type* cppType)
         if( cpp_decl->isDynamicClass() )
         {
             cppType->setStrategy(INTERFACE);
-            std::cerr << "\tChose INTERFACE\n";
         }
         else
         {
             cppType->setStrategy(STRUCT);
-            std::cerr << "\tChose STRUCT\n";
         }
     }
 }
