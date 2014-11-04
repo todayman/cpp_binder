@@ -309,7 +309,9 @@ class TranslatorVisitor : public DeclarationVisitor
             std::shared_ptr<dlang::Type> superType = translateType(super->base);
             std::shared_ptr<dlang::Interface> superInterface =
                 std::dynamic_pointer_cast<dlang::Interface>(superType);
-            if( !superInterface )
+            std::shared_ptr<dlang::StringType> superString =  // TODO is this really OK?
+                std::dynamic_pointer_cast<dlang::StringType>(superType);
+            if( !superInterface && !superString )
             {
                 throw std::runtime_error("Superclass of an interface is not an interface.");
             }
