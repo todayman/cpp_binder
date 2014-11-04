@@ -249,6 +249,7 @@ class TranslatorVisitor : public DeclarationVisitor
             catch( std::runtime_error& exc )
             {
                 std::cerr << "ERROR: Cannot translate method " << cppDecl.getSourceName() << "::" << cpp_method->getSourceName() << ", skipping it\n";
+                std::cerr << "\t" << exc.what() << "\n";
                 continue;
             }
             if( method->kind == dlang::Method::VIRTUAL )
@@ -280,8 +281,6 @@ class TranslatorVisitor : public DeclarationVisitor
         translated.insert(std::make_pair(&cppDecl, result));
         if( translated_types.find(cppDecl.getType()) != translated_types.end() )
         {
-            std::cout << "Already translated type for " << cppDecl.getSourceName() << "\n";
-            std::cout << "This one does " << (cppDecl.hasDefinition() ? "" : "NOT ") << "have a definition.\n";
             return std::dynamic_pointer_cast<dlang::Interface>(translated_types.at(cppDecl.getType()));
         }
         translated_types.insert(std::make_pair(cppDecl.getType(), result));
@@ -579,7 +578,6 @@ static void placeIntoTargetModule(Declaration* declaration, std::shared_ptr<dlan
     // (e.g. forward and normal), that have the same translation
     if( translation->parent )
     {
-        std::cerr << "WARNING: Attempted to place a declaration into a module twice.\n";
         return;
     }
     string target_module = declaration->getTargetModule();
