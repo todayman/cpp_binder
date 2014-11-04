@@ -916,9 +916,8 @@ std::shared_ptr<dlang::Type> replaceEnum(Type* cppType)
     clang::EnumDecl * clang_decl = clang_type->getDecl();
 
     auto all_declarations = DeclVisitor::getDeclarations();
-    EnumDeclaration* cppDecl
-        = dynamic_cast<EnumDeclaration*>(
-                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+    auto cpp_generic_decl = all_declarations.find(static_cast<clang::Decl*>(clang_decl));
+    EnumDeclaration* cppDecl = dynamic_cast<EnumDeclaration*>(cpp_generic_decl->second);
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
