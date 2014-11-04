@@ -278,6 +278,12 @@ class TranslatorVisitor : public DeclarationVisitor
 
         std::shared_ptr<dlang::Interface> result = std::make_shared<dlang::Interface>(&cppDecl);
         translated.insert(std::make_pair(&cppDecl, result));
+        if( translated_types.find(cppDecl.getType()) != translated_types.end() )
+        {
+            std::cout << "Already translated type for " << cppDecl.getSourceName() << "\n";
+            std::cout << "This one does " << (cppDecl.hasDefinition() ? "" : "NOT ") << "have a definition.\n";
+            return std::dynamic_pointer_cast<dlang::Interface>(translated_types.at(cppDecl.getType()));
+        }
         translated_types.insert(std::make_pair(cppDecl.getType(), result));
         result->name = cppDecl.getTargetName();
 
