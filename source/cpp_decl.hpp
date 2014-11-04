@@ -160,7 +160,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         { }
     };
 
-    template<typename ClangType, typename TranslatorType>
+    /*template<typename ClangType, typename TranslatorType>
     class Iterator
     {
         private:
@@ -188,9 +188,38 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         {
             return operator*();
         }
+    };*/
+
+    class DeclarationIterator
+    {
+        private:
+        clang::DeclContext::decl_iterator cpp_iter;
+
+        public:
+        explicit DeclarationIterator(clang::DeclContext::decl_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const DeclarationIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const DeclarationIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        Declaration* operator*();
+        Declaration* operator->()
+        {
+            return operator*();
+        }
     };
 
-    typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
+    //typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
 
 #define FORALL_DECLARATIONS(func) \
 func(Function)      \
@@ -476,7 +505,36 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
-    typedef Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration> ArgumentIterator;
+    class ArgumentIterator
+    {
+        private:
+        clang::FunctionDecl::param_const_iterator cpp_iter;
+
+        public:
+        explicit ArgumentIterator(clang::FunctionDecl::param_const_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const ArgumentIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const ArgumentIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        ArgumentDeclaration* operator*();
+        ArgumentDeclaration* operator->()
+        {
+            return operator*();
+        }
+    };
+    //typedef Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration> ArgumentIterator;
+
     class FunctionDeclaration : public Declaration
     {
         private:
@@ -628,8 +686,64 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
-    typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
-    typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
+    class FieldIterator
+    {
+        private:
+        clang::RecordDecl::field_iterator cpp_iter;
+
+        public:
+        explicit FieldIterator(clang::RecordDecl::field_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const FieldIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const FieldIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        FieldDeclaration* operator*();
+        FieldDeclaration* operator->()
+        {
+            return operator*();
+        }
+    };
+    //typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
+    class MethodIterator
+    {
+        private:
+        clang::CXXRecordDecl::method_iterator cpp_iter;
+
+        public:
+        explicit MethodIterator(clang::CXXRecordDecl::method_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const MethodIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const MethodIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        MethodDeclaration* operator*();
+        MethodDeclaration* operator->()
+        {
+            return operator*();
+        }
+    };
+    //typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
 
     struct Superclass
     {
@@ -703,7 +817,35 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
+        class SuperclassIterator
+        {
+            private:
+            clang::CXXRecordDecl::base_class_const_iterator cpp_iter;
+
+            public:
+            explicit SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator i)
+                : cpp_iter(i)
+            { }
+
+            void operator++() {
+                cpp_iter++;
+            }
+
+            bool operator==(const SuperclassIterator& other) {
+                return cpp_iter == other.cpp_iter;
+            }
+
+            bool operator!=(const SuperclassIterator& other) {
+                return cpp_iter != other.cpp_iter;
+            }
+
+            Superclass* operator*();
+            Superclass* operator->()
+            {
+                return operator*();
+            }
+        };
+        //typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
 
         virtual SuperclassIterator getSuperclassBegin()
         {
@@ -750,6 +892,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual void dump() const override
         {
             _decl->dump();
+        }
+
+        virtual bool isCanonical() const
+        {
+            return _decl->isCanonicalDecl();
         }
     };
 
