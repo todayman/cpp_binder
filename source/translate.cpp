@@ -361,6 +361,8 @@ class TranslatorVisitor : public DeclarationVisitor
         CHECK_FOR_DECL(TypeAlias)
 
         std::shared_ptr<dlang::TypeAlias> result = std::make_shared<dlang::TypeAlias>(&cppDecl);
+        translated.insert(std::make_pair(&cppDecl, result));
+        translated_types.insert(std::make_pair(cppDecl.getType(), result));
         result->name = cppDecl.getTargetName();
         result->target_type = translateType(cppDecl.getTargetType());
 
@@ -453,6 +455,8 @@ class TranslatorVisitor : public DeclarationVisitor
         CHECK_FOR_DECL(Union)
 
         std::shared_ptr<dlang::Union> result = std::make_shared<dlang::Union>(&cppDecl);
+        translated.insert(std::make_pair(&cppDecl, result));
+        translated_types.insert(std::make_pair(cppDecl.getType(), result));
         result->name = cppDecl.getTargetName();
 
         for( auto iter = cppDecl.getFieldBegin(),
