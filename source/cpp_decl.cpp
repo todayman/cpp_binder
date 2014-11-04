@@ -74,7 +74,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
-template<typename ClangType, typename TranslatorType>
+/*template<typename ClangType, typename TranslatorType>
 TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
@@ -85,13 +85,59 @@ TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
     }
     Declaration* decl = search_result->second;
     return dynamic_cast<TranslatorType*>(decl);
+}*/
+//template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::operator*();
+Declaration* DeclarationIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    return dynamic_cast<Declaration*>(decl);
 }
-template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::operator*();
-template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
-template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
-template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
-template<>
-Superclass* Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass>::operator*()
+//template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
+ArgumentDeclaration* ArgumentIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    return dynamic_cast<ArgumentDeclaration*>(decl);
+}
+//template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
+FieldDeclaration* FieldIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    return dynamic_cast<FieldDeclaration*>(decl);
+}
+//template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
+MethodDeclaration* MethodIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    MethodDeclaration * result = dynamic_cast<MethodDeclaration*>(decl);
+    return result;
+}
+//template<>
+//Superclass* Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass>::operator*()
+Superclass* RecordDeclaration::SuperclassIterator::operator*()
 {
     const clang::CXXBaseSpecifier * base = cpp_iter;
     Superclass * result = new Superclass;
