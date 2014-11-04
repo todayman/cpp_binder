@@ -618,6 +618,16 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
     }
 };
 
+void enableDeclarationsInFiles(size_t count, const char ** filenames)
+{
+    std::vector<std::string> vec;
+    vec.reserve(count);
+    for( size_t i = 0; i < count; ++i)
+    {
+        vec.emplace_back(filenames[i]);
+    }
+    DeclVisitor::enableDeclarationsInFiles(vec);
+}
 void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& filename_vec)
 {
     // There's no easy way to tell if a Decl is a NamedDecl,
@@ -631,5 +641,33 @@ void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& file
         visitor.maybe_emits = decl_pair.second;
         if( visitor.maybe_emits )
             visitor.TraverseDecl(cppDecl);
+    }
+}
+
+void arrayOfFreeDeclarations(size_t* count, Declaration*** array)
+{
+    if( !count || !array )
+        throw std::logic_error("Arguments are out parameters, they cannot be null");
+    (*count) = DeclVisitor::free_declarations.size();
+    (*array) = new Declaration*[DeclVisitor::free_declarations.size()];
+
+    size_t counter = 0;
+    for( Declaration* decl : DeclVisitor::free_declarations )
+    {
+        (*array)[counter] = decl;
+        counter ++;
+    }
+}
+
+Declaration * getDeclaration(clang::Decl* decl)
+{
+    auto search_result = DeclVisitor::declarations.find(decl);
+    if( search_result == DeclVisitor::declarations.end() )
+    {
+        return nullptr;
+    }
+    else
+    {
+        return search_result->second;
     }
 }

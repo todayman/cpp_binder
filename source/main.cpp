@@ -71,7 +71,13 @@ int main(int argc, const char **argv)
 
     declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 
-    DeclVisitor::enableDeclarationsInFiles(args.header_files);
+    std::vector<const char*> raw_files;
+    raw_files.reserve(args.header_files.size());
+    for( auto& str : args.header_files )
+    {
+        raw_files.push_back(str.c_str());
+    }
+    enableDeclarationsInFiles(raw_files.size(), raw_files.data());
 
     try {
         parseAndApplyConfiguration(args.config_files, ast->getASTContext());

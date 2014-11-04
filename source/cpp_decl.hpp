@@ -1074,6 +1074,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
         bool VisitFieldDecl(clang::FieldDecl* cppDecl);
 
+        private:
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
 
         static const std::unordered_map<clang::Decl*, Declaration*>& getDeclarations()
@@ -1084,7 +1085,19 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return free_declarations;
         }
+
+        friend void enableDeclarationsInFiles(size_t count, const char ** filenames);
+        friend void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
+        friend Declaration * getDeclaration(clang::Decl* decl);
+        friend class DeclarationIterator;
+        friend class ArgumentIterator;
+        friend class FieldIterator;
+        friend class MethodIterator;
     };
+
+    void enableDeclarationsInFiles(size_t count, const char ** filenames);
+    void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
+    Declaration * getDeclaration(clang::Decl* decl);
 
     class SkipUnwrappableDeclaration : public NotWrappableException
     {

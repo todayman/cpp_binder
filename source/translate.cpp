@@ -607,8 +607,13 @@ static void placeIntoTargetModule(Declaration* declaration, std::shared_ptr<dlan
 void populateDAST()
 {
     // May cause problems because root package won't check for empty path.
-    for( auto declaration : DeclVisitor::getFreeDeclarations() )
+    size_t array_len = 0;
+    Declaration** freeDeclarations = nullptr;
+    arrayOfFreeDeclarations(&array_len, &freeDeclarations);
+
+    for( size_t i = 0; i < array_len; ++i)
     {
+        Declaration * declaration = freeDeclarations[i];
         if( !declaration->getShouldBind() )
         {
             continue;
@@ -642,6 +647,7 @@ void populateDAST()
         }
 
     }
+    delete[] freeDeclarations;
 }
 
 std::unordered_map<Type*, std::shared_ptr<dlang::Type>> tranlsated_types;
@@ -719,9 +725,7 @@ void determineRecordStrategy(Type* cppType)
 
     const clang::RecordType * cpp_record = cppType->cppType()->castAs<clang::RecordType>();
     RecordDeclaration* cpp_decl =
-        dynamic_cast<RecordDeclaration*>(
-                DeclVisitor::getDeclarations().find(cpp_record->getDecl())->second
-                );
+        dynamic_cast<RecordDeclaration*>(getDeclaration(cpp_record->getDecl()));
 
     if( !cpp_decl->isCXXRecord() )
     {
@@ -877,16 +881,15 @@ std::shared_ptr<dlang::Type> replaceTypedef(Type* cppType)
     const clang::TypedefType * clang_type = cppType->cppType()->getAs<clang::TypedefType>();
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
-    auto all_declarations = DeclVisitor::getDeclarations();
-    auto this_declaration = all_declarations.find(static_cast<clang::Decl*>(clang_decl));
-    if( this_declaration == all_declarations.end() )
+    Declaration* this_declaration = getDeclaration(static_cast<clang::Decl*>(clang_decl));
+    if( !this_declaration )
     {
         clang_decl->dump();
         throw std::runtime_error("Found a declaration that I'm not wrapping.");
     }
 
     TypedefDeclaration* cppDecl
-        = dynamic_cast<TypedefDeclaration*>(this_declaration->second);
+        = dynamic_cast<TypedefDeclaration*>(this_declaration);
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
@@ -915,9 +918,8 @@ std::shared_ptr<dlang::Type> replaceEnum(Type* cppType)
     const clang::EnumType * clang_type = cppType->cppType()->castAs<clang::EnumType>();
     clang::EnumDecl * clang_decl = clang_type->getDecl();
 
-    auto all_declarations = DeclVisitor::getDeclarations();
-    auto cpp_generic_decl = all_declarations.find(static_cast<clang::Decl*>(clang_decl));
-    EnumDeclaration* cppDecl = dynamic_cast<EnumDeclaration*>(cpp_generic_decl->second);
+    Declaration* cpp_generic_decl = getDeclaration(static_cast<clang::Decl*>(clang_decl));
+    EnumDeclaration* cppDecl = dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
@@ -954,10 +956,8 @@ std::shared_ptr<dlang::Type> replaceUnion(Type* cppType)
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    auto all_declarations = DeclVisitor::getDeclarations();
     UnionDeclaration* cppDecl
-        = dynamic_cast<UnionDeclaration*>(
-                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+        = dynamic_cast<UnionDeclaration*>(getDeclaration(clang_decl));
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
     if( search_result == translated.end() )
@@ -990,10 +990,8 @@ static std::shared_ptr<dlang::Type> generateStruct(Type* cppType)
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    auto& all_declarations = DeclVisitor::getDeclarations();
     RecordDeclaration* cppDecl
-        = dynamic_cast<RecordDeclaration*>(
-                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+        = dynamic_cast<RecordDeclaration*>(getDeclaration(clang_decl));
 
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
@@ -1025,10 +1023,8 @@ static std::shared_ptr<dlang::Type> generateInterface(Type* cppType)
     const clang::RecordType * clang_type = cppType->cppType()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    auto& all_declarations = DeclVisitor::getDeclarations();
     RecordDeclaration* cppDecl
-        = dynamic_cast<RecordDeclaration*>(
-                all_declarations.find(static_cast<clang::Decl*>(clang_decl))->second);
+        = dynamic_cast<RecordDeclaration*>(getDeclaration(clang_decl));
 
     auto search_result = translated.find(cppDecl);
     std::shared_ptr<dlang::Type> result;
