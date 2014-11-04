@@ -62,6 +62,34 @@ bool isCXXRecord(const clang::Decl* decl)
     #undef ABSTRACT_DECL
     return CXXRecordKinds.count(decl->getKind()) > 0;
 }
+bool isNamedDecl(const clang::Decl* decl)
+{
+    // This set is of all the DeclKinds that are subclasses of CXXRecord
+    #define ABSTRACT_DECL(Type)
+    #define DECL(Type, Base)
+    #define NAMED(Type, Base)   clang::Decl::Type,
+    static std::unordered_set<int> NamedKinds({
+    #include "clang/AST/DeclNodes.inc"
+            });
+    #undef NAMED
+    #undef DECL
+    #undef ABSTRACT_DECL
+    return NamedKinds.count(decl->getKind()) > 0;
+}
+bool isCXXMethodDecl(const clang::Decl* decl)
+{
+    // This set is of all the DeclKinds that are subclasses of CXXRecord
+    #define ABSTRACT_DECL(Type)
+    #define DECL(Type, Base)
+    #define CXXMETHOD(Type, Base)   clang::Decl::Type,
+    static std::unordered_set<int> CXXMethodKinds({
+    #include "clang/AST/DeclNodes.inc"
+            });
+    #undef CXXMETHOD
+    #undef DECL
+    #undef ABSTRACT_DECL
+    return CXXMethodKinds.count(decl->getKind()) > 0;
+}
 
 std::unordered_map<clang::Decl*, Declaration*> DeclVisitor::declarations;
 std::unordered_set<Declaration*> DeclVisitor::free_declarations;
