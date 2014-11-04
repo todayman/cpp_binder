@@ -255,12 +255,17 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
 {
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
         return true;
+
     if( Declaration->isTemplateDecl() )
     {
         allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
     }
     else
     {
+        if( declarations.find(Declaration) != declarations.end() )
+        {
+            return true;
+        }
         try {
             RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
         }
