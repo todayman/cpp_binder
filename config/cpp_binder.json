@@ -17,11 +17,59 @@
                 , "d_decl": "clang.SourceManager"
             }
         }
+        , "clang::QualType": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.QualType"
+            }
+        }
+        , "clang::DeclContext::decl_iterator": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.DeclContext.decl_iterator"
+            }
+        }
+        , "clang::FunctionDecl::param_const_iterator": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.FunctionDecl.param_const_iterator"
+            }
+        }
+        , "clang::RecordDecl::field_iterator": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.RecordDecl.field_iterator"
+            }
+        }
+        , "clang::CXXRecordDecl::method_iterator": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.CXXRecordDecl.method_iterator"
+            }
+        }
+        , "clang::Decl": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "clang.Decl"
+            }
+        }
+        , "DeclVisitor": {
+            "bound": 0
+        }
+        , "TypeVisitor": {
+            "bound": 0
+        }
         , "string": {
             "strategy": {
                   "name": "replace"
                 , "d_decl": "cpp_string"
             }
+        }
+        , "Type::Kind": {
+            "visibility":"public"
+        }
+        , "isCXXRecord": {
+            "bound": 0
         }
     }
 }
