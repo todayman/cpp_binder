@@ -575,9 +575,12 @@ static void placeIntoTargetModule(Declaration* declaration, std::shared_ptr<dlan
 {
     // FIXME sometimes this gets called multiple times on the same declaration,
     // so it will get output multiple times, which is clearly wrong
+    // It happens because there are multiple declarations of the same type
+    // (e.g. forward and normal), that have the same translation
     if( translation->parent )
     {
-        throw std::logic_error("Attempted to place a declaration into a module twice.");
+        std::cerr << "WARNING: Attempted to place a declaration into a module twice.\n";
+        return;
     }
     string target_module = declaration->getTargetModule();
     if( target_module.size() == 0 )
