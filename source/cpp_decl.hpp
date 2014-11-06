@@ -218,17 +218,17 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             return operator*();
         }
 
-        Declaration* get()
+        virtual Declaration* get()
         {
             return operator*();
         }
 
-        void advance()
+        virtual void advance()
         {
             cpp_iter++;
         }
 
-        bool equals(const DeclarationIterator& other)
+        virtual bool equals(const DeclarationIterator& other)
         {
             return (*this) == other;
         }
@@ -396,13 +396,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitNamespace(*this);
         }
 
-        virtual DeclarationIterator getChildBegin()
+        virtual DeclarationIterator * getChildBegin()
         {
-            return DeclarationIterator(_decl->decls_begin());
+            return new DeclarationIterator(_decl->decls_begin());
         }
-        virtual DeclarationIterator getChildEnd()
+        virtual DeclarationIterator * getChildEnd()
         {
-            return DeclarationIterator(_decl->decls_end());
+            return new DeclarationIterator(_decl->decls_end());
         }
 
         virtual void dump() const override
@@ -470,13 +470,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitEnum(*this);
         }
 
-        virtual DeclarationIterator getChildBegin()
+        virtual DeclarationIterator * getChildBegin()
         {
-            return DeclarationIterator(_decl->decls_begin());
+            return new DeclarationIterator(_decl->decls_begin());
         }
-        virtual DeclarationIterator getChildEnd()
+        virtual DeclarationIterator * getChildEnd()
         {
-            return DeclarationIterator(_decl->decls_end());
+            return new DeclarationIterator(_decl->decls_end());
         }
 
         virtual void dump() const override
@@ -550,17 +550,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return operator*();
         }
 
-        ArgumentDeclaration* get()
+        virtual ArgumentDeclaration* get()
         {
             return operator*();
         }
 
-        void advance()
+        virtual void advance()
         {
             cpp_iter++;
         }
 
-        bool equals(const ArgumentIterator& other)
+        virtual bool equals(const ArgumentIterator& other)
         {
             return (*this) == other;
         }
@@ -601,14 +601,14 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(_decl->getReturnType());
         }
 
-        virtual ArgumentIterator getArgumentBegin() const
+        virtual ArgumentIterator * getArgumentBegin() const
         {
-            return ArgumentIterator(_decl->param_begin());
+            return new ArgumentIterator(_decl->param_begin());
         }
 
-        virtual ArgumentIterator getArgumentEnd() const
+        virtual ArgumentIterator * getArgumentEnd() const
         {
-            return ArgumentIterator(_decl->param_end());
+            return new ArgumentIterator(_decl->param_end());
         }
 
         virtual bool isOverloadedOperator() const
@@ -708,13 +708,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(_decl->getReturnType());
         }
 
-        virtual ArgumentIterator getArgumentBegin() const
+        virtual ArgumentIterator * getArgumentBegin() const
         {
-            return ArgumentIterator(_decl->param_begin());
+            return new ArgumentIterator(_decl->param_begin());
         }
-        virtual ArgumentIterator getArgumentEnd() const
+        virtual ArgumentIterator * getArgumentEnd() const
         {
-            return ArgumentIterator(_decl->param_end());
+            return new ArgumentIterator(_decl->param_end());
         }
 
         virtual void dump() const override
@@ -751,17 +751,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return operator*();
         }
 
-        FieldDeclaration* get()
+        virtual FieldDeclaration* get()
         {
             return operator*();
         }
 
-        void advance()
+        virtual void advance()
         {
             cpp_iter++;
         }
 
-        bool equals(const FieldIterator& other)
+        virtual bool equals(const FieldIterator& other)
         {
             return (*this) == other;
         }
@@ -795,17 +795,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return operator*();
         }
 
-        MethodDeclaration* get()
+        virtual MethodDeclaration* get()
         {
             return operator*();
         }
 
-        void advance()
+        virtual void advance()
         {
             cpp_iter++;
         }
 
-        bool equals(const MethodIterator& other)
+        virtual bool equals(const MethodIterator& other)
         {
             return (*this) == other;
         }
@@ -847,17 +847,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return operator*();
         }
 
-        Superclass* get()
+        virtual Superclass* get()
         {
             return operator*();
         }
 
-        void advance()
+        virtual void advance()
         {
             cpp_iter++;
         }
 
-        bool equals(const SuperclassIterator& other)
+        virtual bool equals(const SuperclassIterator& other)
         {
             return (*this) == other;
         }
@@ -888,69 +888,69 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitRecord(*this);
         }
 
-        virtual FieldIterator getFieldBegin()
+        virtual FieldIterator * getFieldBegin()
         {
-            return FieldIterator(_decl->field_begin());
+            return new FieldIterator(_decl->field_begin());
         }
-        virtual FieldIterator getFieldEnd()
+        virtual FieldIterator * getFieldEnd()
         {
-            return FieldIterator(_decl->field_end());
+            return new FieldIterator(_decl->field_end());
         }
-        virtual DeclarationIterator getChildBegin()
+        virtual DeclarationIterator * getChildBegin()
         {
-            return DeclarationIterator(_decl->decls_begin());
+            return new DeclarationIterator(_decl->decls_begin());
         }
-        virtual DeclarationIterator getChildEnd()
+        virtual DeclarationIterator * getChildEnd()
         {
-            return DeclarationIterator(_decl->decls_end());
+            return new DeclarationIterator(_decl->decls_end());
         }
 
-        virtual MethodIterator getMethodBegin()
+        virtual MethodIterator * getMethodBegin()
         {
             if( isCXXRecord() )
             {
                 const clang::CXXRecordDecl* record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
-                return MethodIterator(record->method_begin());
+                return new MethodIterator(record->method_begin());
             }
             else
             {
-                return MethodIterator(clang::CXXRecordDecl::method_iterator());
+                return new MethodIterator(clang::CXXRecordDecl::method_iterator());
             }
         }
-        virtual MethodIterator getMethodEnd()
+        virtual MethodIterator * getMethodEnd()
         {
             if( isCXXRecord() )
             {
-                return MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_end());
+                return new MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_end());
             }
             else
             {
-                return MethodIterator(clang::CXXRecordDecl::method_iterator());
+                return new MethodIterator(clang::CXXRecordDecl::method_iterator());
             }
         }
 
-        virtual SuperclassIterator getSuperclassBegin()
+        virtual SuperclassIterator * getSuperclassBegin()
         {
             if( !isCXXRecord() )
             {
-                return SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
+                return new SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
             }
             else
             {
                 const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
-                return SuperclassIterator(record->bases_begin());
+                return new SuperclassIterator(record->bases_begin());
             }
         }
-        virtual SuperclassIterator getSuperclassEnd()
+        virtual SuperclassIterator * getSuperclassEnd()
         {
             if( !isCXXRecord() )
             {
-                return SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
+                return new SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
             }
             else
             {
                 const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
-                return SuperclassIterator(record->bases_end());
+                return new SuperclassIterator(record->bases_end());
             }
         }
 
@@ -1006,21 +1006,21 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitUnion(*this);
         }
 
-        virtual FieldIterator getFieldBegin()
+        virtual FieldIterator * getFieldBegin()
         {
-            return FieldIterator(_decl->field_begin());
+            return new FieldIterator(_decl->field_begin());
         }
-        virtual FieldIterator getFieldEnd()
+        virtual FieldIterator * getFieldEnd()
         {
-            return FieldIterator(_decl->field_end());
+            return new FieldIterator(_decl->field_end());
         }
-        virtual DeclarationIterator getChildBegin()
+        virtual DeclarationIterator * getChildBegin()
         {
-            return DeclarationIterator(_decl->decls_begin());
+            return new DeclarationIterator(_decl->decls_begin());
         }
-        virtual DeclarationIterator getChildEnd()
+        virtual DeclarationIterator * getChildEnd()
         {
-            return DeclarationIterator(_decl->decls_end());
+            return new DeclarationIterator(_decl->decls_end());
         }
 
         virtual void dump() const override

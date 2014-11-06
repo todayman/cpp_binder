@@ -82,6 +82,13 @@ static dlang::Visibility translateVisibility(::Visibility access)
 class TranslatorVisitor;
 static void placeIntoTargetModule(Declaration* declaration, std::shared_ptr<dlang::Declaration> translation);
 
+struct OverloadedOperatorError : public std::runtime_error
+{
+    OverloadedOperatorError()
+        : std::runtime_error("Cannot translate overloaded operators.")
+    { }
+};
+
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : public DeclarationVisitor
 {
@@ -115,11 +122,11 @@ class TranslatorVisitor : public DeclarationVisitor
         d_decl->return_type = translateType(cppDecl.getReturnType());
 
         for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
-             arg_iter != arg_end;
-             ++arg_iter )
+             (*arg_iter) != (*arg_end);
+             ++(*arg_iter) )
         {
-            // FIXME double dereference? really?
-            d_decl->arguments.push_back(translateArgument(**arg_iter));
+            // FIXME triple dereference? really?
+            d_decl->arguments.push_back(translateArgument(***arg_iter));
         }
         return d_decl;
     }
@@ -162,24 +169,24 @@ class TranslatorVisitor : public DeclarationVisitor
         }
 
         string this_package_name = parent_package_name + "." + module->getName();
-        for( DeclarationIterator children_iter = cppDecl.getChildBegin(),
-                children_end = cppDecl.getChildEnd();
-             children_iter != children_end;
-             ++children_iter )
+        for( DeclarationIterator * children_iter = cppDecl.getChildBegin(),
+                * children_end = cppDecl.getChildEnd();
+             (*children_iter) != (*children_end);
+             ++(*children_iter) )
         {
-            if( !(*children_iter)->isTargetModuleSet() )
+            if( !(**children_iter)->isTargetModuleSet() )
             {
-                (*children_iter)->setTargetModule(this_package_name);
+                (**children_iter)->setTargetModule(this_package_name);
             }
         }
 
         // This is the translated name, but really I want the C++ name
         string this_namespace_path = namespace_path + "::" + module->getName();
         // visit and translate all of the children
-        for( DeclarationIterator children_iter = cppDecl.getChildBegin(),
-                children_end = cppDecl.getChildEnd();
-             children_iter != children_end;
-             ++children_iter )
+        for( DeclarationIterator *children_iter = cppDecl.getChildBegin(),
+                * children_end = cppDecl.getChildEnd();
+             (*children_iter) != (*children_end);
+             ++(*children_iter) )
         {
             try {
                 TranslatorVisitor subpackage_visitor(this_package_name, this_namespace_path);
@@ -188,12 +195,12 @@ class TranslatorVisitor : public DeclarationVisitor
                 // not all translations get placed, and some are unwrappable,
                 if( subpackage_visitor.last_result )
                 {
-                    placeIntoTargetModule(*children_iter, subpackage_visitor.last_result);
+                    placeIntoTargetModule(**children_iter, subpackage_visitor.last_result);
                 }
             }
             catch( std::runtime_error& exc )
             {
-                (*children_iter)->dump();
+                (**children_iter)->dump();
                 std::cerr << "ERROR: " << exc.what() << "\n";
             }
         }
@@ -223,28 +230,28 @@ class TranslatorVisitor : public DeclarationVisitor
 
         for( auto iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
-             iter != finish;
-             ++iter )
+             (*iter) != (*finish);
+             ++(*iter) )
         {
-            // FIXME double dereference? really?
-            std::shared_ptr<dlang::Field> field = translateField(**iter);
+            // FIXME triple dereference? really?
+            std::shared_ptr<dlang::Field> field = translateField(***iter);
             result->insert(field);
         }
 
         for( auto iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
-             iter != finish;
-             ++iter )
+             (*iter) != (*finish);
+             ++(*iter) )
         {
             // sometimes, e.g. for implicit destructors, the lookup from clang
             // type to my types fails.  So we should skip those.
-            MethodDeclaration* cpp_method = *iter;
+            MethodDeclaration* cpp_method = **iter;
             if( !cpp_method || !cpp_method->getShouldBind() )
                 continue;
             std::shared_ptr<dlang::Method> method;
             try {
                 // FIXME double dereference? really?
-                method = translateMethod(**iter);
+                method = translateMethod(***iter);
             }
             catch( std::runtime_error& exc )
             {
@@ -262,10 +269,10 @@ class TranslatorVisitor : public DeclarationVisitor
         // TODO static methods and other things
         for( auto iter = cppDecl.getChildBegin(),
                 finish = cppDecl.getChildEnd();
-            iter != finish;
-            ++iter )
+            (*iter) != (*finish);
+            ++(*iter) )
         {
-            if( EnumDeclaration* enumDecl = dynamic_cast<EnumDeclaration*>(*iter) )
+            if( EnumDeclaration* enumDecl = dynamic_cast<EnumDeclaration*>(**iter) )
             {
                 result->insert(translateEnum(*enumDecl));
             }
@@ -294,10 +301,10 @@ class TranslatorVisitor : public DeclarationVisitor
         // Find the superclasses of this interface
         for( auto iter = cppDecl.getSuperclassBegin(),
                 finish = cppDecl.getSuperclassEnd();
-             iter != finish;
-             ++iter )
+             (*iter) != (*finish);
+             ++(*iter) )
         {
-            Superclass * super = *iter;
+            Superclass * super = **iter;
             if( super->visibility != PUBLIC )
             {
                 throw std::runtime_error("Don't know how to translate non-public inheritance of interfaces.");
@@ -320,21 +327,31 @@ class TranslatorVisitor : public DeclarationVisitor
 
         for( auto iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
-             iter != finish;
-             ++iter )
+             (*iter) != (*finish);
+             ++(*iter) )
         {
             // sometimes, e.g. for implicit destructors, the lookup from clang
             // type to my types fails.  So we should skip those.
-            MethodDeclaration* cpp_method = *iter;
+            MethodDeclaration* cpp_method = **iter;
             if( !cpp_method || !cpp_method->getShouldBind() )
                 continue;
-            // FIXME double dereference? really?
-            std::shared_ptr<dlang::Method> method = translateMethod(**iter);
-            if( dlang::Method::FINAL == method->kind )
-            {
-                throw std::runtime_error("Methods on interfaces must be virtual!");
+            try {
+                // FIXME triple dereference? really?
+                std::shared_ptr<dlang::Method> method = translateMethod(***iter);
+                if( dlang::Method::FINAL == method->kind )
+                {
+                    throw std::runtime_error("Methods on interfaces must be virtual!");
+                }
+                result->methods.push_back(method);
             }
-            result->methods.push_back(method);
+            catch( OverloadedOperatorError& e )
+            {
+                if( cpp_method->isVirtual() )
+                {
+                    throw e;
+                }
+                std::cerr << "ERROR: " << e.what() << "\n";
+            }
         }
 
         // TODO static methods and other things
@@ -395,12 +412,12 @@ class TranslatorVisitor : public DeclarationVisitor
         }
 
         // visit and translate all of the constants
-        for( DeclarationIterator children_iter = cppDecl.getChildBegin(),
-                children_end = cppDecl.getChildEnd();
-             children_iter != children_end;
-             ++children_iter )
+        for( DeclarationIterator *children_iter = cppDecl.getChildBegin(),
+                *children_end = cppDecl.getChildEnd();
+             (*children_iter) != (*children_end);
+             ++(*children_iter) )
         {
-            EnumConstantDeclaration* constant = dynamic_cast<EnumConstantDeclaration*>(*children_iter);
+            EnumConstantDeclaration* constant = dynamic_cast<EnumConstantDeclaration*>(**children_iter);
             if( !constant )
             {
                 std::cout << "Error translating enum constant.\n";
@@ -462,11 +479,11 @@ class TranslatorVisitor : public DeclarationVisitor
 
         for( auto iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
-             iter != finish;
-             ++iter )
+             (*iter) != (*finish);
+             ++(*iter) )
         {
-            // FIXME double dereference? really?
-            std::shared_ptr<dlang::Field> field = translateField(**iter);
+            // FIXME triple dereference? really?
+            std::shared_ptr<dlang::Field> field = translateField(***iter);
             result->insert(field);
         }
 
@@ -484,7 +501,7 @@ class TranslatorVisitor : public DeclarationVisitor
 
         if( cppDecl.isOverloadedOperator() )
         {
-            throw std::runtime_error("Cannot translate overloaded operators.");
+            throw OverloadedOperatorError();
         }
 
         std::shared_ptr<dlang::Method> result = std::make_shared<dlang::Method>(&cppDecl);
@@ -516,11 +533,11 @@ class TranslatorVisitor : public DeclarationVisitor
         result->visibility = translateVisibility(cppDecl.getVisibility());
 
         for( auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
-             arg_iter != arg_end;
-             ++arg_iter )
+             (*arg_iter) != (*arg_end);
+             ++(*arg_iter) )
         {
             // FIXME double dereference? really?
-            result->arguments.push_back(translateArgument(**arg_iter));
+            result->arguments.push_back(translateArgument(***arg_iter));
         }
         return result;
     }
