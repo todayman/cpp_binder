@@ -666,6 +666,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->isVirtual();
         }
 
+        virtual bool isOverloadedOperator() const
+        {
+            return _decl->isOverloadedOperator();
+        }
+
         virtual Type* getReturnType() const
         {
             return Type::get(_decl->getReturnType());

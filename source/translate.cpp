@@ -482,6 +482,11 @@ class TranslatorVisitor : public DeclarationVisitor
     {
         CHECK_FOR_DECL(Method)
 
+        if( cppDecl.isOverloadedOperator() )
+        {
+            throw std::runtime_error("Cannot translate overloaded operators.");
+        }
+
         std::shared_ptr<dlang::Method> result = std::make_shared<dlang::Method>(&cppDecl);
 
         if( cppDecl.isStatic() )
