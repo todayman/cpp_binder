@@ -85,7 +85,7 @@ enum Strategy
         Type& operator=(const Type&) = delete;
         Type& operator=(Type&&) = delete;
 
-        static Type* get(clang::QualType qType, const clang::PrintingPolicy* pp = nullptr);
+        static Type* get(const clang::QualType& qType, const clang::PrintingPolicy* pp = nullptr);
         static Type* getByName(const string& name);
 
         const clang::Type * cppType() const {

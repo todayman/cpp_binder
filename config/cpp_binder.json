@@ -59,12 +59,6 @@
         , "TypeVisitor": {
             "bound": 0
         }
-        , "string": {
-            "strategy": {
-                  "name": "replace"
-                , "d_decl": "cpp_string"
-            }
-        }
         , "Type::Kind": {
             "visibility":"public"
         }

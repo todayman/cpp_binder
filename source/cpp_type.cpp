@@ -45,7 +45,7 @@ template<>
 struct hash<clang::BuiltinType::Kind> : public hash<unsigned> { };
 }
 
-Type* Type::get(clang::QualType qType, const clang::PrintingPolicy* printPolicy)
+Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* printPolicy)
 {
     // TODO could this really be NULL?
     // under what circumstances is that the case, and do I have to
