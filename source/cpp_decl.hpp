@@ -217,6 +217,21 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         {
             return operator*();
         }
+
+        Declaration* get()
+        {
+            return operator*();
+        }
+
+        void advance()
+        {
+            cpp_iter++;
+        }
+
+        bool equals(const DeclarationIterator& other)
+        {
+            return (*this) == other;
+        }
     };
 
     //typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
@@ -532,6 +547,21 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return operator*();
         }
+
+        ArgumentDeclaration* get()
+        {
+            return operator*();
+        }
+
+        void advance()
+        {
+            cpp_iter++;
+        }
+
+        bool equals(const ArgumentIterator& other)
+        {
+            return (*this) == other;
+        }
     };
     //typedef Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration> ArgumentIterator;
 
@@ -718,6 +748,21 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return operator*();
         }
+
+        FieldDeclaration* get()
+        {
+            return operator*();
+        }
+
+        void advance()
+        {
+            cpp_iter++;
+        }
+
+        bool equals(const FieldIterator& other)
+        {
+            return (*this) == other;
+        }
     };
     //typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
     class MethodIterator
@@ -746,6 +791,21 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         MethodDeclaration* operator->()
         {
             return operator*();
+        }
+
+        MethodDeclaration* get()
+        {
+            return operator*();
+        }
+
+        void advance()
+        {
+            cpp_iter++;
+        }
+
+        bool equals(const MethodIterator& other)
+        {
+            return (*this) == other;
         }
     };
     //typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
@@ -848,6 +908,21 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             Superclass* operator->()
             {
                 return operator*();
+            }
+
+            Superclass* get()
+            {
+                return operator*();
+            }
+
+            void advance()
+            {
+                cpp_iter++;
+            }
+
+            bool equals(const SuperclassIterator& other)
+            {
+                return (*this) == other;
             }
         };
         //typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
