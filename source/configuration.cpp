@@ -265,7 +265,7 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
 
 static Declaration* getDecl(clang::Decl* decl)
 {
-    return DeclVisitor::getDeclarations().at(decl);
+    return getDeclaration(decl);
 }
 
 clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::ASTContext& ast, clang::DeclContext* context)
