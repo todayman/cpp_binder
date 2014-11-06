@@ -22,6 +22,7 @@
 #include <iostream>
 /* A simple non-templated string that I can bind easily */
 
+namespace binder {
 class string
 {
     char * buffer;
@@ -83,12 +84,13 @@ class string
         (*this) = (*this) + other;
     }
 };
+} // namespace binder
 
 namespace std {
 template<>
-struct hash<::string>
+struct hash<binder::string>
 {
-    size_t operator()(const ::string& str) const
+    size_t operator()(const binder::string& str) const
     {
         std::hash<std::string> hasher;
         return hasher(str.c_str());
@@ -96,6 +98,6 @@ struct hash<::string>
 };
 }
 
-std::ostream& operator<<(std::ostream& output, const string& str);
+std::ostream& operator<<(std::ostream& output, const binder::string& str);
 
 #endif // __STRING_HPP__

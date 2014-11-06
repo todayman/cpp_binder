@@ -28,6 +28,7 @@
 #include "llvm/ADT/APSInt.h"
 
 #include "string.hpp"
+using namespace binder;
 
 class Declaration;
 

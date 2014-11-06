@@ -28,6 +28,7 @@
 
 #include "cpp_exception.hpp"
 #include "string.hpp"
+using namespace binder;
 
 enum Strategy
 {

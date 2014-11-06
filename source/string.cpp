@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "string.hpp"
+using namespace binder;
 
 string::string()
     : buffer(nullptr), length(0)
