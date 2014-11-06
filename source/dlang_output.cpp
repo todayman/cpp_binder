@@ -16,8 +16,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #include "boost/filesystem.hpp"
@@ -448,7 +449,9 @@ class DeclarationWriter : public dlang::DeclarationVisitor
     {
         output.putItem(constant.name);
         output.putItem("=");
-        output.putItem(constant.value.toString(10).c_str());
+        std::ostringstream strm;
+        strm << constant.value;
+        output.putItem(strm.str().c_str());
     }
 
     virtual void visitField(const dlang::Field& field) override

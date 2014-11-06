@@ -422,7 +422,7 @@ class TranslatorVisitor : public DeclarationVisitor
         CHECK_FOR_DECL(EnumConstant)
         std::shared_ptr<dlang::EnumConstant> result = std::make_shared<dlang::EnumConstant>(&cppDecl);
         result->name = cppDecl.getTargetName(); // TODO remove prefix
-        result->value = cppDecl.getValue();
+        result->value = cppDecl.getLLValue();
 
         return result;
     }

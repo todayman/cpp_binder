@@ -25,8 +25,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "llvm/ADT/APSInt.h"
-
 #include "string.hpp"
 using namespace binder;
 
@@ -538,7 +536,8 @@ namespace dlang
     class EnumConstant : public Declaration
     {
         public:
-        llvm::APSInt value;
+        //llvm::APSInt value;
+        long long value;
 
         EnumConstant(::Declaration * cpp)
             : Declaration(cpp), value()

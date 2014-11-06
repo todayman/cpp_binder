@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <set>
+#include <sstream>
 
 #include <boost/filesystem.hpp>
 
@@ -46,6 +47,14 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as)
         default:
             throw 30;
     }
+}
+
+long long EnumConstantDeclaration::getLLValue() const
+{
+    long long result;
+    std::istringstream strm(_decl->getInitVal().toString(10));
+    strm >> result;
+    return result;
 }
 
 bool isCXXRecord(const clang::Decl* decl)

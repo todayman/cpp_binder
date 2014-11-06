@@ -509,10 +509,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitEnumConstant(*this);
         }
 
-        virtual llvm::APSInt getValue() const
+        /*virtual llvm::APSInt getValue() const
         {
             return _decl->getInitVal();
-        }
+        }*/
+
+        virtual long long getLLValue() const;
 
         virtual void dump() const override
         {
