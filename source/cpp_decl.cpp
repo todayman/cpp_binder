@@ -165,7 +165,7 @@ MethodDeclaration* MethodIterator::operator*()
 }
 //template<>
 //Superclass* Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass>::operator*()
-Superclass* RecordDeclaration::SuperclassIterator::operator*()
+Superclass* SuperclassIterator::operator*()
 {
     const clang::CXXBaseSpecifier * base = cpp_iter;
     Superclass * result = new Superclass;

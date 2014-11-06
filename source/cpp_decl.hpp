@@ -817,6 +817,51 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         Type * base;
     };
 
+    class SuperclassIterator
+    {
+        private:
+        clang::CXXRecordDecl::base_class_const_iterator cpp_iter;
+
+        public:
+        explicit SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const SuperclassIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const SuperclassIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        Superclass* operator*();
+        Superclass* operator->()
+        {
+            return operator*();
+        }
+
+        Superclass* get()
+        {
+            return operator*();
+        }
+
+        void advance()
+        {
+            cpp_iter++;
+        }
+
+        bool equals(const SuperclassIterator& other)
+        {
+            return (*this) == other;
+        }
+    };
+    //typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
+
     class RecordDeclaration : public Declaration
     {
         private:
@@ -881,51 +926,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
                 return MethodIterator(clang::CXXRecordDecl::method_iterator());
             }
         }
-
-        class SuperclassIterator
-        {
-            private:
-            clang::CXXRecordDecl::base_class_const_iterator cpp_iter;
-
-            public:
-            explicit SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator i)
-                : cpp_iter(i)
-            { }
-
-            void operator++() {
-                cpp_iter++;
-            }
-
-            bool operator==(const SuperclassIterator& other) {
-                return cpp_iter == other.cpp_iter;
-            }
-
-            bool operator!=(const SuperclassIterator& other) {
-                return cpp_iter != other.cpp_iter;
-            }
-
-            Superclass* operator*();
-            Superclass* operator->()
-            {
-                return operator*();
-            }
-
-            Superclass* get()
-            {
-                return operator*();
-            }
-
-            void advance()
-            {
-                cpp_iter++;
-            }
-
-            bool equals(const SuperclassIterator& other)
-            {
-                return (*this) == other;
-            }
-        };
-        //typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
 
         virtual SuperclassIterator getSuperclassBegin()
         {
