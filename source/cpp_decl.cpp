@@ -24,6 +24,7 @@
 
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Frontend/ASTUnit.h"
 
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
@@ -49,7 +50,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as)
     }
 }
 
-long long EnumConstantDeclaration::getLLValue() const
+long long EnumConstantDeclaration::getLLValue()
 {
     long long result;
     std::istringstream strm(_decl->getInitVal().toString(10));
@@ -581,7 +582,8 @@ bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)
 
 bool DeclVisitor::VisitNamedDecl(clang::NamedDecl* cppDecl)
 {
-    decl_in_progress->setSourceName(cppDecl->getNameAsString().c_str());
+    string source_name(cppDecl->getNameAsString().c_str());
+    decl_in_progress->setSourceName(&source_name);
     return true;
 }
 
@@ -626,6 +628,15 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
         return false;
     }
 };
+
+void traverseDeclsInAST(clang::ASTUnit* ast)
+{
+    source_manager = &(ast->getSourceManager());
+
+    DeclVisitor declVisitor(&ast->getASTContext().getPrintingPolicy());
+
+    declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
+}
 
 void enableDeclarationsInFiles(size_t count, const char ** filenames)
 {

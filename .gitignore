@@ -1,2 +1,8 @@
 build
 *.pyc
+
+.dub
+docs.json
+__dummy.html
+*.o
+*.obj

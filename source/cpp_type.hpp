@@ -40,6 +40,12 @@ enum Strategy
     OPAQUE_CLASS,
 };
 
+class Declaration;
+class RecordDeclaration;
+class TypedefDeclaration;
+class EnumDeclaration;
+class UnionDeclaration;
+
 //namespace cpp
 //{
     // This is a place for all of the different pieces of
@@ -77,7 +83,7 @@ enum Strategy
         public:
         static void printTypeNames();
         explicit Type(const clang::Type* t, Kind k)
-            : cpp_type(t), kind(k), strategy(UNKNOWN), target_name()
+            : cpp_type(t), kind(k), strategy(UNKNOWN), target_name("")
         { }
 
         Type(const Type&) = delete;
@@ -86,7 +92,7 @@ enum Strategy
         Type& operator=(Type&&) = delete;
 
         static Type* get(const clang::QualType& qType, const clang::PrintingPolicy* pp = nullptr);
-        static Type* getByName(const string& name);
+        static Type* getByName(const string* name);
 
         const clang::Type * cppType() const {
             return cpp_type;
@@ -96,17 +102,15 @@ enum Strategy
             kind = k;
         }
 
-        Kind getKind() const
-        {
-            return kind;
-        }
+        Kind getKind();
+        Kind getKind() const;
 
         friend class TypeVisitor;
 
-        void chooseReplaceStrategy(string replacement)
+        void chooseReplaceStrategy(string* replacement)
         {
             strategy = REPLACE;
-            target_name = replacement;
+            target_name = *replacement;
         }
 
         struct DontSetUnknown : public std::runtime_error
@@ -135,10 +139,8 @@ enum Strategy
             strategy = s;
         }
 
-        Strategy getStrategy() const
-        {
-            return strategy;
-        }
+        Strategy getStrategy();
+        Strategy getStrategy() const;
 
         struct WrongStrategy : public std::runtime_error
         {
@@ -146,14 +148,15 @@ enum Strategy
                 : std::runtime_error("That operation is only valid for types with a different translation strategy.")
             { }
         };
-        const string& getReplacement() const
-        {
-            if( strategy != REPLACE )
-            {
-                throw WrongStrategy();
-            }
-            return target_name;
-        }
+        string* getReplacement();
+        const string* getReplacement() const;
+
+        RecordDeclaration * getRecordDeclaration();
+        Type * getPointeeType();
+        TypedefDeclaration * getTypedefDeclaration();
+        EnumDeclaration * getEnumDeclaration();
+        UnionDeclaration * getUnionDeclaration();
+        void dump();
     };
 
     class TypeVisitor : public clang::RecursiveASTVisitor<TypeVisitor>

@@ -128,8 +128,6 @@ std::string readFile(const std::string& filename)
 }
 
 static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast);
-static void applyRootObjectForClang(const yajl_val_s& obj, std::vector<std::string>& clang_args);
-static void collectClangArguments(const yajl_val_s& obj_container, std::vector<std::string>& clang_args);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast);
 static void readStrategyConfiguration(const yajl_val_s& container, Type* type);
@@ -160,59 +158,6 @@ static void applyConfigFromFile(const std::string& filename, clang::ASTContext& 
 {
     std::shared_ptr<yajl_val_s> tree_root = parseJSON(filename);
     applyRootObjectForAttributes(*tree_root.get(), ast);
-}
-
-static void applyClangConfig(const std::string& filename, std::vector<std::string>& clang_args)
-{
-    std::shared_ptr<yajl_val_s> tree_root = parseJSON(filename);
-    applyRootObjectForClang(*tree_root.get(), clang_args);
-}
-
-static void applyRootObjectForClang(const yajl_val_s& obj, std::vector<std::string>& clang_args)
-{
-    for( size_t idx = 0; idx < obj.u.object.len; ++idx )
-    {
-        std::string name = obj.u.object.keys[idx];
-        const yajl_val_s* sub_obj = obj.u.object.values[idx];
-        if( !sub_obj )
-        {
-            throw 5;
-        }
-
-        if( name == "clang_args" )
-        {
-            if( !YAJL_IS_ARRAY(sub_obj) )
-            {
-                throw ExpectedArray(sub_obj);
-            }
-            collectClangArguments(*sub_obj, clang_args);
-        }
-        else if( name == "binding_attributes" )
-        {
-            continue;
-        }
-        else {
-            throw ConfigurationException(std::string("Unexpected top-level key \"") + name + "\".");
-        }
-    }
-}
-
-static void collectClangArguments(const yajl_val_s& obj, std::vector<std::string>& clang_args)
-{
-    for( size_t idx = 0; idx < obj.u.array.len; ++idx )
-    {
-        const yajl_val_s* sub_obj = obj.u.array.values[idx];
-        if( !sub_obj )
-        {
-            throw 5;
-        }
-
-        if( !YAJL_IS_STRING(sub_obj) )
-        {
-            throw ExpectedString(sub_obj);
-        }
-        clang_args.emplace_back(sub_obj->u.string);
-    }
 }
 
 static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast)
@@ -348,7 +293,8 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     {
                         throw ExpectedString(sub_obj);
                     }
-                    decl->setTargetModule(sub_obj->u.string);
+                    string str(sub_obj->u.string);
+                    decl->setTargetModule(&str);
                 }
                 else if( attrib_name == "visibility" )
                 {
@@ -391,7 +337,8 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     {
                         throw ExpectedString(sub_obj);
                     }
-                    decl->removePrefix(sub_obj->u.string);
+                    string str(sub_obj->u.string);
+                    decl->removePrefix(&str);
                 }
                 else if( attrib_name == "strategy" )
                 {
@@ -413,7 +360,8 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         }
     }
     else {
-        Type* type = Type::getByName(name.c_str());
+        string str(name.c_str());
+        Type* type = Type::getByName(&str);
         if( !type )
         {
             // FIXME better error handling with stuff like localization
@@ -472,7 +420,8 @@ static void readStrategyConfiguration(const yajl_val_s& container, Type* type)
                 {
                     throw ExpectedString(target_obj);
                 }
-                type->chooseReplaceStrategy(target_obj->u.string);
+                string str(target_obj->u.string);
+                type->chooseReplaceStrategy(&str);
             }
             else if( name_str == "struct" )
             {
@@ -494,20 +443,22 @@ static void readStrategyConfiguration(const yajl_val_s& container, Type* type)
     }
 }
 
-std::vector<std::string> parseClangArgs(const std::vector<std::string>& config_files)
+void parseAndApplyConfiguration(const std::vector<std::string>& config_files, clang::ASTUnit* astunit)
 {
-    std::vector<std::string> clang_args;
-    for( const std::string& filename : config_files )
-    {
-        applyClangConfig(filename, clang_args);
-    }
-    return clang_args;
-}
-
-void parseAndApplyConfiguration(const std::vector<std::string>& config_files, clang::ASTContext& ast)
-{
+    clang::ASTContext& ast = astunit->getASTContext();
     for( const std::string& filename : config_files )
     {
         applyConfigFromFile(filename, ast);
     }
+}
+
+void parseAndApplyConfiguration(size_t config_count, const char** config_files, clang::ASTUnit* astunit)
+{
+    std::vector<std::string> config_file_vec;
+    for (size_t i = 0; i < config_count; ++i)
+    {
+        config_file_vec.push_back(config_files[i]);
+    }
+
+    parseAndApplyConfiguration(config_file_vec, astunit);
 }

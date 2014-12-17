@@ -16,26 +16,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CONFIGURATION_HPP__
-#define __CONFIGURATION_HPP__
-
-#include <memory>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "clang/Frontend/ASTUnit.h"
+#include "clang/Tooling/Tooling.h"
 
-class ConfigurationException : public std::runtime_error
+clang::ASTUnit* buildAST(const char * contents, size_t arg_len, const char** raw_args, const char * filename)
 {
-    public:
-    ConfigurationException(std::string msg)
-        : std::runtime_error(msg)
-    { }
-};
-
-std::string readFile(const std::string& filename);
-std::vector<std::string> parseClangArgs(const std::vector<std::string>& config_files);
-void parseAndApplyConfiguration(const std::vector<std::string>& config_files, clang::ASTUnit* ast);
-
-#endif // __CONFIGURATION_HPP__
+    std::vector<std::string> clang_args;
+    clang_args.resize(arg_len);
+    for (size_t i = 0; i < arg_len; ++i)
+    {
+        clang_args.at(i) = raw_args[i];
+    }
+    return clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, filename).release();
+}

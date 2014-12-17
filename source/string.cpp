@@ -36,6 +36,14 @@ string::string(const char * str)
     buffer[length] = 0;
 }
 
+string::string(const char * str, unsigned long len)
+    : buffer(nullptr), length(len)
+{
+    buffer = new char[length + 1];
+    strncpy(buffer, str, length);
+    buffer[length] = 0;
+}
+
 string::string(const char * start, const char * end)
     : buffer(nullptr), length(end - start)
 {
@@ -63,7 +71,23 @@ string::string(size_t len)
     buffer = new char[length + 1];
     memset(buffer, 0, length + 1);
 }
+string::~string()
+{
+    if( buffer )
+    {
+        delete []buffer;
+    }
+}
 
+size_t string::size()
+{
+    return length;
+}
+
+/*size_t string::size() const
+{
+    return length;
+}*/
 bool string::operator==(const string& other) const
 {
     if( length == other.length )
@@ -84,6 +108,15 @@ bool string::operator!=(const string& other) const
     else {
         return true;
     }
+}
+
+const char * string::c_str()
+{
+    return buffer;
+}
+const char * string::c_str() const
+{
+    return buffer;
 }
 
 string string::operator+(const string& other) const
@@ -115,6 +148,11 @@ string& string::operator=(string&& other)
     other.buffer = nullptr;
     length = other.length;
     return *this;
+}
+
+string* binder::toBinderString(const char*str, size_t len)
+{
+    return new string(str, len);
 }
 
 std::ostream& operator<<(std::ostream& output, const string& str)

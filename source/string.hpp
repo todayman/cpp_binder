@@ -31,49 +31,30 @@ class string
     public:
     string();
     string(const char * str);
+    string(const char * str, unsigned long len);
     string(const char * start, const char * end);
     string(size_t len);
     string(const string& other);
     string(string&&);
-    ~string()
-    {
-        if( buffer )
-        {
-            delete []buffer;
-        }
-    }
+    ~string();
 
-    size_t size() const
-    {
-        return length;
-    }
+    virtual size_t size();
 
-    const char * begin() const
+    virtual char * begin()
     {
         return buffer;
     }
 
-    const char * end() const
+    virtual char * end()
     {
         return buffer + length;
     }
-    char * begin()
-    {
-        return buffer;
-    }
-
-    char * end()
-    {
-        return buffer + length;
-    }
+    virtual const char * c_str();
+    const char * c_str() const;
 
     bool operator==(const string& other) const;
     bool operator!=(const string& other) const;
 
-    const char * c_str() const
-    {
-        return buffer;
-    }
 
     string operator+(const string& other) const;
     string& operator=(const string& other);
@@ -84,6 +65,8 @@ class string
         (*this) = (*this) + other;
     }
 };
+
+string* toBinderString(const char* str, size_t len);
 } // namespace binder
 
 namespace std {

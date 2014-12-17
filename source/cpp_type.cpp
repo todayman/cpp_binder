@@ -64,15 +64,119 @@ Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* print
     return type_map.find(cppType)->second;
 }
 
-Type* Type::getByName(const string& name)
+Type* Type::getByName(const string* name)
 {
-    decltype(type_by_name)::iterator iter = type_by_name.find(name);
+    decltype(type_by_name)::iterator iter = type_by_name.find(*name);
     if( iter != Type::type_by_name.end() ) {
         return iter->second;
     }
     else {
         return nullptr;
     }
+}
+
+Type::Kind Type::getKind()
+{
+    return kind;
+}
+Type::Kind Type::getKind() const
+{
+    return kind;
+}
+
+Strategy Type::getStrategy()
+{
+    return strategy;
+}
+Strategy Type::getStrategy() const
+{
+    return strategy;
+}
+
+string* Type::getReplacement()
+{
+    if( strategy != REPLACE )
+    {
+        throw WrongStrategy();
+    }
+    string * result = new string(target_name);
+    return result;
+}
+
+const string* Type::getReplacement() const
+{
+    if( strategy != REPLACE )
+    {
+        throw WrongStrategy();
+    }
+    return new string(target_name);
+}
+
+RecordDeclaration * Type::getRecordDeclaration()
+{
+    assert(kind == Record);
+    const clang::RecordType * cpp_record = cpp_type->getAs<clang::RecordType>();
+    return dynamic_cast<RecordDeclaration*>(getDeclaration(cpp_record->getDecl()));
+}
+
+Type * Type::getPointeeType()
+{
+    assert(kind == Pointer || kind == Reference);
+    if (kind == Pointer)
+    {
+        const clang::PointerType* ptr_type = cpp_type->castAs<clang::PointerType>();
+        return Type::get(ptr_type->getPointeeType());
+    }
+    else if (kind == Reference)
+    {
+        const clang::ReferenceType* ref_type = cpp_type->castAs<clang::ReferenceType>();
+        return Type::get(ref_type->getPointeeType());
+    }
+    else
+    {
+        assert(0);
+    }
+    return nullptr;
+}
+
+TypedefDeclaration * Type::getTypedefDeclaration()
+{
+    assert(kind == Typedef);
+    const clang::TypedefType * clang_type = cpp_type->getAs<clang::TypedefType>();
+    clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
+
+    Declaration* this_declaration = getDeclaration(static_cast<clang::Decl*>(clang_decl));
+    if( !this_declaration )
+    {
+        clang_decl->dump();
+        throw std::runtime_error("Found a declaration that I'm not wrapping.");
+    }
+
+    return dynamic_cast<TypedefDeclaration*>(this_declaration);
+}
+
+EnumDeclaration * Type::getEnumDeclaration()
+{
+    assert(kind == Enum);
+    const clang::EnumType * clang_type = cpp_type->castAs<clang::EnumType>();
+    clang::EnumDecl * clang_decl = clang_type->getDecl();
+
+    Declaration* cpp_generic_decl = getDeclaration(static_cast<clang::Decl*>(clang_decl));
+    return dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
+}
+
+UnionDeclaration * Type::getUnionDeclaration()
+{
+    assert(kind == Union);
+    const clang::RecordType * clang_type = cpp_type->castAs<clang::RecordType>();
+    clang::RecordDecl * clang_decl = clang_type->getDecl();
+
+    return dynamic_cast<UnionDeclaration*>(getDeclaration(clang_decl));
+}
+
+void Type::dump()
+{
+    cpp_type->dump();
 }
 
 TypeVisitor::TypeVisitor(const clang::PrintingPolicy* pp)

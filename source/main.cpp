@@ -52,7 +52,6 @@ int main(int argc, const char **argv)
         return EXIT_FAILURE;
     }
 
-    //std::string contents = readFile(args.header_files[0]);
     std::string contents;
     std::ostringstream strm;
     for( const std::string& filename : args.header_files )
@@ -80,7 +79,7 @@ int main(int argc, const char **argv)
     enableDeclarationsInFiles(raw_files.size(), raw_files.data());
 
     try {
-        parseAndApplyConfiguration(args.config_files, ast->getASTContext());
+        parseAndApplyConfiguration(args.config_files, ast.get());
     }
     catch(ConfigurationException& exc)
     {

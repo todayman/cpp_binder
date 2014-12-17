@@ -73,8 +73,8 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         string source_name;
         string _name;
 
-        virtual void setSourceName(string name) {
-            source_name = name;
+        virtual void setSourceName(string* name) {
+            source_name = *name;
         }
 
         friend class DeclVisitor;
@@ -84,22 +84,24 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         }
 
         public:
-        explicit Declaration()
-            : is_wrappable(true), should_bind(false), target_module(""),
-              visibility(UNSET), remove_prefix("")
+        Declaration()
+            : is_wrappable(true), should_bind(false), target_module(),
+              visibility(UNSET), remove_prefix(), source_name(), _name()
         { }
 
-        virtual const string& getSourceName() const {
-            return source_name;
+        virtual string* getSourceName()
+        {
+            return new string(source_name);
         }
-        virtual const string& getTargetName() const {
+        virtual string* getTargetName()
+        {
             if( _name.size() == 0 )
             {
-                return source_name;
+                return new string(source_name);
             }
             else
             {
-                return _name;
+                return new string(_name);
             }
         }
 
@@ -112,26 +114,26 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             should_bind = decision;
         }
 
-        virtual bool getShouldBind() const
+        virtual bool getShouldBind()
         {
             return should_bind;
         }
 
-        virtual void setTargetModule(string target)
+        virtual void setTargetModule(string* target)
         {
-            target_module = target;
+            target_module = *target;
         }
 
-        virtual bool isTargetModuleSet() const
+        virtual bool isTargetModuleSet()
         {
             return target_module.size() > 0;
         }
-        virtual const string& getTargetModule() const
+        virtual string* getTargetModule()
         {
-            return target_module;
+            return new string(target_module);
         }
 
-        virtual ::Visibility getVisibility() const
+        virtual ::Visibility getVisibility()
         {
             return visibility;
         }
@@ -140,17 +142,17 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             visibility = vis;
         }
 
-        virtual void removePrefix(string prefix)
+        virtual void removePrefix(string* prefix)
         {
-            remove_prefix = prefix;
+            remove_prefix = *prefix;
         }
 
-        virtual Type* getType() const = 0;
+        virtual Type* getType() = 0;
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
-        virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
+        //virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
 
-        virtual void dump() const = 0;
+        virtual void dump() = 0;
     };
 
     struct NotTypeDecl : public std::runtime_error
@@ -228,9 +230,9 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             cpp_iter++;
         }
 
-        virtual bool equals(const DeclarationIterator& other)
+        virtual bool equals(DeclarationIterator* other)
         {
-            return (*this) == other;
+            return (*this) == (*other);
         }
     };
 
@@ -283,7 +285,7 @@ func(Unwrappable)
             : _decl(d) \
         { } \
 \
-        virtual Type* getType() const override \
+        virtual Type* getType() override \
         { \
             throw NotTypeDecl(); \
         } \
@@ -292,16 +294,16 @@ func(Unwrappable)
         { \
             visitor.visit##D(*this); \
         } \
-        virtual void visit(ConstDeclarationVisitor& visitor) const override \
-        { \
-            visitor.visit##D(*this); \
-        } \
 \
-        virtual void dump() const override \
+        virtual void dump() override \
         { \
             _decl->dump(); \
         } \
     }
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override \
+        { \
+            visitor.visit##D(*this); \
+        } \*/
 #define DECLARATION_CLASS(KIND) DECLARATION_CLASS_2(KIND, KIND)
 DECLARATION_CLASS_2(CXXConstructor, Constructor);
 DECLARATION_CLASS_2(CXXDestructor, Destructor);
@@ -316,12 +318,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(_decl->getType());
         }
 
-        virtual clang::LanguageLinkage getLinkLanguage() const
+        virtual clang::LanguageLinkage getLinkLanguage()
         {
             return _decl->getLanguageLinkage();
         }
@@ -330,12 +332,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitVariable(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitVariable(*this);
-        }
+        }*/
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -351,7 +353,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(_decl->getType());
         }
@@ -360,12 +362,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitArgument(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitArgument(*this);
-        }
+        }*/
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -382,7 +384,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             throw NotTypeDecl();
         }
@@ -391,10 +393,10 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitNamespace(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitNamespace(*this);
-        }
+        }*/
 
         virtual DeclarationIterator * getChildBegin()
         {
@@ -405,7 +407,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return new DeclarationIterator(_decl->decls_end());
         }
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -417,11 +419,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         const clang::TypedefDecl* _decl;
 
         public:
-        TypedefDeclaration(const clang::TypedefDecl* d)
-            : _decl(d)
-        { }
+        explicit TypedefDeclaration(const clang::TypedefDecl* d)
+            : Declaration()
+        {
+            _decl = d;
+        }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -430,17 +434,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitTypedef(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitTypedef(*this);
-        }
+        }*/
 
         virtual Type* getTargetType() const
         {
             return Type::get(_decl->getUnderlyingType());
         }
 
-        virtual void dump() const override
+        virtual void dump()override
         {
             _decl->dump();
         }
@@ -456,7 +460,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(_decl->getIntegerType());
         }
@@ -465,10 +469,10 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitEnum(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitEnum(*this);
-        }
+        }*/
 
         virtual DeclarationIterator * getChildBegin()
         {
@@ -479,7 +483,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return new DeclarationIterator(_decl->decls_end());
         }
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -495,7 +499,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(_decl->getType());
         }
@@ -504,19 +508,19 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitEnumConstant(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitEnumConstant(*this);
-        }
+        }*/
 
         /*virtual llvm::APSInt getValue() const
         {
             return _decl->getInitVal();
         }*/
 
-        virtual long long getLLValue() const;
+        virtual long long getLLValue();
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -560,9 +564,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             cpp_iter++;
         }
 
-        virtual bool equals(const ArgumentIterator& other)
+        virtual bool equals(ArgumentIterator* other)
         {
-            return (*this) == other;
+            return (*this) == (*other);
         }
     };
     //typedef Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration> ArgumentIterator;
@@ -577,7 +581,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             throw NotTypeDecl();
         }
@@ -586,37 +590,37 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitFunction(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitFunction(*this);
-        }
+        }*/
 
-        virtual clang::LanguageLinkage getLinkLanguage() const
+        virtual clang::LanguageLinkage getLinkLanguage()
         {
             return _decl->getLanguageLinkage();
         }
 
-        virtual Type* getReturnType() const
+        virtual Type* getReturnType()
         {
             return Type::get(_decl->getReturnType());
         }
 
-        virtual ArgumentIterator * getArgumentBegin() const
+        virtual ArgumentIterator * getArgumentBegin()
         {
             return new ArgumentIterator(_decl->param_begin());
         }
 
-        virtual ArgumentIterator * getArgumentEnd() const
+        virtual ArgumentIterator * getArgumentEnd()
         {
             return new ArgumentIterator(_decl->param_end());
         }
 
-        virtual bool isOverloadedOperator() const
+        virtual bool isOverloadedOperator()
         {
             return _decl->isOverloadedOperator();
         }
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -633,7 +637,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         { }
 
         // Fields can infer visibility from C++ AST
-        virtual ::Visibility getVisibility() const override
+        virtual ::Visibility getVisibility() override
         {
             if( visibility == UNSET )
             {
@@ -645,7 +649,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(_decl->getType());
         }
@@ -654,12 +658,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitField(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitField(*this);
-        }
+        }*/
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -675,7 +679,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             throw NotTypeDecl();;
         }
@@ -684,40 +688,40 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitMethod(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitMethod(*this);
-        }
+        }*/
 
-        virtual bool isStatic() const
+        virtual bool isStatic()
         {
             return _decl->isStatic();
         }
-        virtual bool isVirtual() const
+        virtual bool isVirtual()
         {
             return _decl->isVirtual();
         }
 
-        virtual bool isOverloadedOperator() const
+        virtual bool isOverloadedOperator()
         {
             return _decl->isOverloadedOperator();
         }
 
-        virtual Type* getReturnType() const
+        virtual Type* getReturnType()
         {
             return Type::get(_decl->getReturnType());
         }
 
-        virtual ArgumentIterator * getArgumentBegin() const
+        virtual ArgumentIterator * getArgumentBegin()
         {
             return new ArgumentIterator(_decl->param_begin());
         }
-        virtual ArgumentIterator * getArgumentEnd() const
+        virtual ArgumentIterator * getArgumentEnd()
         {
             return new ArgumentIterator(_decl->param_end());
         }
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -761,9 +765,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             cpp_iter++;
         }
 
-        virtual bool equals(const FieldIterator& other)
+        virtual bool equals(FieldIterator* other)
         {
-            return (*this) == other;
+            return (*this) == (*other);
         }
     };
     //typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
@@ -805,9 +809,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             cpp_iter++;
         }
 
-        virtual bool equals(const MethodIterator& other)
+        virtual bool equals(MethodIterator* other)
         {
-            return (*this) == other;
+            return (*this) == (*other);
         }
     };
     //typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
@@ -857,9 +861,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             cpp_iter++;
         }
 
-        virtual bool equals(const SuperclassIterator& other)
+        virtual bool equals(SuperclassIterator* other)
         {
-            return (*this) == other;
+            return (*this) == (*other);
         }
     };
     //typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
@@ -874,7 +878,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -883,10 +887,10 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitRecord(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
             visitor.visitRecord(*this);
-        }
+        }*/
 
         virtual FieldIterator * getFieldBegin()
         {
@@ -954,29 +958,29 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        virtual bool isCXXRecord() const
+        virtual bool isCXXRecord()
         {
             return ::isCXXRecord(_decl);
         }
 
-        virtual bool hasDefinition() const
+        virtual bool hasDefinition()
         {
             if( !isCXXRecord() ) throw std::logic_error("Can only call hasDefinition on CXX records, and this is just a record.");
             return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->hasDefinition();
         }
 
-        virtual bool isDynamicClass() const
+        virtual bool isDynamicClass()
         {
             if( !isCXXRecord() ) return false;
             return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->isDynamicClass();
         }
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
 
-        virtual bool isCanonical() const
+        virtual bool isCanonical()
         {
             return _decl->isCanonicalDecl();
         }
@@ -992,7 +996,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -1001,10 +1005,10 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitUnion(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) override
         {
             visitor.visitUnion(*this);
-        }
+        }*/
 
         virtual FieldIterator * getFieldBegin()
         {
@@ -1023,7 +1027,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return new DeclarationIterator(_decl->decls_end());
         }
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -1041,7 +1045,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             markUnwrappable();
         }
 
-        virtual Type* getType() const override
+        virtual Type* getType() override
         {
             throw NotTypeDecl();
         }
@@ -1050,12 +1054,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             visitor.visitUnwrappable(*this);
         }
-        virtual void visit(ConstDeclarationVisitor& visitor) const override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) override
         {
             visitor.visitUnwrappable(*this);
-        }
+        }*/
 
-        virtual void dump() const override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -1070,6 +1074,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         template<class SourceType, class TargetType>
         void allocateDeclaration(SourceType * decl) {
             decl_in_progress = new TargetType(decl);
+            //decl_in_progress = reinterpret_cast<TargetType*>(calloc(1, sizeof(TargetType)));
+            //new (&decl_in_progress) TargetType(decl);
             declarations.insert(std::make_pair(decl, decl_in_progress));
             if( top_level_decls )
             {
@@ -1177,6 +1183,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class MethodIterator;
     };
 
+namespace clang
+{
+    class ASTUnit;
+}
+    void traverseDeclsInAST(clang::ASTUnit* ast);
     void enableDeclarationsInFiles(size_t count, const char ** filenames);
     void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
     Declaration * getDeclaration(clang::Decl* decl);
