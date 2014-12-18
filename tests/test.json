@@ -1,0 +1,5 @@
+{
+    "config": "../../config/builtin_types.json",
+    "input": "input",
+    "output": "output"
+}
