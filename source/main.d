@@ -97,8 +97,10 @@ int main(string[] argv)
         return -1;
     }
 
-    produceOutputForPackage(rootPackage);
-    writeln("Finished!");
+    if (args.output_dir.length == 0)
+        produceOutputForPackage(rootPackage, ".");
+    else
+        produceOutputForPackage(rootPackage, args.output_dir);
 
     return 0;
 }

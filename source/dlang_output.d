@@ -610,8 +610,8 @@ class PackageWriter : PackageVisitor
 };
 
 // This is mostly here so that the header doesn't depend on boost
-void produceOutputForPackage(Package pack)
+void produceOutputForPackage(Package pack, string path_prefix)
 {
-    PackageWriter writer = new PackageWriter(".");
+    PackageWriter writer = new PackageWriter(path_prefix);
     pack.visit(writer);
 }
