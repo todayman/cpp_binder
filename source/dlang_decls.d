@@ -16,11 +16,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import core.exception : RangeError;
 import std.stdio : stdout;
 
 static import binder;
 static import unknown;
-import core.exception : RangeError;
 
 enum Visibility
 {
@@ -303,17 +303,18 @@ class Package : FileDir
         if (search_result is null)
         {
             // Create
-            // TODO check out whether the -1 works all the time, or just when
-            // there's stuff after a '.'
-            string next_name = path[0 .. ($ - rest_of_path.length - 1)];
             if (rest_of_path.length == 0)
             {
+                string next_name = path[];
                 Module mod = new Module(next_name, this);
                 FileDir result = mod;
                 children[next_name] = result;
                 return mod;
             }
             else {
+                //When there is more than one path element, you also need to take off
+                // the '.' between elements, but not when there is only one.
+                string next_name = path[0 .. ($ - rest_of_path.length)];
                 Package pack = new Package(next_name, this);
                 FileDir result = pack;
                 children[next_name] = result;
