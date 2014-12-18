@@ -6,3 +6,4 @@ extern(C++) struct Simple
     public char b;
     public float c;
 }
+
