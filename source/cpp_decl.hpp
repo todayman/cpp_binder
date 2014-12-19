@@ -681,7 +681,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual Type* getType() override
         {
-            throw NotTypeDecl();;
+            throw NotTypeDecl();
         }
 
         virtual void visit(DeclarationVisitor& visitor) override

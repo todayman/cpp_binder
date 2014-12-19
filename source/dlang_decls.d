@@ -442,7 +442,6 @@ class Field : Declaration
 {
     public:
     Type type;
-    Visibility visibility;
     // const, immutable, etc.
 
     this(unknown.Declaration cpp)
