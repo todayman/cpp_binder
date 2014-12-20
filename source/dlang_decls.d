@@ -37,17 +37,7 @@ interface FileDir
     public:
     string getName() const;
 
-    inout(Package) getParent() inout;
-
     void visit(PackageVisitor visitor) const;
-}
-
-mixin template FileDirImpl()
-{
-    override inout(Package) getParent() inout
-    {
-        return parent;
-    }
 }
 
 class Module : FileDir
@@ -68,7 +58,6 @@ class Module : FileDir
         return name;
     }
 
-    mixin FileDirImpl!();
     private std.d.ast.Declaration[] children;
     void insert(std.d.ast.Declaration decl)
     {
@@ -227,8 +216,6 @@ class Package : FileDir
     {
         return name;
     }
-
-    mixin FileDirImpl!();
 }
 
 Package rootPackage;
