@@ -30,25 +30,6 @@ interface PackageVisitor
     void visitPackage(in Package pack);
     void visitModule(in Module mod);
 }
-interface DeclarationContainer
-{
-    void insert(std.d.ast.Declaration decl);
-    inout(std.d.ast.Declaration)[] getChildren() inout;
-}
-
-mixin template DeclContainerImpl()
-{
-    private std.d.ast.Declaration[] children;
-    void insert(std.d.ast.Declaration decl)
-    {
-        children ~= decl;
-    }
-
-    inout(std.d.ast.Declaration)[] getChildren() inout
-    {
-        return children;
-    }
-}
 
 // Need a superclass for Module and Package to use Composite pattern
 interface FileDir
@@ -69,7 +50,7 @@ mixin template FileDirImpl()
     }
 }
 
-class Module : DeclarationContainer, FileDir
+class Module : FileDir
 {
     private:
     string name;
@@ -87,8 +68,17 @@ class Module : DeclarationContainer, FileDir
         return name;
     }
 
-    mixin DeclContainerImpl!();
     mixin FileDirImpl!();
+    private std.d.ast.Declaration[] children;
+    void insert(std.d.ast.Declaration decl)
+    {
+        children ~= decl;
+    }
+
+    inout(std.d.ast.Declaration)[] getChildren() inout
+    {
+        return children;
+    }
 
     override
     void visit(PackageVisitor visitor) const
