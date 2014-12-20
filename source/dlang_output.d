@@ -17,8 +17,9 @@
  */
 module dlang_output;
 
-import std.array : Appender;
+import std.array : Appender, join;
 import std.file : exists, isDir, mkdir;
+import std.path;
 import std.stdio;
 
 import std.d.ast;
@@ -27,44 +28,24 @@ import std.d.lexer;
 
 import dlang_decls;
 
-class PackageWriter : PackageVisitor
+void visitModule(const Module mod, string path_prefix)
 {
-    import std.array : join;
-    import std.file : mkdir;
-    import std.path;
-
-    string path_prefix;
-    public:
-    this(string prefix)
+    Appender!string path_appender;
+    path_appender.put(path_prefix);
+    foreach (Token t; mod.moduleDeclaration.moduleName.identifiers)
     {
-        path_prefix = prefix;
+        path_appender.put(dirSeparator);
+        path_appender.put(t.text);
     }
-
-    override void visitPackage(const Package pack)
-    {
-        foreach (child ; pack.getChildren().byValue)
-        {
-            visitModule(child);
-        }
-    }
-
-    override void visitModule(const Module mod)
-    {
-        Appender!string path_appender;
-        path_appender.put(path_prefix);
-        foreach (Token t; mod.moduleDeclaration.moduleName.identifiers)
-        {
-            path_appender.put(dirSeparator);
-            path_appender.put(t.text);
-        }
-        path_appender.put(".d");
-        File outputFile = File(path_appender.data, "w");
-        format(delegate (string s) => (outputFile.write(s)), mod);
-    }
-};
+    path_appender.put(".d");
+    File outputFile = File(path_appender.data, "w");
+    format(delegate (string s) => (outputFile.write(s)), mod);
+}
 
 void produceOutputForPackage(Package pack, string path_prefix)
 {
-    PackageWriter writer = new PackageWriter(path_prefix);
-    pack.visit(writer);
+    foreach (const Module mod; pack.getChildren().byValue)
+    {
+        visitModule(mod, path_prefix);
+    }
 }
