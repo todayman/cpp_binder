@@ -18,6 +18,7 @@
 
 module translate;
 
+import core.exception : RangeError;
 import std.conv : to;
 import std.stdio : stdout, stderr;
 
@@ -31,9 +32,9 @@ import manual_types;
 
 private std.d.ast.Declaration[void*] translated;
 private std.d.ast.Type[unknown.Type*] translated_types;
-private dlang_decls.Type[unknown.Type*] resolved_replacements;
+private std.d.ast.Type[unknown.Type*] resolved_replacements;
 // TODO ^ what's the difference between this and translated types?
-private dlang_decls.Type[string] types_by_name;
+private std.d.ast.Type[string] types_by_name;
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
@@ -409,10 +410,10 @@ class TranslatorVisitor : unknown.DeclarationVisitor
                 throw new Exception("Don't know how to translate virtual inheritance of interfaces.");
             }
             std.d.ast.Type superType = translateType(superclass.base);
-            auto  superInterface = cast(std.d.ast.InterfaceDeclaration)superType;
-            dlang_decls.StringType superString =  // TODO is this really OK?
-                cast(dlang_decls.StringType)superType;
-            if (!superInterface && !superString)
+            // FIXME cannot handle arbirary replacement of superclasses
+            // Also, this cast will always face because interface declarations aren't types
+            auto superInterface = cast(std.d.ast.InterfaceDeclaration)superType;
+            if (!superInterface)
             {
                 throw new Exception("Superclass of an interface is not an interface.");
             }
@@ -913,14 +914,13 @@ void determineRecordStrategy(unknown.Type* cppType)
 
 std.d.ast.Type replaceType(unknown.Type* cppType)
 {
-    /*
-    dlang_decls.Type result;
+    std.d.ast.Type result;
     string replacement_name = binder.toDString(cppType.getReplacement());
     if (replacement_name.length > 0)
     {
         if (replacement_name !in types_by_name)
         {
-            result = new dlang_decls.StringType(replacement_name);
+            result = new std.d.ast.Type();
             types_by_name[replacement_name] = result;
 
             // FIXME Which package / module do these go in?
@@ -935,57 +935,55 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
     }
     else
     {
-        if (cppType in resolved_replacements)
-        {
-            // FIXME do without the second lookup
+        try {
             return resolved_replacements[cppType];
         }
-
-        final switch (cppType.getKind())
+        catch (RangeError e)
         {
-            case unknown.Type.Kind.Invalid:
-                throw new Error("Attempting to translate an Invalid type");
-                break;
-            case unknown.Type.Kind.Builtin:
-                // TODO figure out (again) why this is an error and add
-                // a comment explaining that
-                throw new Error("Called replaceType on a Builtin");
-                break;
-            case unknown.Type.Kind.Pointer:
-                return replacePointer(cppType);
-            case unknown.Type.Kind.Reference:
-                return replaceReference(cppType);
-            case unknown.Type.Kind.Typedef:
-                return replaceTypedef(cppType);
-            case unknown.Type.Kind.Enum:
-                return replaceEnum(cppType);
-            case unknown.Type.Kind.Function:
-                return replaceFunction(cppType);
+            final switch (cppType.getKind())
+            {
+                case unknown.Type.Kind.Invalid:
+                    throw new Error("Attempting to translate an Invalid type");
+                    break;
+                case unknown.Type.Kind.Builtin:
+                    // TODO figure out (again) why this is an error and add
+                    // a comment explaining that
+                    throw new Error("Called replaceType on a Builtin");
+                    break;
+                case unknown.Type.Kind.Pointer:
+                    return replacePointer(cppType);
+                case unknown.Type.Kind.Reference:
+                    return replaceReference(cppType);
+                case unknown.Type.Kind.Typedef:
+                    return replaceTypedef(cppType);
+                case unknown.Type.Kind.Enum:
+                    return replaceEnum(cppType);
+                case unknown.Type.Kind.Function:
+                    return replaceFunction(cppType);
 
-            case unknown.Type.Kind.Record:
-                // TODO figure out (again) why this is an error and add
-                // a comment explaining that
-                throw new Error("Called replaceType on a Record");
-                break;
-            case unknown.Type.Kind.Union:
-                return replaceUnion(cppType);
-                break;
-            case unknown.Type.Kind.Array:
-                // TODO
-                throw new Error("replaceType on Arrays is not implemented yet.");
-                break;
-            case unknown.Type.Kind.Vector:
-                throw new Error("replaceType on Vector types is not implemented yet.");
-                break;
+                case unknown.Type.Kind.Record:
+                    // TODO figure out (again) why this is an error and add
+                    // a comment explaining that
+                    throw new Error("Called replaceType on a Record");
+                    break;
+                case unknown.Type.Kind.Union:
+                    return replaceUnion(cppType);
+                    break;
+                case unknown.Type.Kind.Array:
+                    // TODO
+                    throw new Error("replaceType on Arrays is not implemented yet.");
+                    break;
+                case unknown.Type.Kind.Vector:
+                    throw new Error("replaceType on Vector types is not implemented yet.");
+                    break;
+            }
         }
-
     }
-    */
-    // TODO fill in
-    return null;
+    return result;
 }
 
-std.d.ast.Type replacePointerOrReference(unknown.Type* cppType, dlang_decls.PointerType.PointerOrRef ptr_or_ref)
+// FIXME need to preserver pointer/refness
+std.d.ast.Type replacePointerOrReference(unknown.Type* cppType)
 {
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
@@ -1025,11 +1023,11 @@ std.d.ast.Type replacePointerOrReference(unknown.Type* cppType, dlang_decls.Poin
 
 std.d.ast.Type replacePointer(unknown.Type* cppType)
 {
-    return replacePointerOrReference(cppType, dlang_decls.PointerType.PointerOrRef.POINTER);
+    return replacePointerOrReference(cppType);
 }
 std.d.ast.Type replaceReference(unknown.Type* cppType)
 {
-    return replacePointerOrReference(cppType, dlang_decls.PointerType.PointerOrRef.REFERENCE);
+    return replacePointerOrReference(cppType);
 }
 
 string replaceMixin(string TargetType)() {
