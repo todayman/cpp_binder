@@ -17,10 +17,13 @@
  */
 module dlang_output;
 
+import std.array : Appender;
 import std.file : exists, isDir, mkdir;
 import std.stdio;
 
+import std.d.ast;
 import std.d.formatter;
+import std.d.lexer;
 
 import dlang_decls;
 
@@ -39,44 +42,26 @@ class PackageWriter : PackageVisitor
 
     override void visitPackage(const Package pack)
     {
-        string sub_path = join([path_prefix, pack.getName()], dirSeparator);
-        if (!exists(sub_path))
-        {
-            mkdir(sub_path);
-        }
-        else if (!isDir(sub_path))
-        {
-            throw new Exception("Cannot create package because "~sub_path~" exists and is a file.");
-        }
         foreach (child ; pack.getChildren().byValue)
         {
-            PackageWriter sub_writer = new PackageWriter(sub_path);
-            child.visit(sub_writer);
+            visitModule(child);
         }
     }
 
     override void visitModule(const Module mod)
     {
-        string module_path = join([path_prefix, mod.getName() ~ ".d"], dirSeparator);
-        File outputFile = File(module_path, "w");
-        /*DOutputContext output = new DOutputContext(outputFile, 0);
-        output.putItem("module");
-        output.putItem(mod.getName());
-        output.semicolon();
-        output.newline();
-        output.newline();*/
-
-        foreach (const(std.d.ast.Declaration) decl ; mod.getChildren())
+        Appender!string path_appender;
+        path_appender.put(path_prefix);
+        foreach (Token t; mod.moduleDeclaration.moduleName.identifiers)
         {
-            format(delegate (string s) => (outputFile.write(s)), decl);
-            /*DOutputContext sub_output = new DOutputContext(outputFile, 0);
-            DeclarationWriter writer = new DeclarationWriter(sub_output);
-            decl.visit(writer);*/
+            path_appender.put(dirSeparator);
+            path_appender.put(t.text);
         }
+        File outputFile = File(path_appender.data, "w");
+        format(delegate (string s) => (outputFile.write(s)), mod);
     }
 };
 
-// This is mostly here so that the header doesn't depend on boost
 void produceOutputForPackage(Package pack, string path_prefix)
 {
     PackageWriter writer = new PackageWriter(path_prefix);

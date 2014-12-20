@@ -20,6 +20,7 @@ import core.exception : RangeError;
 import std.stdio : stdout;
 
 import std.d.ast;
+import std.d.lexer;
 
 static import binder;
 static import unknown;
@@ -40,187 +41,67 @@ interface FileDir
     void visit(PackageVisitor visitor) const;
 }
 
-class Module : FileDir
+class Package
 {
     private:
-    string name;
-    Package parent;
+    Module[IdentifierChain] children;
 
     public:
-    this(string n, Package p)
+    this()
     {
-        name = n;
-        parent = p;
     }
 
-    override string getName() const
-    {
-        return name;
-    }
-
-    private std.d.ast.Declaration[] children;
-    void insert(std.d.ast.Declaration decl)
-    {
-        children ~= decl;
-    }
-
-    inout(std.d.ast.Declaration)[] getChildren() inout
+    ref const (Module[IdentifierChain]) getChildren() const
     {
         return children;
     }
 
-    override
-    void visit(PackageVisitor visitor) const
-    {
-        visitor.visitModule(this);
-    }
-}
-
-class Package : FileDir
-{
-    private:
-    string name;
-    Package parent;
-    FileDir[string] children;
-
-    FileDir findChild(string path, out string remainder)
-    {
-        import std.algorithm : findSplit;
-        auto search_result = findSplit(path, ".");
-        remainder = search_result[2];
-
-        if (search_result[0].length == 0)
-        {
-            throw new Exception("Attempted to find the package / module with the empty name ("")");
-        }
-
-        try {
-            return children[search_result[0]];
-        }
-        catch (RangeError e)
-        {
-            return null;
-        }
-    }
-    public:
-    this(string n, Package p)
-    {
-        name = n;
-        parent = p;
-    }
-
-    ref const (FileDir[string]) getChildren() const
-    {
-        return children;
-    }
-
-    override
     void visit(PackageVisitor visitor) const
     {
         visitor.visitPackage(this);
     }
 
-    // These return weak pointers because every package is owned by its
-    // parent, and the root package owns all the top level packages.
-    // Not entirely sure that's the right choice, though.
-    Result findForName(Result)(string path)
+    Module findForName(string path)
     {
-        string rest_of_path;
-        FileDir search_result = findChild(path, rest_of_path);
-        if (search_result !is null) // FIXME
-        {
-            return null;
-        }
-
-        if (!rest_of_path.empty)
-        {
-            // This means that there are more letters after the dot,
-            // so the current name is a package name, so recurse
-            Package subpackage = cast(Package)search_result;
-            if( subpackage )
-            {
-                return subpackage.findForName!Result(rest_of_path);
-            }
-            else
-            {
-                return null;
-            }
-        }
-        else
-        {
-            return cast(Result)(search_result);
-        }
+        return children[makeIdentifierChain(path)];
     }
 
     Module getOrCreateModulePath(string path)
     {
-        string rest_of_path;
-        // rest of path is a string containing everything after the first '.'
-        auto search_result = findChild(path, rest_of_path);
-        if (search_result is null)
-        {
-            // Create
-            if (rest_of_path.length == 0)
-            {
-                string next_name = path[];
-                Module mod = new Module(next_name, this);
-                FileDir result = mod;
-                children[next_name] = result;
-                return mod;
-            }
-            else {
-                //When there is more than one path element, you also need to take off
-                // the '.' between elements, but not when there is only one.
-                string next_name = path[0 .. ($ - rest_of_path.length)];
-                Package pack = new Package(next_name, this);
-                FileDir result = pack;
-                children[next_name] = result;
-                return pack.getOrCreateModulePath(rest_of_path);
-            }
+        IdentifierChain idChain = makeIdentifierChain(path);
+        try {
+            return children[idChain];
         }
+        catch (RangeError)
+        {
+            Module mod = new Module();
+            ModuleDeclaration decl = new ModuleDeclaration();
+            mod.moduleDeclaration = decl;
 
-        // Entry exists, and this is not the end of the path
-        if (rest_of_path.length > 0)
-        {
-            // This means that there are more letters after the dot,
-            // so the current name is a package name, so recurse
-            Package subpackage = cast(Package)(search_result);
-            if (subpackage)
-            {
-                return subpackage.getOrCreateModulePath(rest_of_path);
-            }
-            else
-            {
-                // This is a module, but expected a package name
-                // FIXME error message needs work.
-                throw new Exception("Looking up a module ("~path~") by its path, but found a module where there should be a package, so I cannot continue.");
-            }
-        }
-        else
-        {
-            // entry exists, and this is the end of the path
-            Module mod = cast(Module)(search_result);
-            if (!mod)
-            {
-                // This is a package, but expected a module
-                throw new Exception("Looking up a module (" ~path ~") by its path, but found a package where there should be a module, so I cannot continue.");
-            }
-            else
-            {
-                return mod;
-            }
-        }
-    }
+            decl.moduleName = idChain;
+            children[idChain] = mod;
 
-    override string getName() const
-    {
-        return name;
+            return mod;
+        }
     }
 }
 
 Package rootPackage;
 
+IdentifierChain makeIdentifierChain(string path)
+{
+    import std.algorithm : map, filter, splitter;
+    import std.array : array;
+
+    auto result = new IdentifierChain();
+    result.identifiers =
+      path.splitter('.')
+        .filter!(a => a.length != 0)
+        .map!(a => Token(tok!"identifier", a, 0, 0, 0))
+        .array;
+    return result;
+}
 static this()
 {
-    rootPackage = new Package("", null);
+    rootPackage = new Package();
 }

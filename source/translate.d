@@ -223,6 +223,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
 
     dlang_decls.Module translateNamespace(unknown.NamespaceDeclaration cppDecl)
     {
+        import std.algorithm : join, map;
         // TODO I probably shouldn't even be doing this,
         // just looping over all of the items in the namespace and setting the
         // target_module attribute (if it's not already set),
@@ -247,7 +248,11 @@ class TranslatorVisitor : unknown.DeclarationVisitor
             mod = dlang_decls.rootPackage.getOrCreateModulePath(name);
         }
 
-        string this_package_name = parent_package_name ~ "." ~ mod.getName();
+        //string this_package_name = parent_package_name ~ "." ~ mod.getName();
+        string this_package_name = mod.moduleDeclaration.moduleName.identifiers
+            .map!( t => t.text )
+            .join(".");
+
         for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              !children_iter.equals(children_end);
@@ -261,7 +266,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
         // This is the translated name, but really I want the C++ name
-        string this_namespace_path = namespace_path ~ "::" ~ mod.getName();
+        string this_namespace_path = namespace_path ~ "::" ~ mod.moduleDeclaration.moduleName.identifiers[$-1].text;
         // visit and translate all of the children
         for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
