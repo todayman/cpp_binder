@@ -57,6 +57,7 @@ class PackageWriter : PackageVisitor
             path_appender.put(dirSeparator);
             path_appender.put(t.text);
         }
+        path_appender.put(".d");
         File outputFile = File(path_appender.data, "w");
         format(delegate (string s) => (outputFile.write(s)), mod);
     }
