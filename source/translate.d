@@ -196,6 +196,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         d_decl.returnType = translateType(cppDecl.getReturnType());
 
         // FIXME obviously not always true
+        d_decl.parameters = new Parameters();
         d_decl.parameters.hasVarargs = false;
 
         for (auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
