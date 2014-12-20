@@ -32,8 +32,6 @@ import manual_types;
 
 private std.d.ast.Declaration[void*] translated;
 private std.d.ast.Type[unknown.Type*] translated_types;
-private std.d.ast.Type[unknown.Type*] resolved_replacements;
-// TODO ^ what's the difference between this and translated types?
 private std.d.ast.Type[string] types_by_name;
 private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
 
@@ -945,7 +943,7 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
     else
     {
         try {
-            return resolved_replacements[cppType];
+            return translated_types[cppType];
         }
         catch (RangeError e)
         {
