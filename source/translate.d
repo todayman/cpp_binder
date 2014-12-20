@@ -1169,7 +1169,7 @@ std.d.ast.Type translateType(unknown.Type* cppType)
         }
         else
         {
-            throw new Exception("Cannot translate type with strategy " ~ cppType.getStrategy().stringof);
+            throw new Exception("Cannot translate type with strategy " ~ to!string(cppType.getStrategy()));
         }
         return result;
     }
