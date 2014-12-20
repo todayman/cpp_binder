@@ -44,7 +44,7 @@ void visitModule(const Module mod, string path_prefix)
 
 void produceOutputForPackage(Package pack, string path_prefix)
 {
-    foreach (const Module mod; pack.getChildren().byValue)
+    foreach (const Module mod; pack.children.byValue)
     {
         visitModule(mod, path_prefix);
     }

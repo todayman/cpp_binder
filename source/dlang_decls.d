@@ -22,49 +22,10 @@ import std.stdio : stdout;
 import std.d.ast;
 import std.d.lexer;
 
-static import binder;
-static import unknown;
-
-interface PackageVisitor
-{
-    public:
-    void visitPackage(in Package pack);
-    void visitModule(in Module mod);
-}
-
-// Need a superclass for Module and Package to use Composite pattern
-interface FileDir
-{
-    public:
-    string getName() const;
-
-    void visit(PackageVisitor visitor) const;
-}
-
 class Package
 {
-    private:
-    Module[IdentifierChain] children;
-
     public:
-    this()
-    {
-    }
-
-    ref const (Module[IdentifierChain]) getChildren() const
-    {
-        return children;
-    }
-
-    void visit(PackageVisitor visitor) const
-    {
-        visitor.visitPackage(this);
-    }
-
-    Module findForName(string path)
-    {
-        return children[makeIdentifierChain(path)];
-    }
+    Module[IdentifierChain] children;
 
     Module getOrCreateModulePath(string path)
     {
