@@ -1,7 +1,12 @@
 #! /bin/sh
+DPARSE=~/Documents/d_libs/libdparse
+
 dmd -g \
     -I~/.dub/packages/yajl-0.2.0/src/ \
     ~/.dub/packages/yajl-0.2.0/src/**/*.d \
+    -I~${DPARSE}/src \
+    ${DPARSE}/src/std/d/*.d \
+    ${DPARSE}/src/std/*.d \
     source/unknown.d \
     source/main.d \
     source/configuration.d \

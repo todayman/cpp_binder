@@ -21,20 +21,19 @@ module translate;
 import std.conv : to;
 import std.stdio : stdout, stderr;
 
+import std.d.ast;
+import std.d.lexer;
+
 static import binder;
 static import dlang_decls;
 static import unknown;
 import manual_types;
 
-private dlang_decls.Type[unknown.Type*] translated_types;
-private dlang_decls.Declaration[void*] translated;
+private std.d.ast.Declaration[void*] translated;
+private std.d.ast.Type[unknown.Type*] translated_types;
 private dlang_decls.Type[unknown.Type*] resolved_replacements;
 // TODO ^ what's the difference between this and translated types?
 private dlang_decls.Type[string] types_by_name;
-
-dlang_decls.Type translateType(unknown.Type* cppType);
-
-void determineRecordStrategy(unknown.Type* cppType);
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
@@ -46,23 +45,28 @@ Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
     return null;
 }
 
-private dlang_decls.Linkage translateLinkage(T)(T cppDecl)
+private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
 {
-    dlang_decls.Linkage result;
+    LinkageAttribute result = new LinkageAttribute();
     clang.LanguageLinkage linkage = cppDecl.getLinkLanguage();
     if (cppDecl.getLinkLanguage() == manual_types.LanguageLinkage.CLanguageLinkage)
     {
-        result.lang = dlang_decls.Language.C;
+        result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.hasPlusPlus = false;
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.CXXLanguageLinkage)
     {
-        result.lang = dlang_decls.Language.CPP;
+        result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.hasPlusPlus = true;
+        result.identifierChain = toIdentifierChain(namespace_path);
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.NoLanguageLinkage)
     {
         cppDecl.dump();
         stderr.writeln("WARNING: symbol has no language linkage.  Assuming C++.");
-        result.lang = dlang_decls.Language.CPP;
+        result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.hasPlusPlus = true;
+        result.identifierChain = toIdentifierChain(namespace_path);
     }
     else {
         stderr.writeln("Didn't recognize linkage");
@@ -71,23 +75,73 @@ private dlang_decls.Linkage translateLinkage(T)(T cppDecl)
     return result;
 }
 
-private dlang_decls.Visibility translateVisibility(unknown.Visibility access)
+private StorageClass makeStorageClass(LinkageAttribute linkage)
 {
-    final switch (access)
+    StorageClass result = new StorageClass();
+    result.linkageAttribute = linkage;
+    return result;
+}
+
+private string makeDeclarationMixin(string name)
+{
+    import std.ascii : toUpper, toLower;
+    return ("
+private std.d.ast.Declaration makeDeclaration(" ~ [toUpper(name[0])] ~ name[1..$] ~ "Declaration decl)
+{
+    Declaration result = new Declaration();
+    result." ~ [toLower(name[0])] ~ name[1..$] ~ "Declaration = decl;
+    return result;
+}
+").idup;
+}
+mixin (makeDeclarationMixin("Alias"));
+mixin (makeDeclarationMixin("Enum"));
+mixin (makeDeclarationMixin("Function"));
+mixin (makeDeclarationMixin("Interface"));
+mixin (makeDeclarationMixin("Struct"));
+mixin (makeDeclarationMixin("Union"));
+mixin (makeDeclarationMixin("Variable"));
+
+private T registerDeclaration(T)(unknown.Declaration cppDecl)
+{
+    T decl = new T();
+    Declaration result = makeDeclaration(decl);
+    translated[cast(void*)cppDecl] = result;
+    return decl;
+}
+
+private Token nameFromDecl(unknown.Declaration cppDecl)
+{
+    return Token(tok!"identifier", binder.toDString(cppDecl.getTargetName()), 0, 0, 0);
+}
+
+private std.d.ast.Attribute translateVisibility(T)(T cppDecl)
+{
+    IdType protection;
+    final switch (cppDecl.getVisibility())
     {
         case unknown.Visibility.UNSET:
             throw new Exception("Unset visibility");
         case unknown.Visibility.PUBLIC:
-            return dlang_decls.Visibility.PUBLIC;
+            protection = tok!"public";
         case unknown.Visibility.PRIVATE:
-            return dlang_decls.Visibility.PRIVATE;
+            protection = tok!"private";
         case unknown.Visibility.PROTECTED:
-            return dlang_decls.Visibility.PROTECTED;
+            protection = tok!"protected";
         case unknown.Visibility.EXPORT:
-            return dlang_decls.Visibility.EXPORT;
+            protection = tok!"export";
         case unknown.Visibility.PACKAGE:
-            return dlang_decls.Visibility.PACKAGE;
+            protection = tok!"package";
     }
+    auto attrib = new Attribute();
+    attrib.attribute = Token(protection, "", 0, 0, 0);
+    return attrib;
+}
+
+private std.d.ast.Type declToType(Declaration)(Declaration decl)
+{
+    // TODO
+    return null;
 }
 
 class OverloadedOperatorError : Exception
@@ -98,13 +152,19 @@ class OverloadedOperatorError : Exception
     }
 };
 
+IdentifierChain toIdentifierChain(string path)
+{
+    // TODO
+    return null;
+}
+
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : unknown.DeclarationVisitor
 {
     string parent_package_name;
     string namespace_path;
     public:
-    dlang_decls.Declaration last_result;
+    std.d.ast.Declaration last_result;
 
     public:
     this(string parent, string nsp)
@@ -113,34 +173,37 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    dlang_decls.Function translateFunction(unknown.FunctionDeclaration cppDecl)
+    std.d.ast.FunctionDeclaration translateFunction(unknown.FunctionDeclaration cppDecl)
     {
-        dlang_decls.Function short_circuit = CHECK_FOR_DECL!(dlang_decls.Function)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.FunctionDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        dlang_decls.Function d_decl = new dlang_decls.Function(cppDecl);
+        auto d_decl = new std.d.ast.FunctionDeclaration();
         // Set the linkage attributes for this function
-        d_decl.linkage = translateLinkage(cppDecl);
-        d_decl.linkage.name_space = namespace_path;
+        LinkageAttribute linkage = translateLinkage(cppDecl, namespace_path);
+        d_decl.storageClasses ~= [makeStorageClass(linkage)];
 
         binder.binder.string target_name = cppDecl.getTargetName();
         if (target_name.size())
         {
-            d_decl.name = binder.toDString(target_name);
+            d_decl.name = nameFromDecl(cppDecl);
         }
         else
         {
             throw new Exception("Function declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
-        d_decl.return_type = translateType(cppDecl.getReturnType());
+        d_decl.returnType = translateType(cppDecl.getReturnType());
+
+        // FIXME obviously not always true
+        d_decl.parameters.hasVarargs = false;
 
         for (auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
              !arg_iter.equals(arg_end);
              arg_iter.advance())
         {
             // FIXME check these types
-            d_decl.arguments ~= [translateArgument(arg_iter.get())];
+            d_decl.parameters.parameters ~= [translateArgument(arg_iter.get())];
         }
         return d_decl;
     }
@@ -153,7 +216,8 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         }
         else
         {
-            last_result = translateFunction(cppDecl);
+            last_result = new std.d.ast.Declaration;
+            last_result.functionDeclaration = translateFunction(cppDecl);
         }
     }
 
@@ -167,7 +231,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         dlang_decls.Module mod;
         if (cast(void*)cppDecl in translated)
         {
-            dlang_decls.Declaration search = translated[cast(void*)cppDecl];
+            std.d.ast.Declaration search = translated[cast(void*)cppDecl];
             // This cast failing means that we previously translated this
             // namespace as something other than a module, which is a really
             // bad logic error.
@@ -231,28 +295,32 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    dlang_decls.Struct buildStruct(unknown.RecordDeclaration cppDecl)
+    std.d.ast.StructDeclaration buildStruct(unknown.RecordDeclaration cppDecl)
     {
-        dlang_decls.Struct short_circuit = CHECK_FOR_DECL!(dlang_decls.Struct)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        dlang_decls.Struct result = new dlang_decls.Struct(cppDecl);
-        translated[cast(void*)cppDecl] = result;
-        translated_types[cppDecl.getType()] = result;
-        result.name = binder.toDString(cppDecl.getTargetName());
+        auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl);
+        translated_types[cppDecl.getType()] = declToType(result);
+        result.name = nameFromDecl(cppDecl);
 
         // Set the linkage attributes for this struct
         // This only matters for methods
-        result.linkage.lang = dlang_decls.Language.CPP;
-        result.linkage.name_space = namespace_path;
+        // FIXME should decide on C linkage sometimes, right?
+        result.linkageAttribute = new LinkageAttribute();
+        result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.linkageAttribute.hasPlusPlus = true;
+        result.linkageAttribute.identifierChain = toIdentifierChain(namespace_path);
+
+        result.structBody = new StructBody();
 
         for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
              !iter.equals(finish);
              iter.advance())
         {
-            dlang_decls.Field field = translateField(iter.get());
-            result.insert(field);
+            VariableDeclaration field = translateField(iter.get());
+            result.structBody.declarations ~= [makeDeclaration(field)];
         }
 
         for (unknown.MethodIterator iter = cppDecl.getMethodBegin(),
@@ -265,10 +333,9 @@ class TranslatorVisitor : unknown.DeclarationVisitor
             unknown.MethodDeclaration cpp_method = iter.get();
             if (!cpp_method || !cpp_method.getShouldBind())
                 continue;
-            dlang_decls.Method method;
+            std.d.ast.FunctionDeclaration method;
             try {
-                // FIXME double dereference? really?
-                method = translateMethod(iter.get());
+                method = translateMethod(iter.get(), VirtualBehavior.FORBIDDEN);
             }
             catch (Exception exc)
             {
@@ -276,11 +343,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
                 stderr.writeln("\t", exc.msg);
                 continue;
             }
-            if (method.kind == dlang_decls.Method.Kind.VIRTUAL)
-            {
-                throw new Exception("Methods on structs cannot be virtual!");
-            }
-            result.methods ~= (method);
+            result.structBody.declarations ~= [makeDeclaration(method)];
         }
 
         // TODO static methods and other things
@@ -299,32 +362,36 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
-    dlang_decls.Interface buildInterface(unknown.RecordDeclaration cppDecl)
+    std.d.ast.InterfaceDeclaration buildInterface(unknown.RecordDeclaration cppDecl)
     {
-        dlang_decls.Interface short_circuit = CHECK_FOR_DECL!(dlang_decls.Interface)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.InterfaceDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        dlang_decls.Interface result = new dlang_decls.Interface(cppDecl);
-        translated[cast(void*)cppDecl] = result;
+        auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl);
+        result.structBody = new StructBody();
         // TODO It looks like I elided this check in buildStruct,
         // Can I elide it here also, or does it need to go back in above?
-        if (cppDecl.getType() in translated_types)
-        {
-            return cast(dlang_decls.Interface)translated_types[cppDecl.getType()];
-        }
-        translated_types[cppDecl.getType()] = result;
-        result.name = binder.toDString(cppDecl.getTargetName());
+        // Eliding it because I need to rethink this for libdparse
+        //if (cppDecl.getType() in translated_types)
+        //{
+        //    return translated_types[cppDecl.getType()].interfaceDeclaration;
+        //}
+        translated_types[cppDecl.getType()] = declToType(result);
+        result.name = nameFromDecl(cppDecl);
 
         // Set the linkage attributes for this interface
         // This only matters for methods
-        result.linkage.lang = dlang_decls.Language.CPP;
-        result.linkage.name_space = namespace_path;
+        result.linkageAttribute = new LinkageAttribute();
+        result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.linkageAttribute.hasPlusPlus = true;
+        result.linkageAttribute.identifierChain = toIdentifierChain(namespace_path);
 
         // Find the superclasses of this interface
-        for( unknown.SuperclassIterator iter = cppDecl.getSuperclassBegin(),
+        result.baseClassList = new BaseClassList();
+        for (unknown.SuperclassIterator iter = cppDecl.getSuperclassBegin(),
                 finish = cppDecl.getSuperclassEnd();
              !iter.equals(finish);
-             iter.advance() )
+             iter.advance())
         {
             unknown.Superclass* superclass = iter.get();
             if (superclass.visibility != unknown.Visibility.PUBLIC)
@@ -335,16 +402,18 @@ class TranslatorVisitor : unknown.DeclarationVisitor
             {
                 throw new Exception("Don't know how to translate virtual inheritance of interfaces.");
             }
-            dlang_decls.Type superType = translateType(superclass.base);
-            dlang_decls.Interface superInterface =
-                cast(dlang_decls.Interface)superType;
+            std.d.ast.Type superType = translateType(superclass.base);
+            auto  superInterface = cast(std.d.ast.InterfaceDeclaration)superType;
             dlang_decls.StringType superString =  // TODO is this really OK?
                 cast(dlang_decls.StringType)superType;
             if (!superInterface && !superString)
             {
                 throw new Exception("Superclass of an interface is not an interface.");
             }
-            result.superclasses ~= [superInterface];
+            std.d.ast.BaseClass base = new BaseClass();
+            base.type2 = superType.type2;
+
+            result.baseClassList.items ~= [base];
         }
 
         for( unknown.MethodIterator iter = cppDecl.getMethodBegin(),
@@ -359,12 +428,8 @@ class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
             try {
                 // FIXME triple dereference? really?
-                dlang_decls.Method method = translateMethod(iter.get());
-                if (dlang_decls.Method.Kind.FINAL == method.kind)
-                {
-                    throw new Exception("Methods on interfaces must be virtual!");
-                }
-                result.methods ~= [method];
+                std.d.ast.FunctionDeclaration method = translateMethod(iter.get(), VirtualBehavior.REQUIRED);
+                result.structBody.declarations ~= [makeDeclaration(method)];
             }
             catch (OverloadedOperatorError e)
             {
@@ -387,10 +452,12 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
-                last_result = buildStruct(cppDecl);
+                buildStruct(cppDecl);
+                last_result = translated[cast(void*)cppDecl];
                 break;
             case unknown.Strategy.INTERFACE:
-                last_result = buildInterface(cppDecl);
+                buildInterface(cppDecl);
+                last_result = translated[cast(void*)cppDecl];
                 break;
             default:
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
@@ -398,49 +465,52 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dlang_decls.TypeAlias translateTypedef(unknown.TypedefDeclaration cppDecl)
+    // FIXME I don't understand libdparse aliases
+    std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        dlang_decls.TypeAlias short_circuit = CHECK_FOR_DECL!(dlang_decls.TypeAlias)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        dlang_decls.TypeAlias result = new dlang_decls.TypeAlias(cppDecl);
-        translated[cast(void*)cppDecl] = result;
-        translated_types[cppDecl.getType()] = result;
-        result.name = binder.toDString(cppDecl.getTargetName());
-        result.target_type = translateType(cppDecl.getTargetType());
+        auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl);
+        translated_types[cppDecl.getType()] = declToType(result);
+        result.identifierList = new IdentifierList();
+        result.identifierList.identifiers = [nameFromDecl(cppDecl)];
+        result.type = translateType(cppDecl.getTargetType());
 
         return result;
     }
     extern(C++) override
     void visitTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        last_result = translateTypedef(cppDecl);
+        translateTypedef(cppDecl);
+        last_result = translated[cast(void*)cppDecl];
     }
 
-    dlang_decls.Enum translateEnum(unknown.EnumDeclaration cppDecl)
+    std.d.ast.EnumDeclaration translateEnum(unknown.EnumDeclaration cppDecl)
     {
-        dlang_decls.Enum short_circuit = CHECK_FOR_DECL!(dlang_decls.Enum)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        dlang_decls.Enum result = new dlang_decls.Enum(cppDecl);
-        translated[cast(void*)cppDecl] = result;
-        translated_types[cppDecl.getType()] = result;
+        auto result = registerDeclaration!(std.d.ast.EnumDeclaration)(cppDecl);
+        translated_types[cppDecl.getType()] = declToType(result);
+        result.enumBody = new EnumBody();
 
         unknown.Type * cppType = cppDecl.getType();
         result.type = translateType(cppType);
-        result.name = binder.toDString(cppDecl.getTargetName());
-        try {
-            result.visibility = translateVisibility(cppDecl.getVisibility());
-        }
-        catch (Exception e)  // FIXME also catches thing that were logic error
-        {
-            // catch when visibility is unset.
-            // FIXME is this the right thing?
-            result.visibility = dlang_decls.Visibility.PUBLIC;
-        }
+        result.name = nameFromDecl(cppDecl);
+        // TODO bring this block back in
+        //try {
+        //    result.visibility = translateVisibility(cppDecl.getVisibility());
+        //}
+        //catch (Exception e)  // FIXME also catches thing that were logic error
+        //{
+        //    // catch when visibility is unset.
+        //    // FIXME is this the right thing?
+        //    result.visibility = dlang_decls.Visibility.PUBLIC;
+        //}
 
         // visit and translate all of the constants
-        for( unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
+        for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
              !children_iter.equals(children_end);
              children_iter.advance() )
@@ -452,23 +522,30 @@ class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
             }
 
-            result.values ~= [translateEnumConstant(constant)];
+            result.enumBody.enumMembers ~= [translateEnumConstant(constant)];
         }
 
         return result;
     }
     extern(C++) override void visitEnum(unknown.EnumDeclaration cppDecl)
     {
-        last_result = translateEnum(cppDecl);
+        translateEnum(cppDecl);
+        last_result = translated[cast(void*)cppDecl];
     }
 
-    dlang_decls.EnumConstant translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
+    std.d.ast.EnumMember translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
     {
-        dlang_decls.EnumConstant short_circuit = CHECK_FOR_DECL!(dlang_decls.EnumConstant)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumMember)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        dlang_decls.EnumConstant result = new dlang_decls.EnumConstant(cppDecl);
-        result.name = binder.toDString(cppDecl.getTargetName()); // TODO remove prefix
-        result.value = cppDecl.getLLValue();
+        auto result = new std.d.ast.EnumMember();
+        result.name = nameFromDecl(cppDecl); // TODO remove prefix
+        result.type = translateType(cppDecl.getType());
+        result.assignExpression = new AssignExpression();
+        PrimaryExpression constant = new PrimaryExpression();
+
+        // FIXME, not the right types
+        constant.primary = Token(tok!"longLiteral", to!string(cppDecl.getLLValue), 0, 0, 0);
+        result.assignExpression.assignExpression = constant;
 
         return result;
     }
@@ -480,14 +557,19 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Error("Attempted to translate an enum constant directly, instead of via an enum.");
     }
 
-    dlang_decls.Field translateField(unknown.FieldDeclaration cppDecl)
+    std.d.ast.VariableDeclaration translateField(unknown.FieldDeclaration cppDecl)
     {
-        dlang_decls.Field short_circuit = CHECK_FOR_DECL!(dlang_decls.Field)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        dlang_decls.Field result = new dlang_decls.Field(cppDecl);
-        result.name = binder.toDString(cppDecl.getTargetName());
+        auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl);
         result.type = translateType(cppDecl.getType());
-        result.visibility = translateVisibility(cppDecl.getVisibility());
+
+        auto declarator = new Declarator();
+        declarator.name = nameFromDecl(cppDecl);
+        result.declarators = [declarator];
+
+        result.attributes ~= [translateVisibility(cppDecl)];
+
         return result;
     }
     extern(C++) override void visitField(unknown.FieldDeclaration)
@@ -498,23 +580,23 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Error("Attempted to translate a field directly, instead of via a record.");
     }
 
-    dlang_decls.Union translateUnion(unknown.UnionDeclaration cppDecl)
+    std.d.ast.UnionDeclaration translateUnion(unknown.UnionDeclaration cppDecl)
     {
-        dlang_decls.Union short_circuit = CHECK_FOR_DECL!(dlang_decls.Union)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.UnionDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        dlang_decls.Union result = new dlang_decls.Union(cppDecl);
-        translated[cast(void*)cppDecl] = result;
-        translated_types[cppDecl.getType()] = result;
-        result.name = binder.toDString(cppDecl.getTargetName());
+        auto result = registerDeclaration!(std.d.ast.UnionDeclaration)(cppDecl);
+        translated_types[cppDecl.getType()] = declToType(result);
+        result.name = nameFromDecl(cppDecl);
+        result.structBody = new StructBody();
 
         for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
              !iter.equals(finish);
              iter.advance() )
         {
-            dlang_decls.Field field = translateField(iter.get());
-            result.insert(field);
+            std.d.ast.VariableDeclaration field = translateField(iter.get());
+            result.structBody.declarations ~= [makeDeclaration(field)];
         }
 
         // TODO static methods and other things?
@@ -522,12 +604,18 @@ class TranslatorVisitor : unknown.DeclarationVisitor
     }
     extern(C++) override void visitUnion(unknown.UnionDeclaration cppDecl)
     {
-        last_result = translateUnion(cppDecl);
+        translateUnion(cppDecl);
+        last_result = translated[cast(void*)cppDecl];
     }
 
-    dlang_decls.Method translateMethod(unknown.MethodDeclaration cppDecl)
+    enum VirtualBehavior {
+        ALLOWED,
+        REQUIRED,
+        FORBIDDEN,
+    }
+    std.d.ast.FunctionDeclaration translateMethod(unknown.MethodDeclaration cppDecl, VirtualBehavior vBehavior)
     {
-        dlang_decls.Method short_circuit = CHECK_FOR_DECL!(dlang_decls.Method)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.FunctionDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
         if (cppDecl.isOverloadedOperator())
@@ -535,41 +623,59 @@ class TranslatorVisitor : unknown.DeclarationVisitor
             throw new OverloadedOperatorError();
         }
 
-        dlang_decls.Method result = new dlang_decls.Method(cppDecl);
+        auto result = new std.d.ast.FunctionDeclaration();
 
         if (cppDecl.isStatic())
         {
-            result.kind = dlang_decls.Method.Kind.STATIC;
+            auto attrib = new Attribute();
+            attrib.attribute = Token(tok!"static", "static", 0, 0, 0);
+            result.attributes ~= [attrib];
         }
         else if (cppDecl.isVirtual())
         {
-            result.kind = dlang_decls.Method.Kind.VIRTUAL;
+            if (vBehavior == VirtualBehavior.FORBIDDEN)
+            {
+                throw new Exception("Methods on structs cannot be virtual!");
+                // FIXME this message may not always be correct
+            }
+            // virtual is implied by context i.e. must be in class, interface,
+            // then it's by default, so no attribute here
         }
         else {
-            result.kind = dlang_decls.Method.Kind.FINAL;
+            if (vBehavior == VirtualBehavior.REQUIRED)
+            {
+                // FIXME this message may not always be correct
+                throw new Exception("Methods on interfaces must be virtual!");
+            }
+            else
+            {
+                auto attrib = new Attribute();
+                attrib.attribute = Token(tok!"final", "final", 0, 0, 0);
+                result.attributes ~= [attrib];
+            }
         }
 
         if (cppDecl.getTargetName().size())
         {
-            result.name = binder.toDString(cppDecl.getTargetName());
+            result.name = nameFromDecl(cppDecl);
         }
         else
         {
             throw new Exception("Method declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
-        result.return_type = translateType(cppDecl.getReturnType());
+        result.returnType = translateType(cppDecl.getReturnType());
         if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
             cppDecl.dump();
-        result.visibility = translateVisibility(cppDecl.getVisibility());
+        result.attributes ~= [translateVisibility(cppDecl)];
 
+        result.parameters = new Parameters();
         for (unknown.ArgumentIterator arg_iter = cppDecl.getArgumentBegin(),
                 arg_end = cppDecl.getArgumentEnd();
              !arg_iter.equals(arg_end);
              arg_iter.advance() )
         {
-            // FIXME double dereference? really?
-            result.arguments ~= [translateArgument(arg_iter.get())];
+            result.parameters.parameters ~= [translateArgument(arg_iter.get())];
         }
         return result;
     }
@@ -590,38 +696,40 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         // the C++ interface page on dlang.org says that D cannot call destructors
     }
 
-    dlang_decls.Argument translateArgument(unknown.ArgumentDeclaration cppDecl)
+    std.d.ast.Parameter translateArgument(unknown.ArgumentDeclaration cppDecl)
     {
-        dlang_decls.Argument short_circuit = CHECK_FOR_DECL!(dlang_decls.Argument)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Parameter)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        dlang_decls.Argument arg = new dlang_decls.Argument(cppDecl);
-        arg.name = binder.toDString(cppDecl.getTargetName());
+        auto arg = new std.d.ast.Parameter();
+        arg.name = nameFromDecl(cppDecl);
         arg.type = translateType(cppDecl.getType());
 
         return arg;
     }
     extern(C++) override void visitArgument(unknown.ArgumentDeclaration cppDecl)
     {
-        last_result = translateArgument(cppDecl);
+        throw new Exception("Attempting to translate an argument as if it were top level, but arguments are never top level.");
     }
 
-    dlang_decls.Variable translateVariable(unknown.VariableDeclaration cppDecl)
+    std.d.ast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl)
     {
-        dlang_decls.Variable short_circuit = CHECK_FOR_DECL!(dlang_decls.Variable)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        dlang_decls.Variable var = new dlang_decls.Variable(cppDecl);
+        auto var = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl);
 
-        var.linkage = translateLinkage(cppDecl);
-        var.linkage.name_space = namespace_path;
-        binder.binder.string target_name = cppDecl.getTargetName();
-        var.name = binder.toDString(target_name);
+        var.storageClasses ~= [makeStorageClass(translateLinkage(cppDecl, namespace_path))];
+
+        auto declarator = new Declarator();
+        declarator.name = nameFromDecl(cppDecl);
+        var.declarators ~= [declarator];
         var.type = translateType(cppDecl.getType());
 
         return var;
     }
     extern(C++) override void visitVariable(unknown.VariableDeclaration cppDecl)
     {
-        last_result = translateVariable(cppDecl);
+        translateVariable(cppDecl);
+        last_result = translated[cast(void*)cppDecl];
     }
     extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration)
     {
@@ -629,13 +737,14 @@ class TranslatorVisitor : unknown.DeclarationVisitor
     }
 };
 
-private void placeIntoTargetModule(unknown.Declaration declaration, dlang_decls.Declaration translation)
+private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.Declaration translation)
 {
+    // TODO rethink this entire method for libdparse
     // FIXME sometimes this gets called multiple times on the same declaration,
     // so it will get output multiple times, which is clearly wrong
     // It happens because there are multiple declarations of the same type
     // (e.g. forward and normal), that have the same translation
-    if (translation.parent)
+    /*if (translation.parent)
     {
         return;
     }
@@ -658,7 +767,7 @@ private void placeIntoTargetModule(unknown.Declaration declaration, dlang_decls.
     if (translation)
     {
         mod.insert(translation);
-    }
+    }*/
 }
 
 void populateDAST()
@@ -678,7 +787,7 @@ void populateDAST()
 
         TranslatorVisitor visitor = new TranslatorVisitor("", "");
         try {
-            dlang_decls.Declaration translation;
+            std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
             {
                 declaration.visit(visitor);
@@ -706,13 +815,6 @@ void populateDAST()
     //delete[] freeDeclarations;
 }
 
-
-dlang_decls.Type replacePointer(unknown.Type* cppType);
-dlang_decls.Type replaceReference(unknown.Type* cppType);
-dlang_decls.Type replaceTypedef(unknown.Type* cppType);
-dlang_decls.Type replaceEnum(unknown.Type* cppType);
-dlang_decls.Type replaceFunction(unknown.Type* cppType);
-dlang_decls.Type replaceUnion(unknown.Type* cppType);
 
 void determineStrategy(unknown.Type* cppType)
 {
@@ -803,8 +905,9 @@ void determineRecordStrategy(unknown.Type* cppType)
     }
 }
 
-dlang_decls.Type replaceType(unknown.Type* cppType)
+std.d.ast.Type replaceType(unknown.Type* cppType)
 {
+    /*
     dlang_decls.Type result;
     string replacement_name = binder.toDString(cppType.getReplacement());
     if (replacement_name.length > 0)
@@ -871,9 +974,12 @@ dlang_decls.Type replaceType(unknown.Type* cppType)
         }
 
     }
+    */
+    // TODO fill in
+    return null;
 }
 
-dlang_decls.Type replacePointerOrReference(unknown.Type* cppType, dlang_decls.PointerType.PointerOrRef ptr_or_ref)
+std.d.ast.Type replacePointerOrReference(unknown.Type* cppType, dlang_decls.PointerType.PointerOrRef ptr_or_ref)
 {
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
@@ -896,113 +1002,71 @@ dlang_decls.Type replacePointerOrReference(unknown.Type* cppType, dlang_decls.Po
             throw new Error("I don't know what strategy was selected for a pointer or reference type.");
     }
 
-    dlang_decls.Type result;
+    std.d.ast.Type result;
     if (target_is_reference_type)
     {
         result = translateType(target_type);
     }
     else
     {
-        dlang_decls.Type translated_pointee_type = translateType(target_type);
-        result = new dlang_decls.PointerType(translated_pointee_type, ptr_or_ref);
+        std.d.ast.Type translated_pointee_type = translateType(target_type);
+        // TODO write this
+        //result = new dlang_decls.PointerType(translated_pointee_type, ptr_or_ref);
     }
 
     return result;
 }
 
-dlang_decls.Type replacePointer(unknown.Type* cppType)
+std.d.ast.Type replacePointer(unknown.Type* cppType)
 {
     return replacePointerOrReference(cppType, dlang_decls.PointerType.PointerOrRef.POINTER);
 }
-dlang_decls.Type replaceReference(unknown.Type* cppType)
+std.d.ast.Type replaceReference(unknown.Type* cppType)
 {
     return replacePointerOrReference(cppType, dlang_decls.PointerType.PointerOrRef.REFERENCE);
 }
 
-dlang_decls.Type replaceTypedef(unknown.Type* cppType)
+string replaceMixin(string TargetType)() {
+    return "
+private std.d.ast.Type replace" ~ TargetType ~ "(unknown.Type* cppType)
 {
-    unknown.TypedefDeclaration cppDecl = cppType.getTypedefDeclaration();
-    dlang_decls.Type result;
+    unknown." ~ TargetType ~ "Declaration cppDecl = cppType.get" ~ TargetType ~ "Declaration();
+    std.d.ast.Type result;
     if (cast(void*)cppDecl !in translated)
     {
-        TranslatorVisitor visitor = new TranslatorVisitor("", "");
-        // translateTypedef does not try to place the declaration into a
+        auto visitor = new TranslatorVisitor(\"\", \"\");
+        // translate"~TargetType~" does not try to place the declaration into a
         // module or context, so this is OK to do here.  It either:
         //  a) was already placed into the right spot
         //  b) will get placed later, when we visit the declaration
-        result = visitor.translateTypedef(cppDecl);
+        result = declToType(visitor.translate" ~ TargetType ~ "(cppDecl));
     }
     else
     {
         // This cast will succeed (unless something is wrong)
         // becuase search_result->second is really a TypeAlias, which is a Type.
         // We're going down and then up the type hierarchy.
-        result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
+        // FIXME doesn't work anymore
+        assert(0);
+        //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
     }
 
     return result;
+}";
 }
-// FIXME There's a way to generalize this and combine it with replaceTypedef,
-// but I don't see it upon cursory inspection, so I'll get to it later.
-dlang_decls.Type replaceEnum(unknown.Type* cppType)
-{
-    unknown.EnumDeclaration cppDecl = cppType.getEnumDeclaration;
-    dlang_decls.Type result;
-    if (cast(void*)cppDecl !in translated)
-    {
-        TranslatorVisitor visitor = new TranslatorVisitor("", "");
-        // translateTypedef does not try to place the declaration into a
-        // module or context, so this is OK to do here.  It either:
-        //  a) was already placed into the right spot
-        //  b) will get placed later, when we visit the declaration
-        result = visitor.translateEnum(cppDecl);
-    }
-    else
-    {
-        // This cast will succeed (unless something is wrong)
-        // becuase search_result->second is really a TypeAlias, which is a Type.
-        // We're going down and then up the type hierarchy.
-        result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
-    }
+mixin (replaceMixin!("Typedef"));
+mixin (replaceMixin!("Enum"));
+mixin (replaceMixin!("Union"));
 
-    return result;
-}
-
-dlang_decls.Type replaceFunction(unknown.Type*)
+private std.d.ast.Type replaceFunction(unknown.Type*)
 {
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
     throw new Error("Translation of function types is not implemented yet.");
 }
 
-// FIXME There's a way to generalize this and combine it with replaceTypedef,
-// but I don't see it upon cursory inspection, so I'll get to it later.
-dlang_decls.Type replaceUnion(unknown.Type* cppType)
-{
-    unknown.UnionDeclaration cppDecl = cppType.getUnionDeclaration();
-    dlang_decls.Type result;
-    if (cast(void*)cppDecl !in translated)
-    {
-        TranslatorVisitor visitor = new TranslatorVisitor("", "");
-        // translateTypedef does not try to place the declaration into a
-        // module or context, so this is OK to do here.  It either:
-        //  a) was already placed into the right spot
-        //  b) will get placed later, when we visit the declaration
-        result = visitor.translateUnion(cppDecl);
-    }
-    else
-    {
-        // This cast will succeed (unless something is wrong)
-        // becuase search_result->second is really a TypeAlias, which is a Type.
-        // We're going down and then up the type hierarchy.
-        result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
-    }
-
-    return result;
-}
-
 // TODO combine with replaceEnum and replaceTypedef?
-private dlang_decls.Type generateStruct(unknown.Type* cppType)
+private std.d.ast.Type generateStruct(unknown.Type* cppType)
 {
     if (cppType.getKind() != unknown.Type.Kind.Record)
     {
@@ -1011,7 +1075,7 @@ private dlang_decls.Type generateStruct(unknown.Type* cppType)
 
     unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
 
-    dlang_decls.Type result;
+    std.d.ast.Type result;
     if (cast(void*)cppDecl !in translated)
     {
         TranslatorVisitor visitor = new TranslatorVisitor("", "");
@@ -1019,20 +1083,22 @@ private dlang_decls.Type generateStruct(unknown.Type* cppType)
         // module or context, so this is OK to do here.  It either:
         //  a) was already placed into the right spot
         //  b) will get placed later, when we visit the declaration
-        result = visitor.buildStruct(cppDecl);
+        result = declToType(visitor.buildStruct(cppDecl));
     }
     else
     {
         // This cast will succeed (unless something is wrong)
         // becuase search_result->second is really a TypeAlias, which is a Type.
         // We're going down and then up the type hierarchy.
-        result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
+        // FIXME figure out what's going on with libdparse types
+        assert(0);
+        //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
     }
 
     return result;
 }
 
-private dlang_decls.Type generateInterface(unknown.Type* cppType)
+private std.d.ast.Type generateInterface(unknown.Type* cppType)
 {
     if (cppType.getKind() != unknown.Type.Kind.Record)
     {
@@ -1041,7 +1107,7 @@ private dlang_decls.Type generateInterface(unknown.Type* cppType)
 
     unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
 
-    dlang_decls.Type result;
+    std.d.ast.Type result;
     if (cast(void*)cppDecl !in translated)
     {
         TranslatorVisitor visitor = new TranslatorVisitor("", "");
@@ -1049,20 +1115,21 @@ private dlang_decls.Type generateInterface(unknown.Type* cppType)
         // module or context, so this is OK to do here.  It either:
         //  a) was already placed into the right spot
         //  b) will get placed later, when we visit the declaration
-        result = visitor.buildInterface(cppDecl);
+        result = declToType(visitor.buildInterface(cppDecl));
     }
     else
     {
         // This cast will succeed (unless something is wrong)
         // becuase search_result->second is really a TypeAlias, which is a Type.
         // We're going down and then up the type hierarchy.
-        result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
+        assert(0);
+        //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
     }
 
     return result;
 }
 
-dlang_decls.Type translateType(unknown.Type* cppType)
+std.d.ast.Type translateType(unknown.Type* cppType)
 {
     if (cppType in translated_types)
     {
@@ -1070,7 +1137,7 @@ dlang_decls.Type translateType(unknown.Type* cppType)
     }
     else
     {
-        dlang_decls.Type result;
+        std.d.ast.Type result;
         final switch (cppType.getStrategy())
         {
             case unknown.Strategy.UNKNOWN:
