@@ -272,7 +272,8 @@ int main(string[] args)
     myTmpDir = join([tempDir(), "test_runner-" ~ randomUUID().toString()[0..8]], dirSeparator);
     mkdir(myTmpDir);
     scope(exit) rmdirRecurse(myTmpDir);
+    bool success = true;
     foreach (d; test_cases)
-        configure_and_run_test(d.name, executable);
-    return 0;
+        success = configure_and_run_test(d.name, executable) || success;
+    return (success ? 0 : 1);
 }
