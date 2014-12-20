@@ -35,6 +35,7 @@ private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[unknown.Type*] resolved_replacements;
 // TODO ^ what's the difference between this and translated types?
 private std.d.ast.Type[string] types_by_name;
+private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
@@ -751,7 +752,7 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
     // so it will get output multiple times, which is clearly wrong
     // It happens because there are multiple declarations of the same type
     // (e.g. forward and normal), that have the same translation
-    /*if (translation.parent)
+    if (translation in placedDeclarations)
     {
         return;
     }
@@ -770,11 +771,12 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
             target_module = target_module[1 ..$];
         }
     }
-    dlang_decls.Module mod = dlang_decls.rootPackage.getOrCreateModulePath(target_module);
+    std.d.ast.Module mod = dlang_decls.rootPackage.getOrCreateModulePath(target_module);
     if (translation)
     {
-        mod.insert(translation);
-    }*/
+        mod.declarations ~= [translation];
+    }
+    placedDeclarations[translation] = mod;
 }
 
 void populateDAST()
