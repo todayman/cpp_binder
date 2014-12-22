@@ -143,6 +143,13 @@ private std.d.ast.Attribute translateVisibility(T)(T cppDecl)
     return attrib;
 }
 
+private Attribute makeAttribute(LinkageAttribute linkage)
+{
+    auto result = new Attribute();
+    result.linkageAttribute = linkage;
+    return result;
+}
+
 private std.d.ast.Type declToType(Declaration)(Declaration decl)
 {
     // TODO
@@ -180,7 +187,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         auto d_decl = new std.d.ast.FunctionDeclaration();
         // Set the linkage attributes for this function
         LinkageAttribute linkage = translateLinkage(cppDecl, namespace_path);
-        d_decl.storageClasses ~= [makeStorageClass(linkage)];
+        d_decl.attributes = [makeAttribute(linkage)];
 
         binder.binder.string target_name = cppDecl.getTargetName();
         if (target_name.size())
