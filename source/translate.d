@@ -124,14 +124,19 @@ private std.d.ast.Attribute translateVisibility(T)(T cppDecl)
             throw new Exception("Unset visibility");
         case unknown.Visibility.PUBLIC:
             protection = tok!"public";
+            break;
         case unknown.Visibility.PRIVATE:
             protection = tok!"private";
+            break;
         case unknown.Visibility.PROTECTED:
             protection = tok!"protected";
+            break;
         case unknown.Visibility.EXPORT:
             protection = tok!"export";
+            break;
         case unknown.Visibility.PACKAGE:
             protection = tok!"package";
+            break;
     }
     auto attrib = new Attribute();
     attrib.attribute = Token(protection, "", 0, 0, 0);
