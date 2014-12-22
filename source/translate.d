@@ -26,7 +26,7 @@ import std.d.ast;
 import std.d.lexer;
 
 static import binder;
-static import dlang_decls;
+import dlang_decls;
 static import unknown;
 import manual_types;
 
@@ -58,7 +58,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
     {
         result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.hasPlusPlus = true;
-        result.identifierChain = toIdentifierChain(namespace_path);
+        result.identifierChain = makeIdentifierChain(namespace_path);
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.NoLanguageLinkage)
     {
@@ -66,7 +66,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
         stderr.writeln("WARNING: symbol has no language linkage.  Assuming C++.");
         result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.hasPlusPlus = true;
-        result.identifierChain = toIdentifierChain(namespace_path);
+        result.identifierChain = makeIdentifierChain(namespace_path);
     }
     else {
         stderr.writeln("Didn't recognize linkage");
@@ -151,12 +151,6 @@ class OverloadedOperatorError : Exception
         super("Cannot translate overloaded operators.");
     }
 };
-
-IdentifierChain toIdentifierChain(string path)
-{
-    // TODO
-    return null;
-}
 
 // Would kind of like a WhiteHole for these
 class TranslatorVisitor : unknown.DeclarationVisitor
@@ -316,7 +310,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         result.linkageAttribute = new LinkageAttribute();
         result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.linkageAttribute.hasPlusPlus = true;
-        result.linkageAttribute.identifierChain = toIdentifierChain(namespace_path);
+        result.linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
 
         result.structBody = new StructBody();
 
@@ -390,7 +384,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         result.linkageAttribute = new LinkageAttribute();
         result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.linkageAttribute.hasPlusPlus = true;
-        result.linkageAttribute.identifierChain = toIdentifierChain(namespace_path);
+        result.linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
 
         // Find the superclasses of this interface
         result.baseClassList = new BaseClassList();

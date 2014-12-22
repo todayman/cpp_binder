@@ -25,6 +25,7 @@ import std.d.lexer;
 class Package
 {
     public:
+    // TODO make sure that IdentifierChain hashes the right way
     Module[IdentifierChain] children;
 
     Module getOrCreateModulePath(string path)
