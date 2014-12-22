@@ -399,7 +399,8 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         result.linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
 
         // Find the superclasses of this interface
-        result.baseClassList = new BaseClassList();
+        auto baseClassList = new BaseClassList();
+        bool hasBaseClass = false;
         for (unknown.SuperclassIterator iter = cppDecl.getSuperclassBegin(),
                 finish = cppDecl.getSuperclassEnd();
              !iter.equals(finish);
@@ -425,7 +426,12 @@ class TranslatorVisitor : unknown.DeclarationVisitor
             std.d.ast.BaseClass base = new BaseClass();
             base.type2 = superType.type2;
 
-            result.baseClassList.items ~= [base];
+            baseClassList.items ~= [base];
+            hasBaseClass = true;
+        }
+        if (hasBaseClass)
+        {
+            result.baseClassList = baseClassList;
         }
 
         for( unknown.MethodIterator iter = cppDecl.getMethodBegin(),
