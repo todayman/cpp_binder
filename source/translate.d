@@ -184,7 +184,7 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.FunctionDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        auto d_decl = new std.d.ast.FunctionDeclaration();
+        auto d_decl = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl);
         // Set the linkage attributes for this function
         LinkageAttribute linkage = translateLinkage(cppDecl, namespace_path);
         d_decl.attributes = [makeAttribute(linkage)];
@@ -223,8 +223,8 @@ class TranslatorVisitor : unknown.DeclarationVisitor
         }
         else
         {
-            last_result = new std.d.ast.Declaration;
-            last_result.functionDeclaration = translateFunction(cppDecl);
+            translateFunction(cppDecl);
+            last_result = translated[cast(void*)cppDecl];
         }
     }
 
