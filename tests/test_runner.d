@@ -31,6 +31,10 @@ import std.uuid;
 
 import core.exception : RangeError;
 
+import std.d.ast;
+import std.d.lexer;
+import std.d.parser;
+
 private string myTmpDir;
 
 int parse_args(string[] args, out string executable, out string test_directory)
@@ -179,7 +183,7 @@ struct TestCase
         return runTmp;
     }
 
-    void checkResults(string pathToOutput)
+    void checkResults(string pathToOutput, StringCache* strCache)
     {
         foreach (file_pair; zip(expectedOutputFiles, relativeOutputFiles))
         {
@@ -189,9 +193,15 @@ struct TestCase
             if (!exists(realOutputFile))
                 fail("Could not find output " ~ realOutputFile);
 
-            string expected = readText(expectedOutputFile);
-            string actual = readText(realOutputFile);
-            if (expected != actual)
+            ubyte[] expected = cast(ubyte[])read(expectedOutputFile);
+            ubyte[] actual = cast(ubyte[])readText(realOutputFile);
+
+            LexerConfig lexConfig = LexerConfig(file_pair[0], StringBehavior.source);
+            const(Token)[] expectedTokens = getTokensForParser(expected, lexConfig, strCache);
+            Module expectedModule = parseModule(expectedTokens, file_pair[0], null, &messageDropper);
+            const(Token)[] actualTokens = getTokensForParser(actual, lexConfig, strCache);
+            Module actualModule = parseModule(actualTokens, file_pair[0], null, &messageDropper);
+            if (expectedModule != actualModule)
                 fail(expectedOutputFile ~ " is incorrect");
         }
     }
@@ -200,6 +210,10 @@ struct TestCase
     {
         throw new TestFailure(this, msg);
     }
+}
+
+void messageDropper(string, size_t, size_t, string, bool)
+{
 }
 
 class TestFailure : Exception
@@ -212,13 +226,13 @@ class TestFailure : Exception
     }
 }
 
-bool configure_and_run_test(string directory, string executable)
+bool configure_and_run_test(string directory, string executable, StringCache* strCache)
 {
     TestCase curTest;
     try {
         curTest.configure(directory);
         string output_path = curTest.run(executable);
-        curTest.checkResults(output_path);
+        curTest.checkResults(output_path, strCache);
         writefln("%-16s\t%s", directory, "Passed");
     }
     catch (TestFailure failure)
@@ -256,6 +270,7 @@ void addFiles(ref Appender!(string[]) output, string path, ref Appender!(string[
 
 int main(string[] args)
 {
+    StringCache strCache = StringCache(32);
     string executable;
     string test_directory;
     {
@@ -274,6 +289,6 @@ int main(string[] args)
     scope(exit) rmdirRecurse(myTmpDir);
     bool success = true;
     foreach (d; test_cases)
-        success = configure_and_run_test(d.name, executable) || success;
+        success = configure_and_run_test(d.name, executable, &strCache) || success;
     return (success ? 0 : 1);
 }
