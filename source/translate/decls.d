@@ -285,11 +285,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path);
                 children_iter.get().visit(subpackage_visitor);
 
-                // not all translations get placed, and some are unwrappable,
-                if (subpackage_visitor.last_result)
-                {
-                    placeIntoTargetModule(children_iter.get(), subpackage_visitor.last_result);
-                }
+                placeIntoTargetModule(children_iter.get(), subpackage_visitor.last_result);
             }
             catch (Exception exc)
             {
