@@ -59,7 +59,7 @@ void determineStrategy(unknown.Type* cppType)
         case unknown.Type.Kind.Typedef:
         case unknown.Type.Kind.Enum:
         case unknown.Type.Kind.Function:
-            // FIXME empty string means resolve to an actual AST type, not a string?
+            // FIXME empty string means resolve to an actual AST type, not a string
             cppType.chooseReplaceStrategy(binder.toBinderString(""));
             break;
 
@@ -118,15 +118,15 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("Called replaceType on a Builtin");
                     break;
                 case unknown.Type.Kind.Pointer:
-                    return translatePointer(cppType);
+                    result = translatePointer(cppType);
                 case unknown.Type.Kind.Reference:
-                    return translateReference(cppType);
+                    result = translateReference(cppType);
                 case unknown.Type.Kind.Typedef:
-                    return replaceTypedef(cppType);
+                    result = replaceTypedef(cppType);
                 case unknown.Type.Kind.Enum:
-                    return replaceEnum(cppType);
+                    result = replaceEnum(cppType);
                 case unknown.Type.Kind.Function:
-                    return replaceFunction(cppType);
+                    result = replaceFunction(cppType);
 
                 case unknown.Type.Kind.Record:
                     // TODO figure out (again) why this is an error and add
@@ -134,7 +134,7 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("Called replaceType on a Record");
                     break;
                 case unknown.Type.Kind.Union:
-                    return replaceUnion(cppType);
+                    result = replaceUnion(cppType);
                     break;
                 case unknown.Type.Kind.Array:
                     // TODO
@@ -144,6 +144,7 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("replaceType on Vector types is not implemented yet.");
                     break;
             }
+            translated_types[cppType] = result;
         }
     }
     return result;
