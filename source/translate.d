@@ -1058,106 +1058,40 @@ private std.d.ast.Type translateReference(unknown.Type* cppType)
     return translatePointerOrReference(cppType);
 }
 
-private string replaceMixin(string TargetType)() {
+// FIXME add a method on the Type struct that just gets the declaration,
+// so this template can turn into a normal function
+private string replaceMixin(string SourceType, string TargetType)() {
     return "
 private std.d.ast.Type replace" ~ TargetType ~ "(unknown.Type* cppType)
 {
-    unknown." ~ TargetType ~ "Declaration cppDecl = cppType.get" ~ TargetType ~ "Declaration();
-    if (cast(void*)cppDecl !in translated)
-    {
-        // translate"~TargetType~" does not try to place the declaration into a
-        // module or context, so this is OK to do here.  It either:
-        //  a) was already placed into the right spot
-        //  b) will get placed later, when we visit the declaration
+    unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
+    try {
+        return typeForDecl[cast(void*)cppDecl];
     }
-    else
+    catch (RangeError e)
     {
-        // This cast will succeed (unless something is wrong)
-        // becuase search_result->second is really a TypeAlias, which is a Type.
-        // We're going down and then up the type hierarchy.
-        // FIXME doesn't work anymore
-        assert(0);
-        //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
+        std.d.ast.Type result = new std.d.ast.Type();
+        // TODO fill in the type?
+        // Actually, I think that will happen when I traverse the declaration
+        typeForDecl[cast(void*)cppDecl] = result;
+        return result;
     }
-    auto visitor = new TranslatorVisitor(\"\", \"\");
-    std.d.ast.Type result = declToType(visitor.translate" ~ TargetType ~ "(cppDecl));
-
-    return result;
 }";
 }
-mixin (replaceMixin!("Typedef"));
-mixin (replaceMixin!("Enum"));
-mixin (replaceMixin!("Union"));
+// TODO Before I made this into a mixin, these checked the kinds of the types
+// passed in to make sure that the correct function was being called.  I.e.
+// check that cppType was a union, enum, etc.
+mixin (replaceMixin!("Typedef", "Typedef"));
+mixin (replaceMixin!("Enum", "Enum"));
+mixin (replaceMixin!("Union", "Union"));
+mixin (replaceMixin!("Record", "Struct"));
+mixin (replaceMixin!("Record", "Interface"));
 
 private std.d.ast.Type replaceFunction(unknown.Type*)
 {
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
     throw new Error("Translation of function types is not implemented yet.");
-}
-
-// TODO combine with replaceEnum and replaceTypedef?
-private std.d.ast.Type generateStruct(unknown.Type* cppType)
-{
-    if (cppType.getKind() != unknown.Type.Kind.Record)
-    {
-        throw new Error("Attempted to generate a struct from a non-record type.");
-    }
-
-    unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-
-    std.d.ast.Type result;
-    if (cast(void*)cppDecl !in translated)
-    {
-        TranslatorVisitor visitor = new TranslatorVisitor("", "");
-        // translateTypedef does not try to place the declaration into a
-        // module or context, so this is OK to do here.  It either:
-        //  a) was already placed into the right spot
-        //  b) will get placed later, when we visit the declaration
-        result = declToType(visitor.buildStruct(cppDecl));
-    }
-    else
-    {
-        // This cast will succeed (unless something is wrong)
-        // becuase search_result->second is really a TypeAlias, which is a Type.
-        // We're going down and then up the type hierarchy.
-        // FIXME figure out what's going on with libdparse types
-        assert(0);
-        //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
-    }
-
-    return result;
-}
-
-private std.d.ast.Type generateInterface(unknown.Type* cppType)
-{
-    if (cppType.getKind() != unknown.Type.Kind.Record)
-    {
-        throw new Error("Attempted to generate an interface from a non-record type.");
-    }
-
-    unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-
-    std.d.ast.Type result;
-    if (cast(void*)cppDecl !in translated)
-    {
-        TranslatorVisitor visitor = new TranslatorVisitor("", "");
-        // translateTypedef does not try to place the declaration into a
-        // module or context, so this is OK to do here.  It either:
-        //  a) was already placed into the right spot
-        //  b) will get placed later, when we visit the declaration
-        result = declToType(visitor.buildInterface(cppDecl));
-    }
-    else
-    {
-        // This cast will succeed (unless something is wrong)
-        // becuase search_result->second is really a TypeAlias, which is a Type.
-        // We're going down and then up the type hierarchy.
-        assert(0);
-        //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
-    }
-
-    return result;
 }
 
 std.d.ast.Type translateType(unknown.Type* cppType)
@@ -1179,10 +1113,10 @@ std.d.ast.Type translateType(unknown.Type* cppType)
                 result = replaceType(cppType);
                 break;
             case unknown.Strategy.STRUCT:
-                result = generateStruct(cppType);
+                result = replaceStruct(cppType);
                 break;
             case unknown.Strategy.INTERFACE:
-                result = generateInterface(cppType);
+                result = replaceInterface(cppType);
                 break;
             case unknown.Strategy.CLASS:
                 break;
