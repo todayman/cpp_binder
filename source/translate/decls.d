@@ -30,7 +30,7 @@ static import binder;
 import dlang_decls;
 static import unknown;
 import manual_types;
-import translate.types : translated_types, translateType;
+import translate.types : translateType, makeTypeForDecl;
 
 private std.d.ast.Declaration[void*] translated;
 private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
@@ -151,12 +151,6 @@ private Attribute makeAttribute(LinkageAttribute linkage)
     return result;
 }
 
-private std.d.ast.Type declToType(Declaration)(Declaration decl)
-{
-    // TODO
-    return null;
-}
-
 class OverloadedOperatorError : Exception
 {
     this()
@@ -213,8 +207,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         d_decl.returnType = translateType(cppDecl.getReturnType());
 
-        // FIXME obviously not always true
         d_decl.parameters = new Parameters();
+        // FIXME obviously not always true
         d_decl.parameters.hasVarargs = false;
 
         for (auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
@@ -320,8 +314,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
 
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl);
-        translated_types[cppDecl.getType()] = declToType(result);
         result.name = nameFromDecl(cppDecl);
+        makeTypeForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+
+        package_internal_path.append(result.name);
+        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
 
         // Set the linkage attributes for this struct
         // This only matters for methods
@@ -395,8 +392,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         //{
         //    return translated_types[cppDecl.getType()].interfaceDeclaration;
         //}
-        translated_types[cppDecl.getType()] = declToType(result);
         result.name = nameFromDecl(cppDecl);
+        makeTypeForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+
+        package_internal_path.append(result.name);
+        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
 
         // Set the linkage attributes for this interface
         // This only matters for methods
@@ -497,10 +497,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
 
         auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl);
-        translated_types[cppDecl.getType()] = declToType(result);
         result.identifierList = new IdentifierList();
         result.identifierList.identifiers = [nameFromDecl(cppDecl)];
         result.type = translateType(cppDecl.getTargetType());
+        makeTypeForDecl(cppDecl, result.identifierList.identifiers[0], parent_package_name, package_internal_path);
 
         return result;
     }
@@ -517,12 +517,17 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
 
         auto result = registerDeclaration!(std.d.ast.EnumDeclaration)(cppDecl);
-        translated_types[cppDecl.getType()] = declToType(result);
         result.enumBody = new EnumBody();
 
         unknown.Type * cppType = cppDecl.getType();
         result.type = translateType(cppType);
         result.name = nameFromDecl(cppDecl);
+
+        makeTypeForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+
+        package_internal_path.append(result.name);
+        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
+
         // TODO bring this block back in
         //try {
         //    result.visibility = translateVisibility(cppDecl.getVisibility());
@@ -611,9 +616,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
 
         auto result = registerDeclaration!(std.d.ast.UnionDeclaration)(cppDecl);
-        translated_types[cppDecl.getType()] = declToType(result);
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
+
+        makeTypeForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+
+        package_internal_path.append(result.name);
+        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
 
         for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();

@@ -288,3 +288,30 @@ std.d.ast.Type2 translateType2(unknown.Type* cppType)
     std.d.ast.Type type = translateType(cppType);
     return type.type2;
 }
+
+package void makeTypeForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path)
+{
+    import dlang_decls : append, concatIdTemplateChain;
+
+    std.d.ast.Type type;
+    try {
+        type = typeForDecl[cast(void*)cppDecl];
+    }
+    catch (RangeError e)
+    {
+        type = new std.d.ast.Type();
+        typeForDecl[cast(void*)cppDecl] = type;
+        // TODO this may not be necessary
+        translated_types[cppDecl.getType()] = type;
+    }
+
+    std.d.ast.Type2 type2 = type.type2;
+    if (type2 is null)
+    {
+        type2 = new Type2();
+        type.type2 = type2;
+    }
+    IdentifierOrTemplateChain chain = concatIdTemplateChain(package_name, internal_path);
+    chain.append(targetName);
+    type2.identifierOrTemplateChain = chain;
+}
