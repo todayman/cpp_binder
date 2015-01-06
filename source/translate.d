@@ -19,6 +19,7 @@
 module translate;
 
 import core.exception : RangeError;
+import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
 
@@ -34,6 +35,8 @@ private std.d.ast.Declaration[void*] translated;
 private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
 private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
+private std.d.ast.Declaration[std.d.ast.Type] unresolvedTypes;
+private std.d.ast.Type[void*] typeForDecl;
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
@@ -831,9 +834,10 @@ void populateDAST()
         }
 
     }
-    //delete[] freeDeclarations;
-}
 
+    createAllTypes(rootPackage);
+    resolveTypes();
+}
 
 void determineStrategy(unknown.Type* cppType)
 {
@@ -1197,4 +1201,27 @@ std.d.ast.Type translateType(unknown.Type* cppType)
         }
         return result;
     }
+}
+
+std.d.ast.Type2 translateType2(unknown.Type* cppType)
+{
+    std.d.ast.Type type = translateType(cppType);
+    return type.type2;
+}
+
+void createAllTypes(Package root)
+{
+    // Goes through all the type declarations, and creates
+    // a std.d.ast.Type for each of them.  Concretely, this means
+    // resolving the name for each type
+    // TODO
+}
+
+void resolveTypes()
+{
+    // During the initial translation phase, we know that a variable is an
+    // instance of the type associated with a particular declaration, but we
+    // haven't decided what the fully qualified name of that type is yet.
+    // createAllTypes build the fully qualified names, and this function
+    // goes through the list of deferred types and fills them in.
 }
