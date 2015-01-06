@@ -756,17 +756,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
 };
 
-private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.Declaration translation)
+private std.d.ast.Module findTargetModule(unknown.Declaration declaration)
 {
-    // TODO rethink this entire method for libdparse
-    // FIXME sometimes this gets called multiple times on the same declaration,
-    // so it will get output multiple times, which is clearly wrong
-    // It happens because there are multiple declarations of the same type
-    // (e.g. forward and normal), that have the same translation
-    if (translation in placedDeclarations)
-    {
-        return;
-    }
     string target_module = binder.toDString(declaration.getTargetModule());
     if (target_module.length == 0)
     {
@@ -782,12 +773,25 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
             target_module = target_module[1 ..$];
         }
     }
-    std.d.ast.Module mod = dlang_decls.rootPackage.getOrCreateModulePath(target_module);
+    return dlang_decls.rootPackage.getOrCreateModulePath(target_module);
+}
+private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.Declaration translation)
+{
+    // TODO rethink this entire method for libdparse
+    // FIXME sometimes this gets called multiple times on the same declaration,
+    // so it will get output multiple times, which is clearly wrong
+    // It happens because there are multiple declarations of the same type
+    // (e.g. forward and normal), that have the same translation
+    if (translation in placedDeclarations)
+    {
+        return;
+    }
     if (translation)
     {
+        std.d.ast.Module mod = findTargetModule(declaration);
         mod.declarations ~= [translation];
+        placedDeclarations[translation] = mod;
     }
-    placedDeclarations[translation] = mod;
 }
 
 void populateDAST()
