@@ -29,13 +29,12 @@ class Package
 {
     public:
     // TODO make sure that IdentifierChain hashes the right way
-    Module[IdentifierChain] children;
+    Module[string] children;
 
     Module getOrCreateModulePath(string path)
     {
-        IdentifierChain idChain = makeIdentifierChain(path);
         try {
-            return children[idChain];
+            return children[path];
         }
         catch (RangeError)
         {
@@ -43,8 +42,8 @@ class Package
             ModuleDeclaration decl = new ModuleDeclaration();
             mod.moduleDeclaration = decl;
 
-            decl.moduleName = idChain;
-            children[idChain] = mod;
+            decl.moduleName = makeIdentifierChain(path);
+            children[path] = mod;
 
             return mod;
         }
