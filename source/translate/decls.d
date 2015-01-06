@@ -851,8 +851,6 @@ void populateDAST()
         }
 
     }
-
-    resolveTypes();
 }
 
 void determineRecordStrategy(unknown.Type* cppType)
@@ -902,12 +900,3 @@ class NoDefinitionException : Exception
       super(to!string(decl.getSourceName().c_str()) ~ " has no definition, so I cannot determine a translation strategy.");
     }
 };
-
-void resolveTypes()
-{
-    // During the initial translation phase, we know that a variable is an
-    // instance of the type associated with a particular declaration, but we
-    // haven't decided what the fully qualified name of that type is yet.
-    // createAllTypes build the fully qualified names, and this function
-    // goes through the list of deferred types and fills them in.
-}
