@@ -1058,20 +1058,17 @@ private std.d.ast.Type translateReference(unknown.Type* cppType)
     return translatePointerOrReference(cppType);
 }
 
-string replaceMixin(string TargetType)() {
+private string replaceMixin(string TargetType)() {
     return "
 private std.d.ast.Type replace" ~ TargetType ~ "(unknown.Type* cppType)
 {
     unknown." ~ TargetType ~ "Declaration cppDecl = cppType.get" ~ TargetType ~ "Declaration();
-    std.d.ast.Type result;
     if (cast(void*)cppDecl !in translated)
     {
-        auto visitor = new TranslatorVisitor(\"\", \"\");
         // translate"~TargetType~" does not try to place the declaration into a
         // module or context, so this is OK to do here.  It either:
         //  a) was already placed into the right spot
         //  b) will get placed later, when we visit the declaration
-        result = declToType(visitor.translate" ~ TargetType ~ "(cppDecl));
     }
     else
     {
@@ -1082,6 +1079,8 @@ private std.d.ast.Type replace" ~ TargetType ~ "(unknown.Type* cppType)
         assert(0);
         //result = cast(dlang_decls.Type)translated[cast(void*)cppDecl];
     }
+    auto visitor = new TranslatorVisitor(\"\", \"\");
+    std.d.ast.Type result = declToType(visitor.translate" ~ TargetType ~ "(cppDecl));
 
     return result;
 }";
