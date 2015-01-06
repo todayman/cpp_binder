@@ -970,9 +970,9 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("Called replaceType on a Builtin");
                     break;
                 case unknown.Type.Kind.Pointer:
-                    return replacePointer(cppType);
+                    return translatePointer(cppType);
                 case unknown.Type.Kind.Reference:
-                    return replaceReference(cppType);
+                    return translateReference(cppType);
                 case unknown.Type.Kind.Typedef:
                     return replaceTypedef(cppType);
                 case unknown.Type.Kind.Enum:
@@ -1001,8 +1001,10 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
     return result;
 }
 
-// FIXME need to preserver pointer/refness
-std.d.ast.Type replacePointerOrReference(unknown.Type* cppType)
+// FIXME need to preserve pointer/refness
+// FIXME D ref isn't a type constructor, it's a storage class, so this doesn't really work anymore
+// ref is applied to the argument declaration, not the type
+std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
 {
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
@@ -1032,21 +1034,24 @@ std.d.ast.Type replacePointerOrReference(unknown.Type* cppType)
     }
     else
     {
-        std.d.ast.Type translated_pointee_type = translateType(target_type);
-        // TODO write this
-        //result = new dlang_decls.PointerType(translated_pointee_type, ptr_or_ref);
+        // FIXME assuming pointer here, and not reference
+        result = new std.d.ast.Type();
+        TypeSuffix pointerSuffix = new TypeSuffix();
+        pointerSuffix.star = true;
+        result.typeSuffixes = [pointerSuffix];
+        result.type2 = translateType2(target_type);
     }
 
     return result;
 }
 
-std.d.ast.Type replacePointer(unknown.Type* cppType)
+private std.d.ast.Type translatePointer(unknown.Type* cppType)
 {
-    return replacePointerOrReference(cppType);
+    return translatePointerOrReference(cppType);
 }
-std.d.ast.Type replaceReference(unknown.Type* cppType)
+private std.d.ast.Type translateReference(unknown.Type* cppType)
 {
-    return replacePointerOrReference(cppType);
+    return translatePointerOrReference(cppType);
 }
 
 string replaceMixin(string TargetType)() {
