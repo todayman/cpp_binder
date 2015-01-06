@@ -63,6 +63,27 @@ IdentifierChain makeIdentifierChain(string path)
         .array;
     return result;
 }
+
+// FIXME combine this with makeIdentifierChain
+IdentifierOrTemplateChain makeIdentifierOrTemplateChain(string path)
+{
+    import std.algorithm : map, filter, splitter;
+    import std.array : array;
+
+    IdentifierOrTemplateInstance makeInstance(string str)
+    {
+        auto result = new IdentifierOrTemplateInstance();
+        result.identifier = Token(tok!"identifier", str, 0, 0, 0);
+        return result;
+    }
+    auto result = new IdentifierOrTemplateChain();
+    result.identifiersOrTemplateInstances =
+      path.splitter('.')
+        .filter!(a => a.length != 0)
+        .map!(makeInstance)
+        .array;
+    return result;
+}
 static this()
 {
     rootPackage = new Package();
