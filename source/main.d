@@ -24,7 +24,7 @@ import cli;
 import configuration;
 import manual_types;
 import unknown;
-import translate;
+import translate.decls;
 import dlang_decls : rootPackage;
 import dlang_output;
 

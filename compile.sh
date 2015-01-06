@@ -12,7 +12,8 @@ dmd -g \
     source/configuration.d \
     source/cli.d \
     source/dlang_decls.d \
-    source/translate.d \
+    source/translate/decls.d \
+    source/translate/types.d \
     source/dlang_output.d \
     source/binder.d \
     source/manual_types.d \
