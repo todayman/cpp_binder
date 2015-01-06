@@ -824,7 +824,8 @@ void populateDAST()
             continue;
         }
 
-        auto visitor = new TranslatorVisitor();
+        std.d.ast.Module mod = findTargetModule(declaration);
+        auto visitor = new TranslatorVisitor(mod.moduleDeclaration.moduleName, "", new IdentifierOrTemplateChain());
         try {
             std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
