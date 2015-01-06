@@ -833,7 +833,6 @@ void populateDAST()
 
     }
 
-    createAllTypes(rootPackage);
     resolveTypes();
 }
 
@@ -884,14 +883,6 @@ class NoDefinitionException : Exception
       super(to!string(decl.getSourceName().c_str()) ~ " has no definition, so I cannot determine a translation strategy.");
     }
 };
-
-void createAllTypes(Package root)
-{
-    // Goes through all the type declarations, and creates
-    // a std.d.ast.Type for each of them.  Concretely, this means
-    // resolving the name for each type
-    // TODO
-}
 
 void resolveTypes()
 {
