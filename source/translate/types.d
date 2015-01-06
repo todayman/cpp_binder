@@ -29,7 +29,7 @@ import std.d.lexer;
 static import binder;
 static import unknown;
 
-import translate.decls : determineRecordStrategy;
+import dlang_decls : makeIdentifierOrTemplateChain;
 
 public std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
@@ -37,6 +37,8 @@ private std.d.ast.Type[void*] typeForDecl;
 
 void determineStrategy(unknown.Type* cppType)
 {
+    import translate.decls : determineRecordStrategy;
+
     if (cppType.getStrategy() != unknown.Strategy.UNKNOWN)
     {
         return;
