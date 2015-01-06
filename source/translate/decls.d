@@ -168,15 +168,26 @@ class OverloadedOperatorError : Exception
 // Would kind of like a WhiteHole for these
 private class TranslatorVisitor : unknown.DeclarationVisitor
 {
-    string parent_package_name;
+    IdentifierChain parent_package_name;
     string namespace_path;
+    IdentifierOrTemplateChain package_internal_path;
     public:
     std.d.ast.Declaration last_result;
 
     public:
-    this(string parent, string nsp)
+    this()
     {
+        parent_package_name = new IdentifierChain();
+        namespace_path = "";
+        package_internal_path = new IdentifierOrTemplateChain();
+        last_result = null;
+    }
+
+    this(IdentifierChain parent, string nsp, IdentifierOrTemplateChain pip)
+    {
+        parent_package_name = parent;
         namespace_path = nsp;
+        package_internal_path = pip;
         last_result = null;
     }
 
@@ -256,10 +267,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             mod = dlang_decls.rootPackage.getOrCreateModulePath(name);
         }
 
-        //string this_package_name = parent_package_name ~ "." ~ mod.getName();
-        string this_package_name = mod.moduleDeclaration.moduleName.identifiers
-            .map!( t => t.text )
-            .join(".");
+        IdentifierChain this_package_name = mod.moduleDeclaration.moduleName;
+        string package_name_string = this_package_name.identifiers.map!(t => t.text).join(".");
 
         for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
@@ -268,13 +277,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             if (!children_iter.get().isTargetModuleSet())
             {
-                // FIXME construct a binder.string
-                children_iter.get().setTargetModule(binder.toBinderString(this_package_name));
+                // FIXME someday, use an IdentifierChain here
+                children_iter.get().setTargetModule(binder.toBinderString(package_name_string));
             }
         }
 
         // This is the translated name, but really I want the C++ name
-        string this_namespace_path = namespace_path ~ "::" ~ mod.moduleDeclaration.moduleName.identifiers[$-1].text;
+        string this_namespace_path = namespace_path ~ "::" ~ this_package_name.identifiers[$-1].text;
         // visit and translate all of the children
         for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
                 children_end = cppDecl.getChildEnd();
@@ -282,7 +291,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              children_iter.advance())
         {
             try {
-                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path);
+                auto emptyInternalChain = new IdentifierOrTemplateChain();
+                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, emptyInternalChain);
                 children_iter.get().visit(subpackage_visitor);
 
                 placeIntoTargetModule(children_iter.get(), subpackage_visitor.last_result);
@@ -805,7 +815,7 @@ void populateDAST()
             continue;
         }
 
-        TranslatorVisitor visitor = new TranslatorVisitor("", "");
+        auto visitor = new TranslatorVisitor();
         try {
             std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
