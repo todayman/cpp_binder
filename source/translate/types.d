@@ -96,11 +96,7 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
             types_by_name[replacement_name] = result;
             result.type2 = new Type2();
             result.type2.symbol = new Symbol();
-            // TODO parse identifier chain
-            result.type2.symbol.identifierOrTemplateChain = new IdentifierOrTemplateChain();
-            auto id = new IdentifierOrTemplateInstance();
-            id.identifier = Token(tok!"identifier", replacement_name, 0, 0, 0);
-            result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances ~= [id];
+            result.type2.symbol.identifierOrTemplateChain = makeIdentifierOrTemplateChain(replacement_name);
 
             // FIXME Which package / module do these go in?
         }
