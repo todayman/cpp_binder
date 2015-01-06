@@ -33,7 +33,7 @@ import translate.decls : determineRecordStrategy;
 
 public std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
-public std.d.ast.Type[void*] typeForDecl;
+private std.d.ast.Type[void*] typeForDecl;
 
 void determineStrategy(unknown.Type* cppType)
 {
@@ -75,14 +75,6 @@ void determineStrategy(unknown.Type* cppType)
             throw new Error("Cannot translate vector (e.g. SSE, AVX) types.");
     }
 }
-
-class NoDefinitionException : Exception
-{
-    this(unknown.Declaration decl)
-    {
-      super(to!string(decl.getSourceName().c_str()) ~ " has no definition, so I cannot determine a translation strategy.");
-    }
-};
 
 std.d.ast.Type replaceType(unknown.Type* cppType)
 {
