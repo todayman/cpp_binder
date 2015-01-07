@@ -422,11 +422,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             {
                 throw new Exception("Don't know how to translate virtual inheritance of interfaces.");
             }
+            // Do the translation before checking if it's an interface because
+            // the translation will force the type to pick a strategy
             std.d.ast.Type superType = translateType(superclass.base);
-            // FIXME cannot handle arbirary replacement of superclasses
-            // Also, this cast will always face because interface declarations aren't types
-            auto superInterface = cast(std.d.ast.InterfaceDeclaration)superType;
-            if (!superInterface)
+            // FIXME cannot handle arbitrary replacement of superclasses
+            if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE)
             {
                 throw new Exception("Superclass of an interface is not an interface.");
             }
