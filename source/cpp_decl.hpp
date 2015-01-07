@@ -969,6 +969,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->hasDefinition();
         }
 
+        virtual RecordDeclaration* getDefinition();
+
         virtual bool isDynamicClass()
         {
             if( !isCXXRecord() ) return false;
@@ -1177,6 +1179,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend void enableDeclarationsInFiles(size_t count, const char ** filenames);
         friend void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
         friend Declaration * getDeclaration(clang::Decl* decl);
+        friend class RecordDeclaration;
         friend class DeclarationIterator;
         friend class ArgumentIterator;
         friend class FieldIterator;

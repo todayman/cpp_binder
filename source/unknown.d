@@ -28,6 +28,7 @@ extern(C++) interface RecordDeclaration : unknown.Declaration
     public unknown.SuperclassIterator getSuperclassEnd();
     public bool isCXXRecord();
     public bool hasDefinition();
+    public unknown.RecordDeclaration getDefinition();
     public bool isDynamicClass();
     //public void dump();
     public bool isCanonical();
