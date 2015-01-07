@@ -33,8 +33,8 @@ import dlang_decls : makeIdentifierOrTemplateChain;
 
 private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
-private std.d.ast.Type[void*] typeForDecl;
-package unknown.Declaration[std.d.ast.Type] unresolvedTypes;
+private std.d.ast.Symbol[void*] symbolForDecl;
+package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
 
 package void determineStrategy(unknown.Type* cppType)
 {
@@ -125,10 +125,10 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
                     result = translateReference(cppType);
                     break;
                 case unknown.Type.Kind.Typedef:
-                    result = replaceTypedef(cppType);
+                    result = translate!"Typedef"(cppType);
                     break;
                 case unknown.Type.Kind.Enum:
-                    result = replaceEnum(cppType);
+                    result = translate!"Enum"(cppType);
                     break;
                 case unknown.Type.Kind.Function:
                     result = replaceFunction(cppType);
@@ -140,7 +140,7 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("Called replaceType on a Record");
                     break;
                 case unknown.Type.Kind.Union:
-                    result = replaceUnion(cppType);
+                    result = translate!"Union"(cppType);
                     break;
                 case unknown.Type.Kind.Array:
                     // TODO
@@ -213,18 +213,18 @@ private std.d.ast.Type translateReference(unknown.Type* cppType)
 // so this template can turn into a normal function
 private string replaceMixin(string SourceType, string TargetType)() {
     return "
-private std.d.ast.Type replace" ~ TargetType ~ "(unknown.Type* cppType)
+private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cppType)
 {
     unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
     try {
-        return typeForDecl[cast(void*)cppDecl];
+        return symbolForDecl[cast(void*)cppDecl];
     }
     catch (RangeError e)
     {
-        std.d.ast.Type result = new std.d.ast.Type();
-        // This type will be filled in when the declaration is traversed
-        typeForDecl[cast(void*)cppDecl] = result;
-        unresolvedTypes[result] = cppDecl;
+        auto result = new std.d.ast.Symbol();
+        // This symbol will be filled in when the declaration is traversed
+        symbolForDecl[cast(void*)cppDecl] = result;
+        unresolvedSymbols[result] = cppDecl;
         return result;
     }
 }";
@@ -237,6 +237,15 @@ mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
 mixin (replaceMixin!("Record", "Struct"));
 mixin (replaceMixin!("Record", "Interface"));
+
+private std.d.ast.Type translate(string kind)(unknown.Type* cppType)
+{
+    auto result = new std.d.ast.Type();
+    auto type2 = new std.d.ast.Type2();
+    result.type2 = type2;
+    type2.symbol = mixin("resolveOrDefer"~kind~"Symbol(cppType)");
+    return result;
+}
 
 private std.d.ast.Type replaceFunction(unknown.Type*)
 {
@@ -264,10 +273,14 @@ public std.d.ast.Type translateType(unknown.Type* cppType)
                 result = replaceType(cppType);
                 break;
             case unknown.Strategy.STRUCT:
-                result = replaceStruct(cppType);
+                result = translate!"Struct"(cppType);
                 break;
             case unknown.Strategy.INTERFACE:
-                result = replaceInterface(cppType);
+                // TODO I should check what the code paths into here are,
+                // because you shouldn't translate to interfaces directly,
+                // you should translate a pointer or ref to an interface into
+                // an interface
+                result = translate!"Interface"(cppType);
                 break;
             case unknown.Strategy.CLASS:
                 break;
@@ -293,31 +306,21 @@ private std.d.ast.Type2 translateType2(unknown.Type* cppType)
     return type.type2;
 }
 
-package void makeTypeForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path)
+package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path)
 {
     import dlang_decls : append, concatIdTemplateChain;
 
-    std.d.ast.Type type;
+    std.d.ast.Symbol symbol;
     try {
-        type = typeForDecl[cast(void*)cppDecl];
+        symbol = symbolForDecl[cast(void*)cppDecl];
     }
     catch (RangeError e)
     {
-        type = new std.d.ast.Type();
-        typeForDecl[cast(void*)cppDecl] = type;
-        // TODO this may not be necessary
-        translated_types[cppDecl.getType()] = type;
+        symbol = new std.d.ast.Symbol();
+        symbolForDecl[cast(void*)cppDecl] = symbol;
     }
 
-    std.d.ast.Type2 type2 = type.type2;
-    if (type2 is null)
-    {
-        type2 = new Type2();
-        type.type2 = type2;
-    }
     IdentifierOrTemplateChain chain = concatIdTemplateChain(package_name, internal_path);
     chain.append(targetName);
-    auto symbol = new Symbol();
     symbol.identifierOrTemplateChain = chain;
-    type2.symbol = symbol;
 }
