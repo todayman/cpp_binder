@@ -119,14 +119,19 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
                     break;
                 case unknown.Type.Kind.Pointer:
                     result = translatePointer(cppType);
+                    break;
                 case unknown.Type.Kind.Reference:
                     result = translateReference(cppType);
+                    break;
                 case unknown.Type.Kind.Typedef:
                     result = replaceTypedef(cppType);
+                    break;
                 case unknown.Type.Kind.Enum:
                     result = replaceEnum(cppType);
+                    break;
                 case unknown.Type.Kind.Function:
                     result = replaceFunction(cppType);
+                    break;
 
                 case unknown.Type.Kind.Record:
                     // TODO figure out (again) why this is an error and add
