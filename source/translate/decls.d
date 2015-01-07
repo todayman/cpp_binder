@@ -452,7 +452,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             if (cpp_method is null || !cpp_method.getShouldBind())
                 continue;
             try {
-                // FIXME triple dereference? really?
                 std.d.ast.FunctionDeclaration method = translateMethod(iter.get(), VirtualBehavior.REQUIRED);
                 result.structBody.declarations ~= [makeDeclaration(method)];
             }
@@ -470,6 +469,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
+    void buildStringType(unknown.RecordDeclaration cppDecl)
+    {
+        makeTypeForDecl(cppDecl, nameFromDecl(cppDecl), parent_package_name, package_internal_path);
+    }
+
     extern(C++) override
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
@@ -483,6 +487,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             case unknown.Strategy.INTERFACE:
                 buildInterface(cppDecl);
                 last_result = translated[cast(void*)cppDecl];
+                break;
+            case unknown.Strategy.REPLACE:
+                buildStringType(cppDecl);
                 break;
             default:
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
