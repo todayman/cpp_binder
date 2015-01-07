@@ -17,16 +17,9 @@ extern(C++, binder)
 auto toDString(binder.string str)
 {
     return fromStringz(str.c_str()).idup;
-    //return str.c_str()[0 .. str.size()].idup;
 }
 
 auto toBinderString(immutable(char)[] str)
 {
     return binder.toBinderString(str.ptr, str.length);
-    // TODO think about this copy
-    /*auto buf = str.dup;
-    binder.string result;
-    result.buffer = buf.ptr;
-    result.length = buf.length;
-    return result;*/
 }
