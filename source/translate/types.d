@@ -313,6 +313,10 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     std.d.ast.Symbol symbol;
     try {
         symbol = symbolForDecl[cast(void*)cppDecl];
+        // Since the symbol is already in the table, this means
+        // that it was used unresolved in a type somewhere.
+        // We're resolving it right here, right now.
+        unresolvedSymbols.remove(symbol);
     }
     catch (RangeError e)
     {
