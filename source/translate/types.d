@@ -29,7 +29,7 @@ import std.d.lexer;
 static import binder;
 static import unknown;
 
-import dlang_decls : makeIdentifierOrTemplateChain;
+import dlang_decls : concat, makeIdentifierOrTemplateChain;
 
 private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
@@ -94,7 +94,7 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
             types_by_name[replacement_name] = result;
             result.type2 = new Type2();
             result.type2.symbol = new Symbol();
-            result.type2.symbol.identifierOrTemplateChain = makeIdentifierOrTemplateChain(replacement_name);
+            result.type2.symbol.identifierOrTemplateChain = makeIdentifierOrTemplateChain!"."(replacement_name);
 
             // FIXME Which package / module do these go in?
         }
@@ -306,9 +306,9 @@ private std.d.ast.Type2 translateType2(unknown.Type* cppType)
     return type.type2;
 }
 
-package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path)
+package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
 {
-    import dlang_decls : append, concatIdTemplateChain;
+    import dlang_decls : append;
 
     std.d.ast.Symbol symbol;
     try {
@@ -324,7 +324,9 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
         symbolForDecl[cast(void*)cppDecl] = symbol;
     }
 
-    IdentifierOrTemplateChain chain = concatIdTemplateChain(package_name, internal_path);
+    IdentifierOrTemplateChain chain = concat(package_name, internal_path);
+    auto namespace_chain = makeIdentifierOrTemplateChain!"::"(namespace_path);
+    chain = chain.concat(namespace_chain);
     chain.append(targetName);
     symbol.identifierOrTemplateChain = chain;
 }

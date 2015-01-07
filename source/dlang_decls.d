@@ -76,24 +76,30 @@ IdentifierOrTemplateInstance makeInstance(Token t)
 }
 
 // FIXME combine this with makeIdentifierChain
-IdentifierOrTemplateChain makeIdentifierOrTemplateChain(string path)
+IdentifierOrTemplateChain makeIdentifierOrTemplateChain(string separator)(string path)
 {
     import std.algorithm : map, filter, splitter;
     import std.array : array;
 
     auto result = new IdentifierOrTemplateChain();
     result.identifiersOrTemplateInstances =
-      path.splitter('.')
+      path.splitter(separator)
         .filter!(a => a.length != 0)
         .map!(makeInstance)
         .array;
     return result;
 }
 
-IdentifierOrTemplateChain concatIdTemplateChain(IdentifierChain idChain, IdentifierOrTemplateChain tempChain)
+IdentifierOrTemplateChain concat(IdentifierChain idChain, IdentifierOrTemplateChain tempChain)
 {
     auto result = new IdentifierOrTemplateChain();
     result.identifiersOrTemplateInstances = idChain.identifiers.map!(makeInstance).array ~ tempChain.identifiersOrTemplateInstances;
+    return result;
+}
+IdentifierOrTemplateChain concat(IdentifierOrTemplateChain idChain, IdentifierOrTemplateChain tempChain)
+{
+    auto result = new IdentifierOrTemplateChain();
+    result.identifiersOrTemplateInstances = idChain.identifiersOrTemplateInstances ~ tempChain.identifiersOrTemplateInstances;
     return result;
 }
 

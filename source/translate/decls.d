@@ -314,7 +314,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl);
         result.name = nameFromDecl(cppDecl);
-        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
@@ -392,7 +392,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         //    return translated_types[cppDecl.getType()].interfaceDeclaration;
         //}
         result.name = nameFromDecl(cppDecl);
-        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
@@ -470,7 +470,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     void buildStringType(unknown.RecordDeclaration cppDecl)
     {
-        makeSymbolForDecl(cppDecl, nameFromDecl(cppDecl), parent_package_name, package_internal_path);
+        makeSymbolForDecl(cppDecl, nameFromDecl(cppDecl), parent_package_name, package_internal_path, namespace_path);
     }
 
     extern(C++) override
@@ -510,7 +510,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (nameFromDecl(cppDecl).text == "size_t")
             stdout.writeln("Translating size_t");
         result.type = translateType(cppDecl.getTargetType());
-        makeSymbolForDecl(cppDecl, result.identifierList.identifiers[0], parent_package_name, package_internal_path);
+        makeSymbolForDecl(cppDecl, result.identifierList.identifiers[0], parent_package_name, package_internal_path, namespace_path);
 
         return result;
     }
@@ -533,7 +533,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.type = translateType(cppType);
         result.name = nameFromDecl(cppDecl);
 
-        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
@@ -628,7 +628,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
 
-        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path);
+        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
@@ -944,5 +944,5 @@ package void resolveSymbol(unknown.Declaration cppDecl)
     // not know that the decl is inside the class
     //
     // I'm not sure how to fix this just yet.
-    makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, new IdentifierOrTemplateChain());
+    makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, new IdentifierOrTemplateChain(), "");
 }
