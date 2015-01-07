@@ -579,7 +579,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
         auto result = new std.d.ast.EnumMember();
         result.name = nameFromDecl(cppDecl); // TODO remove prefix
-        result.type = translateType(cppDecl.getType());
         result.assignExpression = new AssignExpression();
         PrimaryExpression constant = new PrimaryExpression();
 
