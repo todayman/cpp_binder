@@ -31,11 +31,12 @@ static import unknown;
 
 import dlang_decls : makeIdentifierOrTemplateChain;
 
-public std.d.ast.Type[unknown.Type*] translated_types;
+private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
 private std.d.ast.Type[void*] typeForDecl;
+package unknown.Declaration[std.d.ast.Type] unresolvedTypes;
 
-void determineStrategy(unknown.Type* cppType)
+package void determineStrategy(unknown.Type* cppType)
 {
     import translate.decls : determineRecordStrategy;
 
@@ -78,7 +79,7 @@ void determineStrategy(unknown.Type* cppType)
     }
 }
 
-std.d.ast.Type replaceType(unknown.Type* cppType)
+private std.d.ast.Type replaceType(unknown.Type* cppType)
 {
     std.d.ast.Type result;
     string replacement_name = binder.toDString(cppType.getReplacement());
@@ -158,7 +159,7 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
 // FIXME need to preserve pointer/refness
 // FIXME D ref isn't a type constructor, it's a storage class, so this doesn't really work anymore
 // ref is applied to the argument declaration, not the type
-std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
+private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
 {
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
@@ -221,9 +222,9 @@ private std.d.ast.Type replace" ~ TargetType ~ "(unknown.Type* cppType)
     catch (RangeError e)
     {
         std.d.ast.Type result = new std.d.ast.Type();
-        // TODO fill in the type?
-        // Actually, I think that will happen when I traverse the declaration
+        // This type will be filled in when the declaration is traversed
         typeForDecl[cast(void*)cppDecl] = result;
+        unresolvedTypes[result] = cppDecl;
         return result;
     }
 }";
@@ -244,7 +245,7 @@ private std.d.ast.Type replaceFunction(unknown.Type*)
     throw new Error("Translation of function types is not implemented yet.");
 }
 
-std.d.ast.Type translateType(unknown.Type* cppType)
+public std.d.ast.Type translateType(unknown.Type* cppType)
 {
     if (cppType in translated_types)
     {
@@ -286,7 +287,7 @@ std.d.ast.Type translateType(unknown.Type* cppType)
     }
 }
 
-std.d.ast.Type2 translateType2(unknown.Type* cppType)
+private std.d.ast.Type2 translateType2(unknown.Type* cppType)
 {
     std.d.ast.Type type = translateType(cppType);
     return type.type2;
