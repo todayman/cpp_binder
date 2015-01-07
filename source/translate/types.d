@@ -311,5 +311,7 @@ package void makeTypeForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token
     }
     IdentifierOrTemplateChain chain = concatIdTemplateChain(package_name, internal_path);
     chain.append(targetName);
-    type2.identifierOrTemplateChain = chain;
+    auto symbol = new Symbol();
+    symbol.identifierOrTemplateChain = chain;
+    type2.symbol = symbol;
 }
