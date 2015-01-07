@@ -84,7 +84,10 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
     string replacement_name = binder.toDString(cppType.getReplacement());
     if (replacement_name.length > 0)
     {
-        if (replacement_name !in types_by_name)
+        try {
+            result = types_by_name[replacement_name];
+        }
+        catch (RangeError e)
         {
             result = new std.d.ast.Type();
             types_by_name[replacement_name] = result;
@@ -93,11 +96,6 @@ std.d.ast.Type replaceType(unknown.Type* cppType)
             result.type2.symbol.identifierOrTemplateChain = makeIdentifierOrTemplateChain(replacement_name);
 
             // FIXME Which package / module do these go in?
-        }
-        else
-        {
-            // FIXME do this without the second lookup
-            result = types_by_name[replacement_name];
         }
 
         return result;
