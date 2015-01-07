@@ -476,6 +476,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
+        if (cppDecl.getDefinition() !is cppDecl && cppDecl.getDefinition() !is null)
+            return;
         determineRecordStrategy(cppDecl.getType());
         switch (cppDecl.getType().getStrategy())
         {
