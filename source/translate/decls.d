@@ -367,12 +367,23 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             !iter.equals(finish);
             iter.advance())
         {
-            // FIXME this cast doesn't work in D (doesn't have the right RTTI)
-            // So I'm abandoning this special case for now
-            /*if (unknown.EnumDeclaration enumDecl = cast(unknown.EnumDeclaration)(iter.get()) )
+            if (cast(void*)iter.get() in translated)
             {
-                result.insert(translateEnum(enumDecl));
-            }*/
+                continue;
+            }
+            try {
+                auto visitor = new TranslatorVisitor(parent_package_name, namespace_path, package_internal_path);
+                iter.get().visit(visitor);
+                if (visitor.last_result)
+                {
+                    result.structBody.declarations ~= [visitor.last_result];
+                }
+            }
+            catch (Exception e)
+            {
+                iter.get().dump();
+                stderr.writeln("ERROR: ", e.msg);
+            }
         }
         return result;
     }
