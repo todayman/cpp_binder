@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,6 +30,11 @@ import dlang_decls;
 
 void visitModule(const Module mod, string path_prefix)
 {
+    if (mod.declarations.length == 0)
+    {
+        return;
+    }
+
     Appender!string path_appender;
     path_appender.put(path_prefix);
     foreach (Token t; mod.moduleDeclaration.moduleName.identifiers)
