@@ -773,6 +773,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         var.storageClasses ~= [makeStorageClass(translateLinkage(cppDecl, namespace_path))];
 
+        // TODO is this the best way to see if this is a top level, global variable?
+        if (package_internal_path.identifiersOrTemplateInstances.length == 0)
+        {
+            auto sc = new std.d.ast.StorageClass();
+            sc.token = Token(tok!"identifier", "extern", 0, 0, 0);
+            var.storageClasses ~= [sc];
+        }
+
         auto declarator = new Declarator();
         declarator.name = nameFromDecl(cppDecl);
         var.declarators ~= [declarator];
