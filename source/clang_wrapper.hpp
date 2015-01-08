@@ -16,21 +16,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string>
-#include <vector>
+#ifndef __CLANG_WRAPPER_HPP__
+#define __CLANG_WRAPPER_HPP__
 
-#include "clang/Frontend/ASTUnit.h"
-#include "clang/Tooling/Tooling.h"
-
-#include "clang_wrapper.hpp"
-
-clang::ASTUnit* buildAST(const char * contents, size_t arg_len, const char** raw_args, const char * filename)
+namespace clang
 {
-    std::vector<std::string> clang_args;
-    clang_args.resize(arg_len);
-    for (size_t i = 0; i < arg_len; ++i)
-    {
-        clang_args.at(i) = raw_args[i];
-    }
-    return clang::tooling::buildASTFromCodeWithArgs(contents, clang_args, filename).release();
+    class ASTUnit;
 }
+
+clang::ASTUnit* buildAST(const char * contents, size_t arg_len, const char** raw_args, const char * filename);
+
+#endif // __CLANG_WRAPPER_HPP__
