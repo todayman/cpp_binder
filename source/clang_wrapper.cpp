@@ -24,7 +24,7 @@
 
 #include "clang_wrapper.hpp"
 
-clang::ASTUnit* buildAST(const char * contents, size_t arg_len, const char** raw_args, const char * filename)
+clang::ASTUnit* buildAST(char * contents, size_t arg_len, char** raw_args, char * filename)
 {
     std::vector<std::string> clang_args;
     clang_args.resize(arg_len);
