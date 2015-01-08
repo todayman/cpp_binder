@@ -1130,7 +1130,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseEnumDecl(clang::EnumDecl* cppDecl);
         //bool TraverseEnumConstantDecl(clang::EnumConstantDecl* cppDecl);
         // TODO handle constexpr
-        bool TraverseVarDecl(clang::VarDecl* cppDecl);
         bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl);
         bool TraverseAccessSpecDecl(clang::AccessSpecDecl* cppDecl);
         bool TraverseFriendDecl(clang::FriendDecl* cppDecl);
@@ -1163,6 +1162,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool VisitParmVarDecl(clang::ParmVarDecl* cppDecl);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
         bool VisitFieldDecl(clang::FieldDecl* cppDecl);
+        bool VisitVarDecl(clang::VarDecl* cppDecl);
 
         private:
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);

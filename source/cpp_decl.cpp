@@ -466,11 +466,6 @@ bool DeclVisitor::TraverseEnumDecl(clang::EnumDecl* cppDecl)
     return result;
 }
 
-bool DeclVisitor::TraverseVarDecl(clang::VarDecl* cppDecl)
-{
-    return WalkUpFromVarDecl(cppDecl);
-}
-
 // TODO wrap these as public imports / aliases?
 bool DeclVisitor::TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl)
 {
@@ -513,6 +508,11 @@ bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
     if( !decl_in_progress )
         allocateDeclaration<clang::VarDecl, VariableDeclaration>(cppDecl);
     return Super::WalkUpFromVarDecl(cppDecl);
+}
+
+bool DeclVisitor::VisitVarDecl(clang::VarDecl* cppDecl)
+{
+    return TraverseType(cppDecl->getType());
 }
 
 #define WALK_UP(C, D)\
