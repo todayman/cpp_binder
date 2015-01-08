@@ -11,7 +11,7 @@ extern(C++) void enableDeclarationsInFiles(size_t count, const(char) * * filenam
 
 extern(C++) void traverseDeclsInAST(clang.ASTUnit* ast);
 
-extern(C++) clang.ASTUnit* buildAST(const(char) * contents, size_t arg_len, const(char)** clang_args, const(char) * filename);
+extern(C++) clang.ASTUnit* buildAST(char * contents, size_t arg_len, char** clang_args, char * filename);
 
 extern(C++) interface RecordDeclaration : unknown.Declaration
 {

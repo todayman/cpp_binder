@@ -48,10 +48,10 @@ int main(string[] argv)
         return -1;
     }
 
-    const(char)*[] raw_clang_args = new char*[clang_args.length];
+    char*[] raw_clang_args = new char*[clang_args.length];
     foreach (ulong idx, string str; clang_args)
     {
-        raw_clang_args[idx] = toStringz(clang_args[idx]);
+        raw_clang_args[idx] = toStringz(str)[0 .. str.length+1].dup.ptr;
     }
 
     string contents;
@@ -63,8 +63,8 @@ int main(string[] argv)
     // FIXME potential collisions with cpp_binder.cpp will really confuse clang
     // If you pass a header here and the source #includes that header,
     // then clang recurses infinitely
-    const(char)* contentz = toStringz(contents);
-    clang.ASTUnit* ast = buildAST(contentz, raw_clang_args.length, raw_clang_args.ptr, "cpp_binder.cpp");
+    char* contentz = toStringz(contents)[0 .. contents.length+1].dup.ptr;
+    clang.ASTUnit* ast = buildAST(contentz, raw_clang_args.length, raw_clang_args.ptr, "cpp_binder.cpp".dup.ptr);
     traverseDeclsInAST(ast);
 
     const(char)*[] raw_files = new char*[args.header_files.length];
