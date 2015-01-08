@@ -194,7 +194,18 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
         TypeSuffix pointerSuffix = new TypeSuffix();
         pointerSuffix.star = true;
         result.typeSuffixes = [pointerSuffix];
-        result.type2 = translateType2(target_type);
+
+        // FIXME potentially does many concatenations; there should be a way
+        // to build them all into the same array.
+        // But this probably won't be a real problem, because
+        // how deep do people's types actually go? (Don't answer that!)
+        std.d.ast.Type translatedTargetType = translateType(target_type);
+        if (translatedTargetType.typeConstructors.length > 0)
+        {
+            throw new Error("This case is not handled yet!");
+        }
+        result.typeSuffixes ~= translatedTargetType.typeSuffixes;
+        result.type2 = translatedTargetType.type2;
     }
 
     return result;
