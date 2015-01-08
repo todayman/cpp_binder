@@ -53,6 +53,12 @@
                 , "d_decl": "clang.Decl"
             }
         }
+        , "clang::ASTUnit": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.ASTUnit"
+            }
+        }
         , "DeclVisitor": {
             "bound": 0
         }
