@@ -684,7 +684,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             throw new OverloadedOperatorError();
         }
 
-        auto result = new std.d.ast.FunctionDeclaration();
+        auto result = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl);
 
         if (cppDecl.isStatic())
         {
