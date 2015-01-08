@@ -79,16 +79,8 @@ Type::Kind Type::getKind()
 {
     return kind;
 }
-Type::Kind Type::getKind() const
-{
-    return kind;
-}
 
 Strategy Type::getStrategy()
-{
-    return strategy;
-}
-Strategy Type::getStrategy() const
 {
     return strategy;
 }
@@ -101,15 +93,6 @@ string* Type::getReplacement()
     }
     string * result = new string(target_name);
     return result;
-}
-
-const string* Type::getReplacement() const
-{
-    if( strategy != REPLACE )
-    {
-        throw WrongStrategy();
-    }
-    return new string(target_name);
 }
 
 RecordDeclaration * Type::getRecordDeclaration()

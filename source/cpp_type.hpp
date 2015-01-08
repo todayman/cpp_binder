@@ -103,7 +103,6 @@ class UnionDeclaration;
         }
 
         Kind getKind();
-        Kind getKind() const;
 
         friend class TypeVisitor;
 
@@ -140,7 +139,6 @@ class UnionDeclaration;
         }
 
         Strategy getStrategy();
-        Strategy getStrategy() const;
 
         struct WrongStrategy : public std::runtime_error
         {
@@ -149,7 +147,6 @@ class UnionDeclaration;
             { }
         };
         string* getReplacement();
-        const string* getReplacement() const;
 
         RecordDeclaration * getRecordDeclaration();
         Type * getPointeeType();
