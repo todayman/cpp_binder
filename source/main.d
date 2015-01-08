@@ -67,10 +67,10 @@ int main(string[] argv)
     clang.ASTUnit* ast = buildAST(contentz, raw_clang_args.length, raw_clang_args.ptr, "cpp_binder.cpp".dup.ptr);
     traverseDeclsInAST(ast);
 
-    const(char)*[] raw_files = new char*[args.header_files.length];
+    char*[] raw_files = new char*[args.header_files.length];
     foreach (ulong idx, string str; args.header_files)
     {
-        raw_files[idx] = toStringz(str);
+        raw_files[idx] = toStringz(str)[0 .. str.length+1].dup.ptr;
     }
     enableDeclarationsInFiles(raw_files.length, raw_files.ptr);
 

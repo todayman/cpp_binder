@@ -649,7 +649,7 @@ void traverseDeclsInAST(clang::ASTUnit* ast)
     declVisitor.TraverseDecl(ast->getASTContext().getTranslationUnitDecl());
 }
 
-void enableDeclarationsInFiles(size_t count, const char ** filenames)
+void enableDeclarationsInFiles(size_t count, char ** filenames)
 {
     std::vector<std::string> vec;
     vec.reserve(count);

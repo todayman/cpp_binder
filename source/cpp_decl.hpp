@@ -1176,7 +1176,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return free_declarations;
         }
 
-        friend void enableDeclarationsInFiles(size_t count, const char ** filenames);
+        friend void enableDeclarationsInFiles(size_t count, char ** filenames);
         friend void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
         friend Declaration * getDeclaration(clang::Decl* decl);
         friend class RecordDeclaration;
@@ -1191,7 +1191,7 @@ namespace clang
     class ASTUnit;
 }
     void traverseDeclsInAST(clang::ASTUnit* ast);
-    void enableDeclarationsInFiles(size_t count, const char ** filenames);
+    void enableDeclarationsInFiles(size_t count, char ** filenames);
     void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
     Declaration * getDeclaration(clang::Decl* decl);
 

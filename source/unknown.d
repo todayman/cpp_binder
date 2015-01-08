@@ -7,7 +7,7 @@ extern(C++) extern __gshared clang.SourceManager * source_manager;
 
 extern(C++) void arrayOfFreeDeclarations(size_t * count, unknown.Declaration * * array);
 
-extern(C++) void enableDeclarationsInFiles(size_t count, const(char) * * filenames);
+extern(C++) void enableDeclarationsInFiles(size_t count, char * * filenames);
 
 extern(C++) void traverseDeclsInAST(clang.ASTUnit* ast);
 
