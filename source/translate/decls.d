@@ -473,6 +473,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 }
                 stderr.writeln("ERROR: ", e.msg);
             }
+            catch (Exception e)
+            {
+                // These are usually about methods not being virtual,
+                // so try to continue
+                iter.get().dump();
+                stderr.writeln("ERROR: ", e.msg);
+            }
         }
 
         // TODO static methods and other things
