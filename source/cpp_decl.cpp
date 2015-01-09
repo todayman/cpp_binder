@@ -184,6 +184,19 @@ MethodDeclaration* MethodIterator::operator*()
     MethodDeclaration * result = dynamic_cast<MethodDeclaration*>(decl);
     return result;
 }
+MethodDeclaration* OverriddenMethodIterator::operator*()
+{
+    clang::Decl* mptr = const_cast<clang::CXXMethodDecl*>(*cpp_iter);
+    auto search_result = DeclVisitor::getDeclarations().find(mptr);
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    MethodDeclaration * result = dynamic_cast<MethodDeclaration*>(decl);
+    return result;
+}
 //template<>
 //Superclass* Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass>::operator*()
 Superclass* SuperclassIterator::operator*()

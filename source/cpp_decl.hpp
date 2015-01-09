@@ -669,6 +669,49 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
+    class OverriddenMethodIterator
+    {
+        private:
+        clang::CXXMethodDecl::method_iterator cpp_iter;
+
+        public:
+        explicit OverriddenMethodIterator(clang::CXXMethodDecl::method_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const OverriddenMethodIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const OverriddenMethodIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        MethodDeclaration* operator*();
+        MethodDeclaration* operator->()
+        {
+            return operator*();
+        }
+
+        virtual MethodDeclaration* get()
+        {
+            return operator*();
+        }
+
+        virtual void advance()
+        {
+            cpp_iter++;
+        }
+
+        virtual bool equals(OverriddenMethodIterator* other)
+        {
+            return (*this) == (*other);
+        }
+    };
     class MethodDeclaration : public Declaration
     {
         private:
@@ -724,6 +767,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual void dump() override
         {
             _decl->dump();
+        }
+
+        virtual OverriddenMethodIterator * getOverriddenBegin()
+        {
+            return new OverriddenMethodIterator(_decl->begin_overridden_methods());
+        }
+
+        virtual OverriddenMethodIterator * getOverriddenEnd()
+        {
+            return new OverriddenMethodIterator(_decl->end_overridden_methods());
         }
     };
 
@@ -1184,6 +1237,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class ArgumentIterator;
         friend class FieldIterator;
         friend class MethodIterator;
+        friend class OverriddenMethodIterator;
     };
 
 namespace clang

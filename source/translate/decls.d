@@ -451,7 +451,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result.baseClassList = baseClassList;
         }
 
-        for( unknown.MethodIterator iter = cppDecl.getMethodBegin(),
+        for (unknown.MethodIterator iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
              !iter.equals(finish);
              iter.advance() )
@@ -461,9 +461,27 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             unknown.MethodDeclaration cpp_method = iter.get();
             if (cpp_method is null || !cpp_method.getShouldBind())
                 continue;
+
             try {
                 std.d.ast.FunctionDeclaration method = translateMethod(iter.get(), VirtualBehavior.REQUIRED);
-                result.structBody.declarations ~= [makeDeclaration(method)];
+
+                bool no_bound_overrides = true;
+                for (unknown.OverriddenMethodIterator override_iter = cpp_method.getOverriddenBegin(),
+                        override_finish = cpp_method.getOverriddenEnd();
+                     !override_iter.equals(override_finish) && no_bound_overrides;
+                     override_iter.advance() )
+                {
+                    unknown.MethodDeclaration superMethod = override_iter.get();
+                    if (superMethod.getShouldBind())
+                    {
+                        no_bound_overrides = false;
+                    }
+                }
+
+                if (no_bound_overrides)
+                {
+                    result.structBody.declarations ~= [makeDeclaration(method)];
+                }
             }
             catch (OverloadedOperatorError e)
             {

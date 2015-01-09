@@ -41,6 +41,13 @@ extern(C++) interface MethodIterator
     public bool equals(unknown.MethodIterator other);
 }
 
+extern(C++) interface OverriddenMethodIterator
+{
+    public unknown.MethodDeclaration get();
+    public void advance();
+    public bool equals(unknown.OverriddenMethodIterator other);
+}
+
 extern(C++) interface MethodDeclaration : unknown.Declaration
 {
     //public unknown.Type * getType();
@@ -52,6 +59,8 @@ extern(C++) interface MethodDeclaration : unknown.Declaration
     public unknown.Type * getReturnType();
     public unknown.ArgumentIterator getArgumentBegin();
     public unknown.ArgumentIterator getArgumentEnd();
+    public unknown.OverriddenMethodIterator getOverriddenBegin();
+    public unknown.OverriddenMethodIterator getOverriddenEnd();
     //public void dump();
 }
 
