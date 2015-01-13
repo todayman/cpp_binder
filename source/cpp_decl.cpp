@@ -138,7 +138,7 @@ TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
 //template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::operator*();
 Declaration* DeclarationIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -150,10 +150,11 @@ Declaration* DeclarationIterator::operator*()
 //template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
 ArgumentDeclaration* ArgumentIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
+        (*cpp_iter)->getCanonicalDecl()->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -162,7 +163,7 @@ ArgumentDeclaration* ArgumentIterator::operator*()
 //template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
 FieldDeclaration* FieldIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -174,7 +175,7 @@ FieldDeclaration* FieldIterator::operator*()
 //template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
 MethodDeclaration* MethodIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find(*cpp_iter);
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -186,7 +187,7 @@ MethodDeclaration* MethodIterator::operator*()
 }
 MethodDeclaration* OverriddenMethodIterator::operator*()
 {
-    clang::Decl* mptr = const_cast<clang::CXXMethodDecl*>(*cpp_iter);
+    clang::Decl* mptr = const_cast<clang::CXXMethodDecl*>((*cpp_iter)->getCanonicalDecl());
     auto search_result = DeclVisitor::getDeclarations().find(mptr);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
@@ -242,6 +243,7 @@ DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
 bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
 {
     bool result = true;
+    cppDecl = cppDecl->getCanonicalDecl();
     auto search_result = declarations.find(cppDecl);
     if( search_result == declarations.end() )
     {
@@ -705,6 +707,7 @@ void arrayOfFreeDeclarations(size_t* count, Declaration*** array)
 
 Declaration * getDeclaration(clang::Decl* decl)
 {
+    decl = decl->getCanonicalDecl();
     auto search_result = DeclVisitor::declarations.find(decl);
     if( search_result == DeclVisitor::declarations.end() )
     {
