@@ -996,9 +996,13 @@ package void resolveSymbol(unknown.Declaration cppDecl)
     makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, new IdentifierOrTemplateChain(), "");
 }
 
-string toString(IdentifierChain chain)
+string makeString(IdentifierChain chain)
 {
     return join(chain.identifiers.map!(a => a.text), ".");
+}
+string makeString(const Symbol sym)
+{
+    return join(sym.identifierOrTemplateChain.identifiersOrTemplateInstances.map!(a => a.identifier.text), ".");
 }
 
 private class SymbolFinder : std.d.ast.ASTVisitor
@@ -1012,6 +1016,11 @@ private class SymbolFinder : std.d.ast.ASTVisitor
     {
         try {
             string mod = symbolModules[sym];
+            if (mod == ".")
+            {
+                // indicates global scope, no import necessary
+                return;
+            }
             int* counter = (mod in modules);
             if (counter is null)
             {
@@ -1024,8 +1033,7 @@ private class SymbolFinder : std.d.ast.ASTVisitor
         }
         catch (RangeError e)
         {
-            import std.algorithm : map, join;
-            string symbol_name = join(sym.identifierOrTemplateChain.identifiersOrTemplateInstances.map!(a => a.identifier.text), ".");
+            string symbol_name = makeString(sym);
             stderr.writeln("WARNING: Could not find the module containing \"", symbol_name, "\", there may be undefined symbols in the generated code.");
         }
     }
@@ -1039,7 +1047,7 @@ void computeImports(Module mod)
     imports.importDeclaration = new ImportDeclaration();
 
     // Don't need to import ourselves
-    string my_name = toString(mod.moduleDeclaration.moduleName);
+    string my_name = makeString(mod.moduleDeclaration.moduleName);
     if (my_name in sf.modules)
     {
         sf.modules.remove(my_name);
