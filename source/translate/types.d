@@ -35,6 +35,7 @@ private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
 private std.d.ast.Symbol[void*] symbolForDecl;
 package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
+package string [const std.d.ast.Symbol] symbolModules;
 
 package void determineStrategy(unknown.Type* cppType)
 {
@@ -319,6 +320,8 @@ private std.d.ast.Type2 translateType2(unknown.Type* cppType)
 
 package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
 {
+    import std.array : join;
+    import std.algorithm : map;
     import dlang_decls : append;
 
     std.d.ast.Symbol symbol;
@@ -340,4 +343,6 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     chain = chain.concat(namespace_chain);
     chain.append(targetName);
     symbol.identifierOrTemplateChain = chain;
+
+    symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
 }

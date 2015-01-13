@@ -30,7 +30,7 @@ static import binder;
 import dlang_decls;
 static import unknown;
 import manual_types;
-import translate.types : determineStrategy, makeSymbolForDecl, translateType, unresolvedSymbols;
+import translate.types;
 
 private std.d.ast.Declaration[void*] translated;
 private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
@@ -926,6 +926,11 @@ void populateDAST()
             throw new Exception("Not all types could be resolved.");
         }
     }
+    
+    foreach (path, mod; rootPackage.children)
+    {
+        computeImports(mod);
+    }
 }
 
 void determineRecordStrategy(unknown.Type* cppType)
@@ -974,7 +979,7 @@ class NoDefinitionException : Exception
     {
       super(to!string(decl.getSourceName().c_str()) ~ " has no definition, so I cannot determine a translation strategy.");
     }
-};
+}
 
 // Creates type information for decls that are not to be bound, but are
 // referenced by the declarations being bound.
@@ -989,4 +994,50 @@ package void resolveSymbol(unknown.Declaration cppDecl)
     //
     // I'm not sure how to fix this just yet.
     makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, new IdentifierOrTemplateChain(), "");
+}
+
+private class SymbolFinder : std.d.ast.ASTVisitor
+{
+    public int[string] modules;
+    // Since I'm overriding a particular overload of visit, alias them all in
+    alias visit = ASTVisitor.visit;
+
+    override
+    void visit(const std.d.ast.Symbol sym)
+    {
+        try {
+            string mod = symbolModules[sym];
+            int* counter = (mod in modules);
+            if (counter is null)
+            {
+                modules[mod] = 0;
+            }
+            else
+            {
+                (*counter) += 1;
+            }
+        }
+        catch (RangeError e)
+        {
+            import std.algorithm : map, join;
+            string symbol_name = join(sym.identifierOrTemplateChain.identifiersOrTemplateInstances.map!(a => a.identifier.text), ".");
+            stderr.writeln("WARNING: Could not find the module containing \"", symbol_name, "\", there may be undefined symbols in the generated code.");
+        }
+    }
+}
+
+void computeImports(Module mod)
+{
+    auto sf = new SymbolFinder();
+    sf.visit(mod);
+    Declaration imports = new Declaration();
+    imports.importDeclaration = new ImportDeclaration();
+    foreach (name, count; sf.modules)
+    {
+        SingleImport currentImport = new SingleImport();
+        currentImport.identifierChain = makeIdentifierChain(name);
+        imports.importDeclaration.singleImports ~= [currentImport];
+    }
+
+    mod.declarations = [imports] ~ mod.declarations;
 }
