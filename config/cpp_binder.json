@@ -10,54 +10,35 @@
                   "name": "replace"
                 , "d_decl": "clang.PrintingPolicy"
             }
+          , "target_module": "manual_types"
         }
         , "clang::SourceManager": {
             "strategy": {
                   "name": "replace"
                 , "d_decl": "clang.SourceManager"
             }
+          , "target_module": "manual_types"
         }
         , "clang::QualType": {
             "strategy": {
                   "name": "replace"
                 , "d_decl": "clang.QualType"
             }
-        }
-        , "clang::DeclContext::decl_iterator": {
-            "strategy": {
-                  "name": "replace"
-                , "d_decl": "clang.DeclContext.decl_iterator"
-            }
-        }
-        , "clang::FunctionDecl::param_const_iterator": {
-            "strategy": {
-                  "name": "replace"
-                , "d_decl": "clang.FunctionDecl.param_const_iterator"
-            }
-        }
-        , "clang::RecordDecl::field_iterator": {
-            "strategy": {
-                  "name": "replace"
-                , "d_decl": "clang.RecordDecl.field_iterator"
-            }
-        }
-        , "clang::CXXRecordDecl::method_iterator": {
-            "strategy": {
-                  "name": "replace"
-                , "d_decl": "clang.CXXRecordDecl.method_iterator"
-            }
+          , "target_module": "manual_types"
         }
         , "clang::Decl": {
             "strategy": {
                   "name": "replace"
                 , "d_decl": "clang.Decl"
             }
+          , "target_module": "manual_types"
         }
         , "clang::ASTUnit": {
             "strategy": {
                 "name": "replace"
               , "d_decl": "clang.ASTUnit"
             }
+          , "target_module": "manual_types"
         }
         , "DeclVisitor": {
             "bound": 0
