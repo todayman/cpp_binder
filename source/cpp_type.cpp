@@ -130,7 +130,7 @@ RecordDeclaration * Type::getRecordDeclaration()
 {
     assert(kind == Record);
     const clang::RecordType * cpp_record = cpp_type->getAs<clang::RecordType>();
-    return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl));
+    return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
 }
 
 Type * Type::getPointeeType()
