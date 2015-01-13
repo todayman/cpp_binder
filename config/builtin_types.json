@@ -13,102 +13,119 @@
                 "name": "replace",
                 "d_decl": "void"
             }
+            , "target_module": "."
         },
         "char": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "char"
             }
+            , "target_module": "."
         },
         "char16_t": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "wchar"
             }
+            , "target_module": "."
         },
         "char32_t": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "dchar"
             }
+            , "target_module": "."
         },
         "signed char": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "char"
             }
+            , "target_module": "."
         },
         "unsigned char": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "ubyte"
             }
+            , "target_module": "."
         },
         "short": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "short"
             }
+            , "target_module": "."
         },
         "unsigned short": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "ushort"
             }
+            , "target_module": "."
         },
         "int": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "int"
             }
+            , "target_module": "."
         },
         "unsigned int": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "uint"
             }
+            , "target_module": "."
         },
         "long": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "long"
             }
+            , "target_module": "."
         },
         "unsigned long": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "ulong"
             }
+            , "target_module": "."
         },
         "long long": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "long"
             }
+            , "target_module": "."
         },
         "unsigned long long": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "ulong"
             }
+            , "target_module": "."
         },
         "bool": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "bool"
             }
+            , "target_module": "."
         },
         "float": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "float"
             }
+            , "target_module": "."
         },
         "double": {
             "strategy": {
                 "name": "replace",
                 "d_decl": "double"
             }
+            , "target_module": "."
         }
     }
 }
