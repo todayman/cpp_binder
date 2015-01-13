@@ -208,11 +208,6 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
     }
 }
 
-static Declaration* getDecl(clang::Decl* decl)
-{
-    return getDeclaration(decl);
-}
-
 clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::ASTContext& ast, clang::DeclContext* context)
 {
     std::string top_name;
@@ -263,7 +258,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
         {
             Declaration* decl;
             try {
-                decl = getDecl(cppDecl);
+                decl = getDeclaration(cppDecl);
             }
             catch( std::out_of_range& exc )
             {
