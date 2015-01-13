@@ -996,6 +996,11 @@ package void resolveSymbol(unknown.Declaration cppDecl)
     makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, new IdentifierOrTemplateChain(), "");
 }
 
+string toString(IdentifierChain chain)
+{
+    return join(chain.identifiers.map!(a => a.text), ".");
+}
+
 private class SymbolFinder : std.d.ast.ASTVisitor
 {
     public int[string] modules;
@@ -1032,6 +1037,14 @@ void computeImports(Module mod)
     sf.visit(mod);
     Declaration imports = new Declaration();
     imports.importDeclaration = new ImportDeclaration();
+
+    // Don't need to import ourselves
+    string my_name = toString(mod.moduleDeclaration.moduleName);
+    if (my_name in sf.modules)
+    {
+        sf.modules.remove(my_name);
+    }
+
     foreach (name, count; sf.modules)
     {
         SingleImport currentImport = new SingleImport();
