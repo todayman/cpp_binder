@@ -217,34 +217,13 @@ WALK_UP_METHOD(Typedef)
 WALK_UP_METHOD(Vector)
 WALK_UP_METHOD(Enum)
 
-bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* cppType)
-{
-    allocateType(cppType, Type::Invalid);
-    throw SkipRValueRef(cppType);
-}
-
-bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* cppType)
-{
-    allocateType(cppType, Type::Invalid);
-    throw SkipMemberPointer(cppType);
-}
-
-bool TypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* cppType)
-{
-    allocateType(cppType, Type::Invalid);
-    return false;
-}
-
-bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* cppType)
-{
-    allocateType(cppType, Type::Invalid);
-    return false;
-}
-
 bool TypeVisitor::WalkUpFromType(clang::Type* type)
 {
     if( !type_in_progress )
-        throw FatalTypeNotWrappable(type);
+    {
+        allocateType(type, Type::Invalid);
+        return false;
+    }
 
     if( type->isInstantiationDependentType() )
         throw SkipTemplate(type);
