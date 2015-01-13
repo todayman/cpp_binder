@@ -926,6 +926,18 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         private:
         const clang::RecordDecl* _decl;
 
+        const clang::RecordDecl* definitionOrThis()
+        {
+            if (hasDefinition())
+            {
+                return _decl->getDefinition();
+            }
+            else
+            {
+                return _decl;
+            }
+        }
+
         public:
         RecordDeclaration(const clang::RecordDecl* d)
             : _decl(d)
@@ -947,26 +959,26 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual FieldIterator * getFieldBegin()
         {
-            return new FieldIterator(_decl->field_begin());
+            return new FieldIterator(definitionOrThis()->field_begin());
         }
         virtual FieldIterator * getFieldEnd()
         {
-            return new FieldIterator(_decl->field_end());
+            return new FieldIterator(definitionOrThis()->field_end());
         }
         virtual DeclarationIterator * getChildBegin()
         {
-            return new DeclarationIterator(_decl->decls_begin());
+            return new DeclarationIterator(definitionOrThis()->decls_begin());
         }
         virtual DeclarationIterator * getChildEnd()
         {
-            return new DeclarationIterator(_decl->decls_end());
+            return new DeclarationIterator(definitionOrThis()->decls_end());
         }
 
         virtual MethodIterator * getMethodBegin()
         {
             if( isCXXRecord() )
             {
-                const clang::CXXRecordDecl* record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
+                const clang::CXXRecordDecl* record = reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis());
                 return new MethodIterator(record->method_begin());
             }
             else
@@ -978,7 +990,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             if( isCXXRecord() )
             {
-                return new MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->method_end());
+                return new MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis())->method_end());
             }
             else
             {
@@ -994,7 +1006,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
             else
             {
-                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
+                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis());
                 return new SuperclassIterator(record->bases_begin());
             }
         }
@@ -1006,7 +1018,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
             else
             {
-                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(_decl);
+                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis());
                 return new SuperclassIterator(record->bases_end());
             }
         }
@@ -1018,8 +1030,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual bool hasDefinition()
         {
-            if( !isCXXRecord() ) throw std::logic_error("Can only call hasDefinition on CXX records, and this is just a record.");
-            return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->hasDefinition();
+            return (_decl->getDefinition() != nullptr);
         }
 
         virtual RecordDeclaration* getDefinition();
