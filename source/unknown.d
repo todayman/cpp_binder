@@ -219,8 +219,11 @@ extern(C++) struct Type
     public void setStrategy(unknown.Strategy s);
     public unknown.Strategy getStrategy();
     public binder.binder.string getReplacement();
+    public binder.binder.string getReplacementModule();
+    public void getReplacementModule(binder.binder.string new_mod);
 
     // Needed to avoid exposing Clang types
+    public Declaration getDeclaration();
     public RecordDeclaration getRecordDeclaration();
     public Type* getPointeeType();
     public TypedefDeclaration getTypedefDeclaration();

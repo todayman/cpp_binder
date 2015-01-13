@@ -94,12 +94,43 @@ string* Type::getReplacement()
     string * result = new string(target_name);
     return result;
 }
+string* Type::getReplacementModule()
+{
+    if( strategy != REPLACE )
+    {
+        throw WrongStrategy();
+    }
+    string * result = new string(target_module);
+    return result;
+}
+
+void Type::setReplacementModule(string new_mod)
+{
+    target_module = new_mod;
+}
+
+Declaration * Type::getDeclaration()
+{
+    switch (kind)
+    {
+        case Record:
+            return getRecordDeclaration();
+        case Typedef:
+            return getTypedefDeclaration();
+        case Enum:
+            return getEnumDeclaration();
+        case Union:
+            return getUnionDeclaration();
+        default:
+            return nullptr;
+    }
+}
 
 RecordDeclaration * Type::getRecordDeclaration()
 {
     assert(kind == Record);
     const clang::RecordType * cpp_record = cpp_type->getAs<clang::RecordType>();
-    return dynamic_cast<RecordDeclaration*>(getDeclaration(cpp_record->getDecl()));
+    return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl));
 }
 
 Type * Type::getPointeeType()
@@ -128,7 +159,7 @@ TypedefDeclaration * Type::getTypedefDeclaration()
     const clang::TypedefType * clang_type = cpp_type->getAs<clang::TypedefType>();
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
-    Declaration* this_declaration = getDeclaration(static_cast<clang::Decl*>(clang_decl));
+    Declaration* this_declaration = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     if( !this_declaration )
     {
         clang_decl->dump();
@@ -144,7 +175,7 @@ EnumDeclaration * Type::getEnumDeclaration()
     const clang::EnumType * clang_type = cpp_type->castAs<clang::EnumType>();
     clang::EnumDecl * clang_decl = clang_type->getDecl();
 
-    Declaration* cpp_generic_decl = getDeclaration(static_cast<clang::Decl*>(clang_decl));
+    Declaration* cpp_generic_decl = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     return dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
 }
 
@@ -154,7 +185,7 @@ UnionDeclaration * Type::getUnionDeclaration()
     const clang::RecordType * clang_type = cpp_type->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
-    return dynamic_cast<UnionDeclaration*>(getDeclaration(clang_decl));
+    return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
 }
 
 void Type::dump()

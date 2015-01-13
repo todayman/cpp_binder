@@ -376,6 +376,14 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                 }
                 readStrategyConfiguration(*sub_obj, type);
             }
+            else if (attrib_name == "target_module")
+            {
+                if (!YAJL_IS_STRING(sub_obj))
+                {
+                    throw ExpectedString(sub_obj);
+                }
+                type->setReplacementModule(sub_obj->u.string);
+            }
             else {
                 // throw UnrecognizedAttribute(attrib_name);
                 // TODO I think I should just log this instead

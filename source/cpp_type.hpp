@@ -76,6 +76,8 @@ class UnionDeclaration;
         // Pointer to D type!
         Strategy strategy;
         string target_name;
+        string target_module; // only meaningful for types using the replacement strategy
+                              // This is kind of a kludge to deal with builtins.  FIXME?
 
         static std::unordered_map<const clang::Type*, Type*> type_map;
         static std::unordered_map<string, Type*> type_by_name;
@@ -147,7 +149,10 @@ class UnionDeclaration;
             { }
         };
         string* getReplacement();
+        string* getReplacementModule();
+        void setReplacementModule(string mod);
 
+        Declaration * getDeclaration();
         RecordDeclaration * getRecordDeclaration();
         Type * getPointeeType();
         TypedefDeclaration * getTypedefDeclaration();

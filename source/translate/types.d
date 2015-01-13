@@ -97,7 +97,19 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
             result.type2.symbol = new Symbol();
             result.type2.symbol.identifierOrTemplateChain = makeIdentifierOrTemplateChain!"."(replacement_name);
 
-            // FIXME Which package / module do these go in?
+            unknown.Declaration decl = cppType.getDeclaration();
+            if (decl !is null)
+            {
+                symbolModules[result.type2.symbol] = binder.toDString(decl.getTargetModule());
+            }
+            else
+            {
+                auto target_module = cppType.getReplacementModule();
+                if (target_module !is null && target_module.size > 0)
+                {
+                    symbolModules[result.type2.symbol] = binder.toDString(target_module);
+                }
+            }
         }
 
         return result;
@@ -233,10 +245,16 @@ private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cp
     }
     catch (RangeError e)
     {
-        auto result = new std.d.ast.Symbol();
-        // This symbol will be filled in when the declaration is traversed
-        symbolForDecl[cast(void*)cppDecl] = result;
-        unresolvedSymbols[result] = cppDecl;
+        std.d.ast.Symbol result = null;
+        if (cppDecl !is null)
+        {
+            result = new std.d.ast.Symbol();
+            // This symbol will be filled in when the declaration is traversed
+            symbolForDecl[cast(void*)cppDecl] = result;
+            unresolvedSymbols[result] = cppDecl;
+        }
+        // cppDecl can be null if the type is a builtin type,
+        // i.e., when it is not declared in the C++ anywhere
         return result;
     }
 }";
@@ -344,5 +362,8 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     chain.append(targetName);
     symbol.identifierOrTemplateChain = chain;
 
-    symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
+    if (package_name.identifiers.length > 0)
+    {
+        symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
+    }
 }
