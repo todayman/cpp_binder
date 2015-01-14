@@ -917,7 +917,6 @@ void populateDAST()
             if (decl !is null)
             {
                 stderr.writeln("\t", binder.toDString(decl.getSourceName()));
-                //decl.dump();
                 resolveSymbol(decl);
             }
         }

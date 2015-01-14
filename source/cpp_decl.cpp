@@ -240,10 +240,10 @@ DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
     : Super(), top_level_decls(false), decl_in_progress(nullptr), print_policy(pp)
 { }
 
+// FIXME this method doesn't do registration anymore
 bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
 {
     bool result = true;
-    cppDecl = cppDecl->getCanonicalDecl();
     auto search_result = declarations.find(cppDecl);
     if( search_result == declarations.end() )
     {

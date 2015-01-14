@@ -1142,10 +1142,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             decl_in_progress = new TargetType(reinterpret_cast<SourceType*>(decl->getCanonicalDecl()));
             //decl_in_progress = reinterpret_cast<TargetType*>(calloc(1, sizeof(TargetType)));
             //new (&decl_in_progress) TargetType(decl);
-            declarations.insert(std::make_pair(decl->getCanonicalDecl(), decl_in_progress));
-            if( top_level_decls )
+            if (decl->getCanonicalDecl() == decl)
             {
-                free_declarations.insert(static_cast<Declaration*>(decl_in_progress));
+                declarations.insert(std::make_pair(decl->getCanonicalDecl(), decl_in_progress));
+                if( top_level_decls )
+                {
+                    free_declarations.insert(static_cast<Declaration*>(decl_in_progress));
+                }
             }
         }
 
