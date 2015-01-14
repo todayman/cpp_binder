@@ -17,7 +17,7 @@ extern(C++, clang)
     enum AccessSpecifier;
 }
 
-extern(C++) interface runtime_error
+extern(C++, std) interface runtime_error
 {
     const(char)* what() const;
 }
