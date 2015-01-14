@@ -5,7 +5,21 @@
         , "-fPIC"
     ],
     "binding_attributes": {
-        "clang::PrintingPolicy": {
+        "size_t": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "size_t"
+            }
+          , "target_module": "."
+        }
+        , "std::runtime_error": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "std.runtime_error"
+            }
+          , "target_module": "manual_types"
+        }
+        , "clang::PrintingPolicy": {
             "strategy": {
                   "name": "replace"
                 , "d_decl": "clang.PrintingPolicy"
@@ -40,6 +54,27 @@
             }
           , "target_module": "manual_types"
         }
+        , "clang::AccessSpecifier": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.AccessSpecifier"
+            }
+          , "target_module": "manual_types"
+        }
+        , "clang::LanguageLinkage": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.LanguageLinkage"
+            }
+          , "target_module": "manual_types"
+        }
+        , "clang::Type": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.Type"
+            }
+          , "target_module": "manual_types"
+        }
         , "DeclVisitor": {
             "bound": 0
         }
@@ -50,6 +85,9 @@
             "visibility":"public"
         }
         , "isCXXRecord": {
+            "bound": 0
+        }
+        , "ConstDeclarationVisitor": {
             "bound": 0
         }
     }
