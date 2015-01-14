@@ -462,6 +462,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual Type* getType() override
         {
+            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+        }
+
+        virtual Type* getMemberType()
+        {
             return Type::get(_decl->getIntegerType());
         }
 

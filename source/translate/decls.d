@@ -373,7 +373,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             try {
                 auto visitor = new TranslatorVisitor(parent_package_name, namespace_path, package_internal_path);
-                iter.get().visit(visitor);
+                unknown.Declaration decl = iter.get();
+                decl.visit(visitor);
                 if (visitor.last_result)
                 {
                     result.structBody.declarations ~= [visitor.last_result];
@@ -565,11 +566,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = registerDeclaration!(std.d.ast.EnumDeclaration)(cppDecl);
         result.enumBody = new EnumBody();
 
-        unknown.Type * cppType = cppDecl.getType();
-        result.type = translateType(cppType);
         result.name = nameFromDecl(cppDecl);
-
         makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
+
+        unknown.Type * cppType = cppDecl.getMemberType();
+        result.type = translateType(cppType);
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
@@ -745,7 +746,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         result.returnType = translateType(cppDecl.getReturnType());
         if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
+        {
             cppDecl.dump();
+        }
         result.attributes ~= [translateVisibility(cppDecl)];
 
         result.parameters = new Parameters();

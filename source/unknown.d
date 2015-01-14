@@ -98,6 +98,7 @@ extern(C++) interface EnumDeclaration : unknown.Declaration
     //public unknown.Type * getType();
     //public void visit(unknown.DeclarationVisitor visitor);
     //public void visit(unknown.ConstDeclarationVisitor visitor);
+    public unknown.Type* getMemberType();
     public unknown.DeclarationIterator getChildBegin();
     public unknown.DeclarationIterator getChildEnd();
     //public void dump();
