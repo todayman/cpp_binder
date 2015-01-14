@@ -265,6 +265,11 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                 std::cerr << "Could not find declaration for " << name << "\n";
                 continue;
             }
+            if (decl == nullptr)
+            {
+                std::cerr << "Could not find declaration for " << name << "\n";
+                continue;
+            }
 
             for( size_t idx = 0; idx < obj.u.object.len; ++idx )
             {
