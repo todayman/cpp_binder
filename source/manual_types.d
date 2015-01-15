@@ -7,6 +7,7 @@ extern(C++, clang)
     struct Decl;
     struct SourceManager;
     struct QualType;
+    struct Type;
     struct PrintingPolicy;
 
     enum LanguageLinkage {
