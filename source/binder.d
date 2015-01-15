@@ -1,6 +1,5 @@
 module binder;
 
-import std.string;
 extern(C++, binder)
 {
     interface string
@@ -16,6 +15,7 @@ extern(C++, binder)
 
 auto toDString(binder.string str)
 {
+    import std.string : fromStringz;
     return fromStringz(str.c_str()).idup;
 }
 
