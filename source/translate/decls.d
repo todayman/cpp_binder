@@ -437,7 +437,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             // the translation will force the type to pick a strategy
             std.d.ast.Type superType = translateType(superclass.base);
             // FIXME cannot handle arbitrary replacement of superclasses
-            if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE)
+            if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE
+                    && superclass.base.getStrategy() != unknown.Strategy.REPLACE)
             {
                 throw new Exception("Superclass of an interface is not an interface.");
             }
