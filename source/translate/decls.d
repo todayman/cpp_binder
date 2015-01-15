@@ -1063,5 +1063,8 @@ void computeImports(Module mod)
         imports.importDeclaration.singleImports ~= [currentImport];
     }
 
-    mod.declarations = [imports] ~ mod.declarations;
+    if (sf.modules.length > 0)
+    {
+        mod.declarations = [imports] ~ mod.declarations;
+    }
 }
