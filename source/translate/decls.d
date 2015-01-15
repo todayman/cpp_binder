@@ -88,7 +88,7 @@ private string makeDeclarationMixin(string name)
     return ("
 private std.d.ast.Declaration makeDeclaration(" ~ [toUpper(name[0])] ~ name[1..$] ~ "Declaration decl)
 {
-    Declaration result = new Declaration();
+    auto result = new std.d.ast.Declaration();
     result." ~ [toLower(name[0])] ~ name[1..$] ~ "Declaration = decl;
     return result;
 }
@@ -104,8 +104,13 @@ mixin (makeDeclarationMixin("Variable"));
 
 private T registerDeclaration(T)(unknown.Declaration cppDecl)
 {
+    std.d.ast.Declaration result;
+    return registerDeclaration!T(cppDecl, result);
+}
+private T registerDeclaration(T)(unknown.Declaration cppDecl, out std.d.ast.Declaration result)
+{
     T decl = new T();
-    Declaration result = makeDeclaration(decl);
+    result = makeDeclaration(decl);
     translated[cast(void*)cppDecl] = result;
     return decl;
 }
@@ -184,15 +189,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    std.d.ast.FunctionDeclaration translateFunction(unknown.FunctionDeclaration cppDecl)
+    std.d.ast.Declaration translateFunction(unknown.FunctionDeclaration cppDecl)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.FunctionDeclaration)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        auto d_decl = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl);
+        std.d.ast.Declaration outerDeclaration;
+        auto d_decl = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl, outerDeclaration);
         // Set the linkage attributes for this function
         LinkageAttribute linkage = translateLinkage(cppDecl, namespace_path);
-        d_decl.attributes = [makeAttribute(linkage)];
+        outerDeclaration.attributes ~= [makeAttribute(linkage)];
 
         binder.binder.string target_name = cppDecl.getTargetName();
         if (target_name.size())
@@ -217,7 +223,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             // FIXME check these types
             d_decl.parameters.parameters ~= [translateArgument(arg_iter.get())];
         }
-        return d_decl;
+        return outerDeclaration;
     }
     extern(C++) override
     void visitFunction(unknown.FunctionDeclaration cppDecl)
@@ -312,7 +318,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl);
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
         result.name = nameFromDecl(cppDecl);
         makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
@@ -322,10 +329,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // Set the linkage attributes for this struct
         // This only matters for methods
         // FIXME should decide on C linkage sometimes, right?
-        result.linkageAttribute = new LinkageAttribute();
-        result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
-        result.linkageAttribute.hasPlusPlus = true;
-        result.linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
+        auto linkageAttribute = new LinkageAttribute();
+        linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        linkageAttribute.hasPlusPlus = true;
+        linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
+        outerDeclaration.attributes ~= [makeAttribute(linkageAttribute)];
 
         result.structBody = new StructBody();
 
@@ -348,7 +356,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             unknown.MethodDeclaration cpp_method = iter.get();
             if (!cpp_method || !cpp_method.getShouldBind())
                 continue;
-            std.d.ast.FunctionDeclaration method;
+            std.d.ast.Declaration method;
             try {
                 method = translateMethod(iter.get(), VirtualBehavior.FORBIDDEN);
             }
@@ -358,7 +366,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 stderr.writeln("\t", exc.msg);
                 continue;
             }
-            result.structBody.declarations ~= [makeDeclaration(method)];
+            result.structBody.declarations ~= [method];
         }
 
         // TODO static methods and other things
@@ -394,7 +402,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.InterfaceDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl);
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl, outerDeclaration);
         result.structBody = new StructBody();
         // TODO It looks like I elided this check in buildStruct,
         // Can I elide it here also, or does it need to go back in above?
@@ -411,10 +420,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         // Set the linkage attributes for this interface
         // This only matters for methods
-        result.linkageAttribute = new LinkageAttribute();
-        result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
-        result.linkageAttribute.hasPlusPlus = true;
-        result.linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
+        auto linkageAttribute = new LinkageAttribute();
+        linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        linkageAttribute.hasPlusPlus = true;
+        linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
+        outerDeclaration.attributes ~= [makeAttribute(linkageAttribute)];
 
         // Find the superclasses of this interface
         auto baseClassList = new BaseClassList();
@@ -465,7 +475,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
 
             try {
-                std.d.ast.FunctionDeclaration method = translateMethod(iter.get(), VirtualBehavior.REQUIRED);
+                std.d.ast.Declaration method = translateMethod(iter.get(), VirtualBehavior.REQUIRED);
 
                 bool no_bound_overrides = true;
                 for (unknown.OverriddenMethodIterator override_iter = cpp_method.getOverriddenBegin(),
@@ -482,7 +492,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
                 if (no_bound_overrides)
                 {
-                    result.structBody.declarations ~= [makeDeclaration(method)];
+                    result.structBody.declarations ~= [method];
                 }
             }
             catch (OverloadedOperatorError e)
@@ -694,9 +704,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         REQUIRED,
         FORBIDDEN,
     }
-    std.d.ast.FunctionDeclaration translateMethod(unknown.MethodDeclaration cppDecl, VirtualBehavior vBehavior)
+    std.d.ast.Declaration translateMethod(unknown.MethodDeclaration cppDecl, VirtualBehavior vBehavior)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.FunctionDeclaration)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
         if (cppDecl.isOverloadedOperator())
@@ -704,13 +714,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             throw new OverloadedOperatorError();
         }
 
-        auto result = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl);
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl, outerDeclaration);
 
         if (cppDecl.isStatic())
         {
             auto attrib = new Attribute();
             attrib.attribute = Token(tok!"static", "static", 0, 0, 0);
-            result.attributes ~= [attrib];
+            outerDeclaration.attributes ~= [attrib];
         }
         else if (cppDecl.isVirtual())
         {
@@ -732,7 +743,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             {
                 auto attrib = new Attribute();
                 attrib.attribute = Token(tok!"final", "final", 0, 0, 0);
-                result.attributes ~= [attrib];
+                outerDeclaration.attributes ~= [attrib];
             }
         }
 
@@ -750,7 +761,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             cppDecl.dump();
         }
-        result.attributes ~= [translateVisibility(cppDecl)];
+        outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
 
         result.parameters = new Parameters();
         for (unknown.ArgumentIterator arg_iter = cppDecl.getArgumentBegin(),
@@ -760,7 +771,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             result.parameters.parameters ~= [translateArgument(arg_iter.get())];
         }
-        return result;
+        return outerDeclaration;
     }
 
     extern(C++) override void visitMethod(unknown.MethodDeclaration)
