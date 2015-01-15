@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -1144,16 +1144,26 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         private:
         template<class SourceType, class TargetType>
         void allocateDeclaration(SourceType * decl) {
-            decl_in_progress = new TargetType(reinterpret_cast<SourceType*>(decl->getCanonicalDecl()));
+            auto search_result = declarations.find(decl->getCanonicalDecl());
+            if (search_result == declarations.end())
+            {
+                decl_in_progress = new TargetType(reinterpret_cast<SourceType*>(decl));
+            }
+            else
+            {
+                decl_in_progress = search_result->second;
+            }
             //decl_in_progress = reinterpret_cast<TargetType*>(calloc(1, sizeof(TargetType)));
             //new (&decl_in_progress) TargetType(decl);
-            if (decl->getCanonicalDecl() == decl)
+            declarations.insert(std::make_pair(decl, decl_in_progress));
+            bool isCanonical = (decl->getCanonicalDecl() == decl);
+            if (!isCanonical)
             {
                 declarations.insert(std::make_pair(decl->getCanonicalDecl(), decl_in_progress));
-                if( top_level_decls )
-                {
-                    free_declarations.insert(static_cast<Declaration*>(decl_in_progress));
-                }
+            }
+            if (top_level_decls)
+            {
+                free_declarations.insert(static_cast<Declaration*>(decl_in_progress));
             }
         }
 

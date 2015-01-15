@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -138,7 +138,7 @@ TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
 //template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::operator*();
 Declaration* DeclarationIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -150,7 +150,7 @@ Declaration* DeclarationIterator::operator*()
 //template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
 ArgumentDeclaration* ArgumentIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -163,7 +163,7 @@ ArgumentDeclaration* ArgumentIterator::operator*()
 //template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
 FieldDeclaration* FieldIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -175,7 +175,7 @@ FieldDeclaration* FieldIterator::operator*()
 //template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
 MethodDeclaration* MethodIterator::operator*()
 {
-    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter)->getCanonicalDecl());
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
@@ -187,7 +187,7 @@ MethodDeclaration* MethodIterator::operator*()
 }
 MethodDeclaration* OverriddenMethodIterator::operator*()
 {
-    clang::Decl* mptr = const_cast<clang::CXXMethodDecl*>((*cpp_iter)->getCanonicalDecl());
+    clang::Decl* mptr = const_cast<clang::CXXMethodDecl*>((*cpp_iter));
     auto search_result = DeclVisitor::getDeclarations().find(mptr);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
@@ -244,15 +244,15 @@ DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
 bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
 {
     bool result = true;
+    DeclVisitor next_visitor(print_policy);
+    next_visitor.top_level_decls = top_level;
+    result = next_visitor.TraverseDecl(cppDecl);
+
     auto search_result = declarations.find(cppDecl);
-    if( search_result == declarations.end() )
+    if( top_level && search_result != declarations.end() && !free_declarations.count(search_result->second) )
     {
-        DeclVisitor next_visitor(print_policy);
-        next_visitor.top_level_decls = top_level;
-        result = next_visitor.TraverseDecl(cppDecl);
-    }
-    else if( top_level && !free_declarations.count(search_result->second) )
-    {
+        // FIXME insert into free_declarations here and in allocateDeclaration
+        // should pick one and only do it there
         free_declarations.insert(search_result->second);
     }
 
