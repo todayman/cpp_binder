@@ -205,7 +205,7 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
         // FIXME assuming pointer here, and not reference
         result = new std.d.ast.Type();
         TypeSuffix pointerSuffix = new TypeSuffix();
-        pointerSuffix.star = true;
+        pointerSuffix.star = Token(tok!"*", "", 0, 0, 0);
         result.typeSuffixes = [pointerSuffix];
 
         // FIXME potentially does many concatenations; there should be a way
