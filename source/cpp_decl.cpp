@@ -50,7 +50,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as)
     }
 }
 
-long long EnumConstantDeclaration::getLLValue()
+long long EnumConstantDeclaration::getLLValue() const
 {
     long long result;
     std::istringstream strm(_decl->getInitVal().toString(10));
@@ -112,7 +112,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
-RecordDeclaration* RecordDeclaration::getDefinition()
+RecordDeclaration* RecordDeclaration::getDefinition() const
 {
     auto search_result = DeclVisitor::getDeclarations().find(_decl->getDefinition());
     if( search_result == DeclVisitor::getDeclarations().end() )

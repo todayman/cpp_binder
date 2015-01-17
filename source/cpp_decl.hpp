@@ -89,13 +89,13 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
               visibility(UNSET), remove_prefix(), source_name(), _name()
         { }
 
-        virtual clang::SourceLocation getSourceLocation() = 0;
+        virtual clang::SourceLocation getSourceLocation() const = 0;
 
-        virtual string* getSourceName()
+        virtual string* getSourceName() const
         {
             return new string(source_name);
         }
-        virtual string* getTargetName()
+        virtual string* getTargetName() const
         {
             if( _name.size() == 0 )
             {
@@ -116,7 +116,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             should_bind = decision;
         }
 
-        virtual bool getShouldBind()
+        virtual bool getShouldBind() const
         {
             return should_bind;
         }
@@ -126,16 +126,16 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             target_module = *target;
         }
 
-        virtual bool isTargetModuleSet()
+        virtual bool isTargetModuleSet() const
         {
             return target_module.size() > 0;
         }
-        virtual string* getTargetModule()
+        virtual string* getTargetModule() const
         {
             return new string(target_module);
         }
 
-        virtual ::Visibility getVisibility()
+        virtual ::Visibility getVisibility() const
         {
             return visibility;
         }
@@ -149,7 +149,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             remove_prefix = *prefix;
         }
 
-        virtual Type* getType() = 0;
+        virtual Type* getType() const = 0;
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
         //virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
@@ -287,12 +287,12 @@ func(Unwrappable)
             : _decl(d) \
         { } \
 \
-        virtual clang::SourceLocation getSourceLocation() override \
+        virtual clang::SourceLocation getSourceLocation() const override \
         { \
             return _decl->getLocation(); \
         } \
 \
-        virtual Type* getType() override \
+        virtual Type* getType() const override \
         { \
             throw NotTypeDecl(); \
         } \
@@ -325,17 +325,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
 
-        virtual clang::LanguageLinkage getLinkLanguage()
+        virtual clang::LanguageLinkage getLinkLanguage() const
         {
             return _decl->getLanguageLinkage();
         }
@@ -365,12 +365,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -401,12 +401,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }
@@ -447,12 +447,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             _decl = d;
         }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -471,7 +471,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(_decl->getUnderlyingType());
         }
 
-        virtual void dump()override
+        virtual void dump() override
         {
             _decl->dump();
         }
@@ -487,17 +487,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
 
-        virtual Type* getMemberType()
+        virtual Type* getMemberType() const
         {
             return Type::get(_decl->getIntegerType());
         }
@@ -536,12 +536,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -560,7 +560,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getInitVal();
         }*/
 
-        virtual long long getLLValue();
+        virtual long long getLLValue() const;
 
         virtual void dump() override
         {
@@ -623,12 +623,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }
@@ -642,12 +642,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitFunction(*this);
         }*/
 
-        virtual clang::LanguageLinkage getLinkLanguage()
+        virtual clang::LanguageLinkage getLinkLanguage() const
         {
             return _decl->getLanguageLinkage();
         }
 
-        virtual Type* getReturnType()
+        virtual Type* getReturnType() const
         {
             return Type::get(_decl->getReturnType());
         }
@@ -662,7 +662,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return new ArgumentIterator(_decl->param_end());
         }
 
-        virtual bool isOverloadedOperator()
+        virtual bool isOverloadedOperator() const
         {
             return _decl->isOverloadedOperator();
         }
@@ -683,13 +683,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
         // Fields can infer visibility from C++ AST
-        virtual ::Visibility getVisibility() override
+        virtual ::Visibility getVisibility() const override
         {
             if( visibility == UNSET )
             {
@@ -701,7 +701,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -774,12 +774,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }
@@ -793,21 +793,26 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitMethod(*this);
         }*/
 
-        virtual bool isStatic()
+        virtual bool isConst() const
+        {
+            return _decl->isConst();
+        }
+
+        virtual bool isStatic() const
         {
             return _decl->isStatic();
         }
-        virtual bool isVirtual()
+        virtual bool isVirtual() const
         {
             return _decl->isVirtual();
         }
 
-        virtual bool isOverloadedOperator()
+        virtual bool isOverloadedOperator() const
         {
             return _decl->isOverloadedOperator();
         }
 
-        virtual Type* getReturnType()
+        virtual Type* getReturnType() const
         {
             return Type::get(_decl->getReturnType());
         }
@@ -834,11 +839,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual OverriddenMethodIterator * getOverriddenEnd()
         {
             return new OverriddenMethodIterator(_decl->end_overridden_methods());
-        }
-
-        virtual bool isConst()
-        {
-            return _decl->isConst();
         }
     };
 
@@ -1005,12 +1005,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -1090,19 +1090,19 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        virtual bool isCXXRecord()
+        virtual bool isCXXRecord() const
         {
             return ::isCXXRecord(_decl);
         }
 
-        virtual bool hasDefinition()
+        virtual bool hasDefinition() const
         {
             return (_decl->getDefinition() != nullptr);
         }
 
-        virtual RecordDeclaration* getDefinition();
+        virtual RecordDeclaration* getDefinition() const;
 
-        virtual bool isDynamicClass()
+        virtual bool isDynamicClass() const
         {
             if( !isCXXRecord() ) return false;
             return reinterpret_cast<const clang::CXXRecordDecl*>(_decl)->isDynamicClass();
@@ -1113,7 +1113,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             _decl->dump();
         }
 
-        virtual bool isCanonical()
+        virtual bool isCanonical() const
         {
             return _decl->isCanonicalDecl();
         }
@@ -1129,12 +1129,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
@@ -1183,12 +1183,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             markUnwrappable();
         }
 
-        virtual clang::SourceLocation getSourceLocation() override
+        virtual clang::SourceLocation getSourceLocation() const override
         {
             return _decl->getLocation();
         }
 
-        virtual Type* getType() override
+        virtual Type* getType() const override
         {
             throw NotTypeDecl();
         }

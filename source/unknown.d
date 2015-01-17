@@ -25,31 +25,31 @@ extern (C++) interface Declaration
 
     protected void markUnwrappable();
 
-    public clang.SourceLocation getSourceLocation();
+    public clang.SourceLocation getSourceLocation() const;
 
-    public binder.binder.string getSourceName();
+    public binder.binder.string getSourceName() const;
 
-    public binder.binder.string getTargetName();
+    public binder.binder.string getTargetName() const;
 
-    public bool isWrappable();
+    public bool isWrappable() const;
 
     public void shouldBind(bool decision);
 
-    public bool getShouldBind();
+    public bool getShouldBind() const;
 
     public void setTargetModule(binder.binder.string target);
 
-    public bool isTargetModuleSet();
+    public bool isTargetModuleSet() const;
 
-    public binder.binder.string getTargetModule();
+    public binder.binder.string getTargetModule() const;
 
-    public unknown.Visibility getVisibility();
+    public unknown.Visibility getVisibility() const;
 
     public void setVisibility(unknown.Visibility vis);
 
     public void removePrefix(binder.binder.string prefix);
 
-    public unknown.Type* getType();
+    public unknown.Type* getType() const;
 
     public void visit(unknown.DeclarationVisitor visitor);
 
@@ -75,27 +75,27 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public unknown.SuperclassIterator getSuperclassEnd();
 
-    public bool isCXXRecord();
+    public bool isCXXRecord() const;
 
-    public bool hasDefinition();
+    public bool hasDefinition() const;
 
-    public unknown.RecordDeclaration getDefinition();
+    public unknown.RecordDeclaration getDefinition() const;
 
-    public bool isDynamicClass();
+    public bool isDynamicClass() const;
 
-    public bool isCanonical();
+    public bool isCanonical() const;
 }
 
 extern (C++) interface TypedefDeclaration : unknown.Declaration
 {
 
-    public unknown.Type* getTargetType();
+    public unknown.Type* getTargetType() const;
 }
 
 extern (C++) interface EnumDeclaration : unknown.Declaration
 {
 
-    public unknown.Type* getMemberType();
+    public unknown.Type* getMemberType() const;
 
     public unknown.DeclarationIterator getChildBegin();
 
@@ -133,7 +133,7 @@ extern (C++) struct Type
 
     static public unknown.Type* getByName(binder.binder.string name);
 
-    final public clang.Type* cppType();
+    final public clang.Type* cppType() const;
 
     final public void setKind(unknown.Type.Kind k);
 
@@ -193,31 +193,31 @@ Enum =   10
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
 {
 
-    public clang.Type* getType();
+    public clang.Type* getType() const;
 }
 
 extern (C++) interface SkipUnwrappableType : unknown.NotWrappableException
 {
 
-    public clang.Type* getType();
+    public clang.Type* getType() const;
 }
 
 extern (C++) interface SkipRValueRef : unknown.SkipUnwrappableType
 {
 
-    public char* what();
+    public char* what() const;
 }
 
 extern (C++) interface SkipTemplate : unknown.SkipUnwrappableType
 {
 
-    public char* what();
+    public char* what() const;
 }
 
 extern (C++) interface SkipMemberPointer : unknown.SkipUnwrappableType
 {
 
-    public char* what();
+    public char* what() const;
 }
 
 enum Visibility : uint 
@@ -284,7 +284,7 @@ extern (C++) interface DestructorDeclaration : unknown.Declaration {}
 extern (C++) interface VariableDeclaration : unknown.Declaration
 {
 
-    public clang.LanguageLinkage getLinkLanguage();
+    public clang.LanguageLinkage getLinkLanguage() const;
 }
 
 extern (C++) interface ArgumentDeclaration : unknown.Declaration {}
@@ -300,7 +300,7 @@ extern (C++) interface NamespaceDeclaration : unknown.Declaration
 extern (C++) interface EnumConstantDeclaration : unknown.Declaration
 {
 
-    public long getLLValue();
+    public long getLLValue() const;
 }
 
 extern (C++) interface ArgumentIterator
@@ -316,15 +316,15 @@ extern (C++) interface ArgumentIterator
 extern (C++) interface FunctionDeclaration : unknown.Declaration
 {
 
-    public clang.LanguageLinkage getLinkLanguage();
+    public clang.LanguageLinkage getLinkLanguage() const;
 
-    public unknown.Type* getReturnType();
+    public unknown.Type* getReturnType() const;
 
     public unknown.ArgumentIterator getArgumentBegin();
 
     public unknown.ArgumentIterator getArgumentEnd();
 
-    public bool isOverloadedOperator();
+    public bool isOverloadedOperator() const;
 }
 
 extern (C++) interface FieldDeclaration : unknown.Declaration {}
@@ -342,13 +342,15 @@ extern (C++) interface OverriddenMethodIterator
 extern (C++) interface MethodDeclaration : unknown.Declaration
 {
 
-    public bool isStatic();
+    public bool isConst() const;
 
-    public bool isVirtual();
+    public bool isStatic() const;
 
-    public bool isOverloadedOperator();
+    public bool isVirtual() const;
 
-    public unknown.Type* getReturnType();
+    public bool isOverloadedOperator() const;
+
+    public unknown.Type* getReturnType() const;
 
     public unknown.ArgumentIterator getArgumentBegin();
 
@@ -357,8 +359,6 @@ extern (C++) interface MethodDeclaration : unknown.Declaration
     public unknown.OverriddenMethodIterator getOverriddenBegin();
 
     public unknown.OverriddenMethodIterator getOverriddenEnd();
-
-    public bool isConst();
 }
 
 extern (C++) interface FieldIterator

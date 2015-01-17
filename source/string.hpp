@@ -38,7 +38,7 @@ class string
     string(string&&);
     ~string();
 
-    virtual size_t size();
+    virtual size_t size() const;
 
     virtual char * begin()
     {
@@ -49,7 +49,7 @@ class string
     {
         return buffer + length;
     }
-    virtual const char * c_str();
+    virtual char * c_str();
     const char * c_str() const;
 
     bool operator==(const string& other) const;

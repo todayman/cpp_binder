@@ -4,7 +4,7 @@ extern(C++, binder)
 {
     interface string
     {
-        public size_t size();
+        public size_t size() const;
         public char * begin();
         public char * end();
         public char * c_str();

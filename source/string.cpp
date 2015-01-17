@@ -79,7 +79,7 @@ string::~string()
     }
 }
 
-size_t string::size()
+size_t string::size() const
 {
     return length;
 }
@@ -110,7 +110,7 @@ bool string::operator!=(const string& other) const
     }
 }
 
-const char * string::c_str()
+char * string::c_str()
 {
     return buffer;
 }
