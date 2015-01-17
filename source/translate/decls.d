@@ -313,30 +313,18 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    std.d.ast.StructDeclaration buildStruct(unknown.RecordDeclaration cppDecl)
+
+    private void addCppLinkageAttribute(std.d.ast.Declaration declaration)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
-
-        std.d.ast.Declaration outerDeclaration;
-        auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
-        result.name = nameFromDecl(cppDecl);
-        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
-
-        package_internal_path.append(result.name);
-        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
-
-        // Set the linkage attributes for this struct
-        // This only matters for methods
-        // FIXME should decide on C linkage sometimes, right?
         auto linkageAttribute = new LinkageAttribute();
         linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         linkageAttribute.hasPlusPlus = true;
         linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
-        outerDeclaration.attributes ~= [makeAttribute(linkageAttribute)];
+        declaration.attributes ~= [makeAttribute(linkageAttribute)];
+    }
 
-        result.structBody = new StructBody();
-
+    private void translateAllFields(unknown.RecordDeclaration cppDecl, std.d.ast.StructDeclaration result)
+    {
         for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
              !iter.equals(finish);
@@ -345,7 +333,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             VariableDeclaration field = translateField(iter.get());
             result.structBody.declarations ~= [makeDeclaration(field)];
         }
+    }
 
+    private void translateAllMethods
+        (VirtualBehavior virtualPolicy, Record)
+        (unknown.RecordDeclaration cppDecl, Record result)
+    {
         for (unknown.MethodIterator iter = cppDecl.getMethodBegin(),
                   finish = cppDecl.getMethodEnd();
              !iter.equals(finish);
@@ -356,9 +349,37 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             unknown.MethodDeclaration cpp_method = iter.get();
             if (!cpp_method || !cpp_method.getShouldBind())
                 continue;
-            std.d.ast.Declaration method;
+
             try {
-                method = translateMethod(iter.get(), VirtualBehavior.FORBIDDEN);
+                std.d.ast.Declaration method = translateMethod!virtualPolicy(iter.get());
+
+                bool shouldInsert = true;
+                static if (virtualPolicy != VirtualBehavior.FORBIDDEN)
+                {
+                    bool no_bound_overrides = true;
+                    for (unknown.OverriddenMethodIterator override_iter = cpp_method.getOverriddenBegin(),
+                            override_finish = cpp_method.getOverriddenEnd();
+                         !override_iter.equals(override_finish) && no_bound_overrides;
+                         override_iter.advance() )
+                    {
+                        unknown.MethodDeclaration superMethod = override_iter.get();
+                        if (superMethod.getShouldBind())
+                        {
+                            no_bound_overrides = false;
+                        }
+                    }
+                    shouldInsert = no_bound_overrides;
+                }
+
+                if (shouldInsert)
+                {
+                    result.structBody.declarations ~= [method];
+                }
+            }
+            catch (OverloadedOperatorError exc)
+            {
+                stderr.writeln("ERROR: ", exc.msg);
+                continue;
             }
             catch (Exception exc)
             {
@@ -366,10 +387,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 stderr.writeln("\t", exc.msg);
                 continue;
             }
-            result.structBody.declarations ~= [method];
         }
+    }
 
-        // TODO static methods and other things
+    private void translateStructBody(TargetDeclaration)(unknown.RecordDeclaration cppDecl, TargetDeclaration result)
+    {
         for (unknown.DeclarationIterator iter = cppDecl.getChildBegin(),
                 finish = cppDecl.getChildEnd();
             !iter.equals(finish);
@@ -394,39 +416,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 stderr.writeln("ERROR: ", e.msg);
             }
         }
-        return result;
     }
 
-    std.d.ast.InterfaceDeclaration buildInterface(unknown.RecordDeclaration cppDecl)
+    void translateAllBaseClasses(unknown.RecordDeclaration cppDecl, std.d.ast.InterfaceDeclaration result)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.InterfaceDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
-
-        std.d.ast.Declaration outerDeclaration;
-        auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl, outerDeclaration);
-        result.structBody = new StructBody();
-        // TODO It looks like I elided this check in buildStruct,
-        // Can I elide it here also, or does it need to go back in above?
-        // Eliding it because I need to rethink this for libdparse
-        //if (cppDecl.getType() in translated_types)
-        //{
-        //    return translated_types[cppDecl.getType()].interfaceDeclaration;
-        //}
-        result.name = nameFromDecl(cppDecl);
-        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
-
-        package_internal_path.append(result.name);
-        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
-
-        // Set the linkage attributes for this interface
-        // This only matters for methods
-        auto linkageAttribute = new LinkageAttribute();
-        linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
-        linkageAttribute.hasPlusPlus = true;
-        linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
-        outerDeclaration.attributes ~= [makeAttribute(linkageAttribute)];
-
-        // Find the superclasses of this interface
         auto baseClassList = new BaseClassList();
         bool hasBaseClass = false;
         for (unknown.SuperclassIterator iter = cppDecl.getSuperclassBegin(),
@@ -462,55 +455,58 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             result.baseClassList = baseClassList;
         }
+    }
 
-        for (unknown.MethodIterator iter = cppDecl.getMethodBegin(),
-                  finish = cppDecl.getMethodEnd();
-             !iter.equals(finish);
-             iter.advance() )
-        {
-            // sometimes, e.g. for implicit destructors, the lookup from clang
-            // type to my types fails.  So we should skip those.
-            unknown.MethodDeclaration cpp_method = iter.get();
-            if (cpp_method is null || !cpp_method.getShouldBind())
-                continue;
+    std.d.ast.StructDeclaration buildStruct(unknown.RecordDeclaration cppDecl)
+    {
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
+        if (short_circuit !is null) return short_circuit;
 
-            try {
-                std.d.ast.Declaration method = translateMethod(iter.get(), VirtualBehavior.REQUIRED);
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
+        result.name = nameFromDecl(cppDecl);
+        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
-                bool no_bound_overrides = true;
-                for (unknown.OverriddenMethodIterator override_iter = cpp_method.getOverriddenBegin(),
-                        override_finish = cpp_method.getOverriddenEnd();
-                     !override_iter.equals(override_finish) && no_bound_overrides;
-                     override_iter.advance() )
-                {
-                    unknown.MethodDeclaration superMethod = override_iter.get();
-                    if (superMethod.getShouldBind())
-                    {
-                        no_bound_overrides = false;
-                    }
-                }
+        package_internal_path.append(result.name);
+        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
 
-                if (no_bound_overrides)
-                {
-                    result.structBody.declarations ~= [method];
-                }
-            }
-            catch (OverloadedOperatorError e)
-            {
-                if (cpp_method.isVirtual())
-                {
-                    throw e;
-                }
-                stderr.writeln("ERROR: ", e.msg);
-            }
-            catch (Exception e)
-            {
-                // These are usually about methods not being virtual,
-                // so try to continue
-                iter.get().dump();
-                stderr.writeln("ERROR: ", e.msg);
-            }
-        }
+        // Set the linkage attributes for this struct
+        // This only matters for methods
+        // FIXME should decide on C linkage sometimes, right?
+        addCppLinkageAttribute(outerDeclaration);
+
+        result.structBody = new StructBody();
+
+        translateAllFields(cppDecl, result);
+        translateAllMethods!(VirtualBehavior.FORBIDDEN)(cppDecl, result);
+        translateStructBody(cppDecl, result);
+
+        return result;
+    }
+
+    std.d.ast.InterfaceDeclaration buildInterface(unknown.RecordDeclaration cppDecl)
+    {
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.InterfaceDeclaration)(cppDecl);
+        if (short_circuit !is null) return short_circuit;
+
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl, outerDeclaration);
+
+        result.name = nameFromDecl(cppDecl);
+        makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
+
+        package_internal_path.append(result.name);
+        scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
+
+        // Set the linkage attributes for this interface
+        // This only matters for methods
+        addCppLinkageAttribute(outerDeclaration);
+
+        // Find the superclasses of this interface
+        translateAllBaseClasses(cppDecl, result);
+
+        result.structBody = new StructBody();
+        translateAllMethods!(VirtualBehavior.REQUIRED)(cppDecl, result);
 
         // TODO static methods and other things
         return result;
@@ -704,7 +700,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         REQUIRED,
         FORBIDDEN,
     }
-    std.d.ast.Declaration translateMethod(unknown.MethodDeclaration cppDecl, VirtualBehavior vBehavior)
+    std.d.ast.Declaration translateMethod(VirtualBehavior vBehavior)(unknown.MethodDeclaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
@@ -725,7 +721,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
         else if (cppDecl.isVirtual())
         {
-            if (vBehavior == VirtualBehavior.FORBIDDEN)
+            static if (vBehavior == VirtualBehavior.FORBIDDEN)
             {
                 throw new Exception("Methods on structs cannot be virtual!");
                 // FIXME this message may not always be correct
@@ -734,7 +730,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             // then it's by default, so no attribute here
         }
         else {
-            if (vBehavior == VirtualBehavior.REQUIRED)
+            static if (vBehavior == VirtualBehavior.REQUIRED)
             {
                 // FIXME this message may not always be correct
                 throw new Exception("Methods on interfaces must be virtual!");
