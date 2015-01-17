@@ -1,4 +1,3 @@
-#! /usr/bin/rdmd -g
 /*
  *  test_runner: runs the tests for cpp_binder
  *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
