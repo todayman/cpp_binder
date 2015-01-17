@@ -104,7 +104,7 @@ class UnionDeclaration;
             kind = k;
         }
 
-        Kind getKind();
+        Kind getKind() const;
 
         friend class TypeVisitor;
 
@@ -140,7 +140,7 @@ class UnionDeclaration;
             strategy = s;
         }
 
-        Strategy getStrategy();
+        Strategy getStrategy() const;
 
         struct WrongStrategy : public std::runtime_error
         {
@@ -148,16 +148,16 @@ class UnionDeclaration;
                 : std::runtime_error("That operation is only valid for types with a different translation strategy.")
             { }
         };
-        string* getReplacement();
-        string* getReplacementModule();
+        string* getReplacement() const;
+        string* getReplacementModule() const;
         void setReplacementModule(string mod);
 
-        Declaration * getDeclaration();
-        RecordDeclaration * getRecordDeclaration();
-        Type * getPointeeType();
-        TypedefDeclaration * getTypedefDeclaration();
-        EnumDeclaration * getEnumDeclaration();
-        UnionDeclaration * getUnionDeclaration();
+        Declaration * getDeclaration() const;
+        RecordDeclaration * getRecordDeclaration() const;
+        Type * getPointeeType() const;
+        TypedefDeclaration * getTypedefDeclaration() const;
+        EnumDeclaration * getEnumDeclaration() const;
+        UnionDeclaration * getUnionDeclaration() const;
         void dump();
     };
 

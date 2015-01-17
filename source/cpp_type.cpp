@@ -75,17 +75,17 @@ Type* Type::getByName(const string* name)
     }
 }
 
-Type::Kind Type::getKind()
+Type::Kind Type::getKind() const
 {
     return kind;
 }
 
-Strategy Type::getStrategy()
+Strategy Type::getStrategy() const
 {
     return strategy;
 }
 
-string* Type::getReplacement()
+string* Type::getReplacement() const
 {
     if( strategy != REPLACE )
     {
@@ -94,7 +94,7 @@ string* Type::getReplacement()
     string * result = new string(target_name);
     return result;
 }
-string* Type::getReplacementModule()
+string* Type::getReplacementModule() const
 {
     if( strategy != REPLACE )
     {
@@ -109,7 +109,7 @@ void Type::setReplacementModule(string new_mod)
     target_module = new_mod;
 }
 
-Declaration * Type::getDeclaration()
+Declaration * Type::getDeclaration() const
 {
     switch (kind)
     {
@@ -126,14 +126,14 @@ Declaration * Type::getDeclaration()
     }
 }
 
-RecordDeclaration * Type::getRecordDeclaration()
+RecordDeclaration * Type::getRecordDeclaration() const
 {
     assert(kind == Record);
     const clang::RecordType * cpp_record = cpp_type->getAs<clang::RecordType>();
     return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
 }
 
-Type * Type::getPointeeType()
+Type * Type::getPointeeType() const
 {
     assert(kind == Pointer || kind == Reference);
     if (kind == Pointer)
@@ -153,7 +153,7 @@ Type * Type::getPointeeType()
     return nullptr;
 }
 
-TypedefDeclaration * Type::getTypedefDeclaration()
+TypedefDeclaration * Type::getTypedefDeclaration() const
 {
     assert(kind == Typedef);
     const clang::TypedefType * clang_type = cpp_type->getAs<clang::TypedefType>();
@@ -169,7 +169,7 @@ TypedefDeclaration * Type::getTypedefDeclaration()
     return dynamic_cast<TypedefDeclaration*>(this_declaration);
 }
 
-EnumDeclaration * Type::getEnumDeclaration()
+EnumDeclaration * Type::getEnumDeclaration() const
 {
     assert(kind == Enum);
     const clang::EnumType * clang_type = cpp_type->castAs<clang::EnumType>();
@@ -179,7 +179,7 @@ EnumDeclaration * Type::getEnumDeclaration()
     return dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
 }
 
-UnionDeclaration * Type::getUnionDeclaration()
+UnionDeclaration * Type::getUnionDeclaration() const
 {
     assert(kind == Union);
     const clang::RecordType * clang_type = cpp_type->castAs<clang::RecordType>();

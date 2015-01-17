@@ -137,31 +137,31 @@ extern (C++) struct Type
 
     final public void setKind(unknown.Type.Kind k);
 
-    final public unknown.Type.Kind getKind();
+    final public unknown.Type.Kind getKind() const;
 
     final public void chooseReplaceStrategy(binder.binder.string replacement);
 
     final public void setStrategy(unknown.Strategy s);
 
-    final public unknown.Strategy getStrategy();
+    final public unknown.Strategy getStrategy() const;
 
-    final public binder.binder.string getReplacement();
+    final public binder.binder.string getReplacement() const;
 
-    final public binder.binder.string getReplacementModule();
+    final public binder.binder.string getReplacementModule() const;
 
     final public void setReplacementModule(binder.binder.string mod);
 
-    final public unknown.Declaration getDeclaration();
+    final public unknown.Declaration getDeclaration() const;
 
-    final public unknown.RecordDeclaration getRecordDeclaration();
+    final public unknown.RecordDeclaration getRecordDeclaration() const;
 
-    final public unknown.Type* getPointeeType();
+    final public unknown.Type* getPointeeType() const;
 
-    final public unknown.TypedefDeclaration getTypedefDeclaration();
+    final public unknown.TypedefDeclaration getTypedefDeclaration() const;
 
-    final public unknown.EnumDeclaration getEnumDeclaration();
+    final public unknown.EnumDeclaration getEnumDeclaration() const;
 
-    final public unknown.UnionDeclaration getUnionDeclaration();
+    final public unknown.UnionDeclaration getUnionDeclaration() const;
 
     final public void dump();
 
