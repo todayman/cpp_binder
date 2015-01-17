@@ -835,6 +835,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return new OverriddenMethodIterator(_decl->end_overridden_methods());
         }
+
+        virtual bool isConst()
+        {
+            return _decl->isConst();
+        }
     };
 
     class FieldIterator

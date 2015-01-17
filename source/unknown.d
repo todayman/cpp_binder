@@ -357,6 +357,8 @@ extern (C++) interface MethodDeclaration : unknown.Declaration
     public unknown.OverriddenMethodIterator getOverriddenBegin();
 
     public unknown.OverriddenMethodIterator getOverriddenEnd();
+
+    public bool isConst();
 }
 
 extern (C++) interface FieldIterator

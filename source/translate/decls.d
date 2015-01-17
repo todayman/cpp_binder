@@ -719,27 +719,37 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             attrib.attribute = Token(tok!"static", "static", 0, 0, 0);
             outerDeclaration.attributes ~= [attrib];
         }
-        else if (cppDecl.isVirtual())
+        else
         {
-            static if (vBehavior == VirtualBehavior.FORBIDDEN)
+            if (cppDecl.isConst())
             {
-                throw new Exception("Methods on structs cannot be virtual!");
-                // FIXME this message may not always be correct
+                auto attrib = new std.d.ast.MemberFunctionAttribute();
+                attrib.tokenType = tok!"const";
+                result.memberFunctionAttributes ~= [attrib];
             }
-            // virtual is implied by context i.e. must be in class, interface,
-            // then it's by default, so no attribute here
-        }
-        else {
-            static if (vBehavior == VirtualBehavior.REQUIRED)
+
+            if (cppDecl.isVirtual())
             {
-                // FIXME this message may not always be correct
-                throw new Exception("Methods on interfaces must be virtual!");
+                static if (vBehavior == VirtualBehavior.FORBIDDEN)
+                {
+                    throw new Exception("Methods on structs cannot be virtual!");
+                    // FIXME this message may not always be correct
+                }
+                // virtual is implied by context i.e. must be in class, interface,
+                // then it's by default, so no attribute here
             }
-            else
-            {
-                auto attrib = new Attribute();
-                attrib.attribute = Token(tok!"final", "final", 0, 0, 0);
-                outerDeclaration.attributes ~= [attrib];
+            else {
+                static if (vBehavior == VirtualBehavior.REQUIRED)
+                {
+                    // FIXME this message may not always be correct
+                    throw new Exception("Methods on interfaces must be virtual!");
+                }
+                else
+                {
+                    auto attrib = new Attribute();
+                    attrib.attribute = Token(tok!"final", "final", 0, 0, 0);
+                    outerDeclaration.attributes ~= [attrib];
+                }
             }
         }
 
