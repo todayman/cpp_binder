@@ -16,6 +16,11 @@ extern(C++, clang)
         NoLanguageLinkage,
     }
     enum AccessSpecifier;
+
+    // This isn't the correct implementation, but it is 32 bits!
+    struct SourceLocation {
+        int val;
+    }
 }
 
 extern(C++, std) interface runtime_error

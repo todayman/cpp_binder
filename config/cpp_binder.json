@@ -75,6 +75,13 @@
             }
           , "target_module": "manual_types"
         }
+        , "clang::SourceLocation": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.SourceLocation"
+            }
+          , "target_module": "manual_types"
+        }
         , "DeclVisitor": {
             "bound": 0
         }

@@ -261,6 +261,7 @@ extern(C++) interface Declaration
     protected void setSourceName(binder.binder.string name);
     protected void markUnwrappable();
 
+    public clang.SourceLocation getSourceLocation();
     public binder.binder.string getSourceName();
     public binder.binder.string getTargetName();
     public bool isWrappable();

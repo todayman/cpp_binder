@@ -703,6 +703,23 @@ void arrayOfFreeDeclarations(size_t* count, Declaration*** array)
         (*array)[counter] = decl;
         counter ++;
     }
+
+    std::sort((*array), (*array) + counter,
+        [](Declaration * lhs, Declaration * rhs)
+        {
+            clang::SourceLocation left = lhs->getSourceLocation();
+            if (!left.isValid())
+            {
+                return true;
+            }
+            clang::SourceLocation right = rhs->getSourceLocation();
+            if (!right.isValid())
+            {
+                return false;
+            }
+            return source_manager->isBeforeInTranslationUnit(left, right);
+        }
+        );
 }
 
 Declaration * getDeclaration(clang::Decl* decl)

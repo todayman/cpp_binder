@@ -89,6 +89,8 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
               visibility(UNSET), remove_prefix(), source_name(), _name()
         { }
 
+        virtual clang::SourceLocation getSourceLocation() = 0;
+
         virtual string* getSourceName()
         {
             return new string(source_name);
@@ -285,6 +287,11 @@ func(Unwrappable)
             : _decl(d) \
         { } \
 \
+        virtual clang::SourceLocation getSourceLocation() override \
+        { \
+            return _decl->getLocation(); \
+        } \
+\
         virtual Type* getType() override \
         { \
             throw NotTypeDecl(); \
@@ -317,6 +324,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         VariableDeclaration(const clang::VarDecl* d)
             : _decl(d)
         { }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
 
         virtual Type* getType() override
         {
@@ -353,6 +365,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
+
         virtual Type* getType() override
         {
             return Type::get(_decl->getType());
@@ -383,6 +400,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         NamespaceDeclaration(const clang::NamespaceDecl* d)
             : _decl(d)
         { }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
 
         virtual Type* getType() override
         {
@@ -425,6 +447,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             _decl = d;
         }
 
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
+
         virtual Type* getType() override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
@@ -459,6 +486,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         EnumDeclaration(const clang::EnumDecl* d)
             : _decl(d)
         { }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
 
         virtual Type* getType() override
         {
@@ -503,6 +535,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         EnumConstantDeclaration(const clang::EnumConstantDecl* d)
             : _decl(d)
         { }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
 
         virtual Type* getType() override
         {
@@ -586,6 +623,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
+
         virtual Type* getType() override
         {
             throw NotTypeDecl();
@@ -640,6 +682,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         FieldDeclaration(const clang::FieldDecl* d)
             : _decl(d)
         { }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
 
         // Fields can infer visibility from C++ AST
         virtual ::Visibility getVisibility() override
@@ -726,6 +773,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         MethodDeclaration(const clang::CXXMethodDecl* d)
             : _decl(d)
         { }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
 
         virtual Type* getType() override
         {
@@ -948,6 +1000,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
+
         virtual Type* getType() override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
@@ -1067,6 +1124,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         { }
 
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
+        }
+
         virtual Type* getType() override
         {
             return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
@@ -1114,6 +1176,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : _decl(d)
         {
             markUnwrappable();
+        }
+
+        virtual clang::SourceLocation getSourceLocation() override
+        {
+            return _decl->getLocation();
         }
 
         virtual Type* getType() override
