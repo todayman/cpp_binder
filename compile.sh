@@ -1,6 +1,9 @@
 #! /bin/sh
 DPARSE=~/Documents/d_libs/libdparse
 
+cd build && make -j
+cd ..
+
 dmd -g \
     -I~/.dub/packages/yajl-0.2.0/src/ \
     ~/.dub/packages/yajl-0.2.0/src/**/*.d \
