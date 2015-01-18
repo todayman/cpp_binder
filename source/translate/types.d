@@ -80,7 +80,7 @@ package void determineStrategy(unknown.Type* cppType)
             throw new Error("Cannot translate vector (e.g. SSE, AVX) types.");
         case unknown.Type.Kind.Qualified:
             determineStrategy(cppType.unqualifiedType());
-            cppType.setStrategy(cppType.unqualifiedType().getStrategy());
+            cppType.chooseReplaceStrategy(binder.toBinderString(""));
             break;
     }
 }
