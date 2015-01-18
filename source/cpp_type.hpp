@@ -152,6 +152,7 @@ class UnionDeclaration;
         }
 
         Strategy getStrategy() const;
+        bool isReferenceType() const;
 
         Type * unqualifiedType();
         const Type * unqualifiedType() const;

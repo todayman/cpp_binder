@@ -117,7 +117,7 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 extern (C++) struct Type
 {
 
-    clang.QualType qType;
+    const clang.QualType qType;
 
     const(clang.Type)* cpp_type;
 
@@ -146,6 +146,8 @@ extern (C++) struct Type
     final public void setStrategy(unknown.Strategy s);
 
     final public unknown.Strategy getStrategy() const;
+
+    final public bool isReferenceType() const;
 
     final public unknown.Type* unqualifiedType();
 

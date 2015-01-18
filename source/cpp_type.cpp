@@ -90,6 +90,32 @@ Strategy Type::getStrategy() const
     return strategy;
 }
 
+bool Type::isReferenceType() const
+{
+    switch (strategy)
+    {
+        case INTERFACE:
+        case CLASS:
+        case OPAQUE_CLASS:
+            return true;
+        case STRUCT:
+            return false;
+        case UNKNOWN:
+        case REPLACE:
+            // deliberately falling out
+            ;
+    };
+
+    switch (kind)
+    {
+        case Qualified:
+            return unqualifiedType()->isReferenceType();
+        default:
+            assert(0);
+            return false;
+    }
+}
+
 string* Type::getReplacement() const
 {
     if( strategy != REPLACE )
