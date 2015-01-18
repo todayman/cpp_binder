@@ -80,8 +80,7 @@ class UnionDeclaration;
         };
 
         private:
-        const clang::QualType qType;
-        const clang::Type * cpp_type;
+        const clang::QualType type;
         Kind kind;
         // Attributes! from config files or inferred
         // Pointer to D type!
@@ -96,7 +95,7 @@ class UnionDeclaration;
         public:
         static void printTypeNames();
         explicit Type(const clang::QualType t, Kind k)
-            : qType(t), cpp_type(t.getTypePtrOrNull()), kind(k), strategy(UNKNOWN), target_name("")
+            : type(t), kind(k), strategy(UNKNOWN), target_name("")
         { }
 
         Type(const Type&) = delete;
@@ -106,10 +105,6 @@ class UnionDeclaration;
 
         static Type* get(const clang::QualType& qType, const clang::PrintingPolicy* pp = nullptr);
         static Type* getByName(const string* name);
-
-        const clang::Type * cppType() const {
-            return cpp_type;
-        }
 
         void setKind(Kind k) {
             kind = k;

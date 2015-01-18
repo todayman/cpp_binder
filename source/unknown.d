@@ -117,9 +117,7 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 extern (C++) struct Type
 {
 
-    const clang.QualType qType;
-
-    const(clang.Type)* cpp_type;
+    const clang.QualType type;
 
     unknown.Type.Kind kind;
 
@@ -131,11 +129,9 @@ extern (C++) struct Type
 
     static public void printTypeNames();
 
-    static public unknown.Type* get(const(clang.QualType)* qType, const(clang.PrintingPolicy)* pp);
+    static public unknown.Type* get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
 
-    static public unknown.Type* getByName(binder.binder.string name);
-
-    final public const(clang.Type)* cppType() const;
+    static public unknown.Type* getByName(const binder.binder.string name);
 
     final public void setKind(unknown.Type.Kind k);
 
@@ -151,7 +147,7 @@ extern (C++) struct Type
 
     final public unknown.Type* unqualifiedType();
 
-    final public unknown.Type* unqualifiedType() const;
+    final public const(unknown.Type)* unqualifiedType() const;
 
     final public bool isConst() const;
 

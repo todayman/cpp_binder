@@ -110,9 +110,11 @@ bool Type::isReferenceType() const
     {
         case Qualified:
             return unqualifiedType()->isReferenceType();
+        case Reference:
+            return getPointeeType()->isReferenceType();
         default:
-            assert(0);
             return false;
+            // TODO this may not be all cases
     }
 }
 
@@ -142,26 +144,26 @@ void Type::setReplacementModule(string new_mod)
 
 Type * Type::unqualifiedType()
 {
-    if (qType.getQualifiers().empty())
+    if (type.getQualifiers().empty())
     {
         return this;
     }
     else
     {
-        clang::QualType unqual = qType;
+        clang::QualType unqual = type;
         unqual.removeLocalConst();
         return Type::get(unqual);
     }
 }
 const Type * Type::unqualifiedType() const
 {
-    if (qType.getQualifiers().empty())
+    if (type.getQualifiers().empty())
     {
         return this;
     }
     else
     {
-        clang::QualType unqual = qType;
+        clang::QualType unqual = type;
         unqual.removeLocalConst();
         return Type::get(unqual);
     }
@@ -169,7 +171,7 @@ const Type * Type::unqualifiedType() const
 
 bool Type::isConst() const
 {
-    return qType.isLocalConstQualified();
+    return type.isLocalConstQualified();
 }
 
 Declaration * Type::getDeclaration() const
@@ -191,12 +193,12 @@ Declaration * Type::getDeclaration() const
 
 RecordDeclaration * Type::getRecordDeclaration() const
 {
-    if (kind == Qualified)
+    /*if (kind == Qualified)
     {
         return unqualifiedType()->getRecordDeclaration();
-    }
+    }*/
     assert(kind == Record);
-    const clang::RecordType * cpp_record = cpp_type->getAs<clang::RecordType>();
+    const clang::RecordType * cpp_record = type.getTypePtr()->getAs<clang::RecordType>();
     return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
 }
 
@@ -205,12 +207,12 @@ Type * Type::getPointeeType() const
     assert(kind == Pointer || kind == Reference);
     if (kind == Pointer)
     {
-        const clang::PointerType* ptr_type = cpp_type->castAs<clang::PointerType>();
+        const clang::PointerType* ptr_type = type.getTypePtr()->castAs<clang::PointerType>();
         return Type::get(ptr_type->getPointeeType());
     }
     else if (kind == Reference)
     {
-        const clang::ReferenceType* ref_type = cpp_type->castAs<clang::ReferenceType>();
+        const clang::ReferenceType* ref_type = type.getTypePtr()->castAs<clang::ReferenceType>();
         return Type::get(ref_type->getPointeeType());
     }
     else
@@ -223,7 +225,7 @@ Type * Type::getPointeeType() const
 TypedefDeclaration * Type::getTypedefDeclaration() const
 {
     assert(kind == Typedef);
-    const clang::TypedefType * clang_type = cpp_type->getAs<clang::TypedefType>();
+    const clang::TypedefType * clang_type = type.getTypePtr()->getAs<clang::TypedefType>();
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
     Declaration* this_declaration = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
@@ -239,7 +241,7 @@ TypedefDeclaration * Type::getTypedefDeclaration() const
 EnumDeclaration * Type::getEnumDeclaration() const
 {
     assert(kind == Enum);
-    const clang::EnumType * clang_type = cpp_type->castAs<clang::EnumType>();
+    const clang::EnumType * clang_type = type.getTypePtr()->castAs<clang::EnumType>();
     clang::EnumDecl * clang_decl = clang_type->getDecl();
 
     Declaration* cpp_generic_decl = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
@@ -249,7 +251,7 @@ EnumDeclaration * Type::getEnumDeclaration() const
 UnionDeclaration * Type::getUnionDeclaration() const
 {
     assert(kind == Union);
-    const clang::RecordType * clang_type = cpp_type->castAs<clang::RecordType>();
+    const clang::RecordType * clang_type = type.getTypePtr()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
@@ -257,7 +259,7 @@ UnionDeclaration * Type::getUnionDeclaration() const
 
 void Type::dump()
 {
-    cpp_type->dump();
+    type.dump();
 }
 
 TypeVisitor::TypeVisitor(const clang::PrintingPolicy* pp)
