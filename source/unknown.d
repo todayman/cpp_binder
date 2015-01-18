@@ -147,6 +147,8 @@ extern (C++) struct Type
 
     final public unknown.Strategy getStrategy() const;
 
+    final public unknown.Type* unqualifiedType();
+
     final public binder.binder.string getReplacement() const;
 
     final public binder.binder.string getReplacementModule() const;

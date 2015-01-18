@@ -114,6 +114,20 @@ void Type::setReplacementModule(string new_mod)
     target_module = new_mod;
 }
 
+Type * Type::unqualifiedType()
+{
+    if (qType.getQualifiers().empty())
+    {
+        return this;
+    }
+    else
+    {
+        clang::QualType unqual = qType;
+        unqual.removeLocalConst();
+        return Type::get(unqual);
+    }
+}
+
 Declaration * Type::getDeclaration() const
 {
     switch (kind)
@@ -215,6 +229,8 @@ bool TypeVisitor::TraverseType(clang::QualType type)
         allocateType(type, Type::Qualified);
 
         clang::QualType unqual = type;
+        // Qualifiers handled here also should to be handled in
+        // Type::unqualifiedType()
         unqual.removeLocalConst();
         result = TraverseType(unqual);
 

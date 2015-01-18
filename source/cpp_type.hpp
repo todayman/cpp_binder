@@ -153,6 +153,8 @@ class UnionDeclaration;
 
         Strategy getStrategy() const;
 
+        Type * unqualifiedType();
+
         struct WrongStrategy : public std::runtime_error
         {
             WrongStrategy()
