@@ -23,13 +23,14 @@
 
 #include <clang/AST/Decl.h>
 #include <clang/AST/DeclCXX.h>
+#include <clang/AST/TypeOrdering.h>
 #include <clang/Basic/SourceManager.h>
 
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
 //using namespace cpp;
 
-std::unordered_map<const clang::Type*, Type*> Type::type_map;
+std::unordered_map<const clang::QualType, Type*> Type::type_map;
 std::unordered_map<string, Type*> Type::type_by_name;
 
 void Type::printTypeNames()
@@ -45,13 +46,14 @@ template<>
 struct hash<clang::BuiltinType::Kind> : public hash<unsigned> { };
 }
 
+std::size_t std::hash<const clang::QualType>::operator()(const clang::QualType qType) const
+{
+    return llvm::DenseMapInfo<clang::QualType>::getHashValue(qType);
+}
+
 Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* printPolicy)
 {
-    // TODO could this really be NULL?
-    // under what circumstances is that the case, and do I have to
-    // worry about it?
-    const clang::Type * cppType = qType.getTypePtr();
-    decltype(type_map)::iterator iter = type_map.find(cppType);
+    decltype(type_map)::iterator iter = type_map.find(qType);
     if( iter != Type::type_map.end() ) {
         return iter->second;
     }
@@ -59,9 +61,12 @@ Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* print
     TypeVisitor type_visitor(printPolicy);
     type_visitor.TraverseType(qType);
 
-    if( type_map.find(cppType) == type_map.end() )
-        throw 5;
-    return type_map.find(cppType)->second;
+    if( type_map.find(qType) == type_map.end() )
+    {
+        qType.dump();
+        throw std::logic_error("FATAL: Traversing a clang::QualType did not place it into the type map!");
+    }
+    return type_map.find(qType)->second;
 }
 
 Type* Type::getByName(const string* name)
@@ -201,19 +206,46 @@ TypeVisitor::TypeVisitor(const clang::PrintingPolicy* pp)
 
 bool TypeVisitor::TraverseType(clang::QualType type)
 {
-    type_to_traverse = type.getTypePtrOrNull();
-    if( !type_to_traverse )
-        return false;
-    if( Type::type_map.find(type_to_traverse) != Type::type_map.end() )
+    if( Type::type_map.find(type) != Type::type_map.end() )
         return true;
 
-    return Super::TraverseType(type);
+    bool result;
+    if (type.isLocalConstQualified())
+    {
+        allocateType(type, Type::Qualified);
+
+        clang::QualType unqual = type;
+        unqual.removeLocalConst();
+        result = TraverseType(unqual);
+
+        return result;
+    }
+    else if (!type.getQualifiers().empty())
+    {
+        std::cerr << "ERROR: Unrecognized qualifiers (\"" << type.getQualifiers().getAsString() << "\") for type ";
+        type.dump();
+        allocateType(type, Type::Invalid);
+        result = true;
+    }
+    else
+    {
+        result = Super::TraverseType(type);
+    }
+
+    return result;
 }
 
-void TypeVisitor::allocateType(const clang::Type * t, Type::Kind k)
+void TypeVisitor::allocateType(const clang::QualType t, Type::Kind k)
 {
     type_in_progress = new Type(t, k);
     Type::type_map.insert(std::make_pair(t, type_in_progress));
+}
+
+void TypeVisitor::allocateType(const clang::Type* t, Type::Kind k)
+{
+    clang::QualType qType(t, 0);
+    type_in_progress = new Type(qType, k);
+    Type::type_map.insert(std::make_pair(qType, type_in_progress));
 }
 
 #define WALK_UP_METHOD(KIND) \
@@ -224,7 +256,7 @@ bool TypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
 }
 WALK_UP_METHOD(Builtin)
 WALK_UP_METHOD(Pointer)
-bool TypeVisitor::WalkUpFromLValueReferenceType( clang::LValueReferenceType* type)
+bool TypeVisitor::WalkUpFromLValueReferenceType(clang::LValueReferenceType* type)
 {
     allocateType(type, Type::Reference);
     return Super::WalkUpFromLValueReferenceType(type);
@@ -248,11 +280,18 @@ WALK_UP_METHOD(Typedef)
 WALK_UP_METHOD(Vector)
 WALK_UP_METHOD(Enum)
 
+bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
 bool TypeVisitor::WalkUpFromType(clang::Type* type)
 {
     if( !type_in_progress )
     {
         allocateType(type, Type::Invalid);
+        //throw std::logic_error("Can not wrap type!");
         return false;
     }
 
@@ -335,8 +374,10 @@ bool TypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
     bool result = TraverseType(type->getNamedType());
     // TODO nullptr
-    Type* t = Type::type_map.find(type->getNamedType().getTypePtr())->second;
-    Type::type_map.insert(std::make_pair(type, t));
+    Type* t = Type::type_map.find(type->getNamedType())->second;
+    // FIXME does this really need to go into the map here?  Does that happen during TraverseType?
+    Type::type_map.insert(std::make_pair(type->getNamedType(), t));
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
     return result;
 }
 
@@ -344,8 +385,10 @@ bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
 {
     bool result = TraverseType(type->getDecayedType());
     // TODO nullptr
-    Type* t = Type::type_map.find(type->getDecayedType().getTypePtr())->second;
-    Type::type_map.insert(std::make_pair(type, t));
+    Type* t = Type::type_map.find(type->getDecayedType())->second;
+    // FIXME does this really need to go into the map here?  Does that happen during TraverseType?
+    Type::type_map.insert(std::make_pair(type->getDecayedType(), t)); 
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
     return result;
 }
 
@@ -353,8 +396,9 @@ bool TypeVisitor::WalkUpFromParenType(clang::ParenType* type)
 {
     bool result = TraverseType(type->getInnerType());
     // TODO nullptr
-    Type* t = Type::type_map.find(type->getInnerType().getTypePtr())->second;
-    Type::type_map.insert(std::make_pair(type, t));
+    Type* t = Type::type_map.find(type->getInnerType())->second;
+    // FIXME does this really need to go into the map here?
+    Type::type_map.insert(std::make_pair(type->getInnerType(), t));
     return result;
 }
 
@@ -362,8 +406,11 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 {
     bool result = TraverseType(type->getUnderlyingType());
     // TODO nullptr
-    Type* t = Type::type_map.find(type->getUnderlyingType().getTypePtr())->second;
-    Type::type_map.insert(std::make_pair(type, t));
+    Type* t = Type::type_map.find(type->getUnderlyingType())->second;
+    // FIXME does this really need to go into the map here?
+    Type::type_map.insert(std::make_pair(type->getUnderlyingType(), t));
+    // TODO is resolving the decltype the best thing to do here?
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
     return result;
 }
 

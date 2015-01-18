@@ -6,7 +6,13 @@ extern(C++, clang)
     struct ASTUnit;
     struct Decl;
     struct SourceManager;
-    struct QualType;
+
+    // Dummy implementation to have the same size as a pointer
+    struct QualType
+    {
+        void * val;
+    }
+
     struct Type;
     struct PrintingPolicy;
 

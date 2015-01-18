@@ -30,6 +30,15 @@
 #include "string.hpp"
 using namespace binder;
 
+namespace std
+{
+    template<> struct hash<const clang::QualType>
+    {
+        public:
+        ::std::size_t operator()(const clang::QualType qType) const;
+    };
+}
+
 enum Strategy
 {
     UNKNOWN = 0,
@@ -67,9 +76,11 @@ class UnionDeclaration;
             Typedef,
             Vector, // MMX, SSE, etc
             Enum,
+            Qualified,
         };
 
         private:
+        const clang::QualType qType;
         const clang::Type * cpp_type;
         Kind kind;
         // Attributes! from config files or inferred
@@ -79,13 +90,13 @@ class UnionDeclaration;
         string target_module; // only meaningful for types using the replacement strategy
                               // This is kind of a kludge to deal with builtins.  FIXME?
 
-        static std::unordered_map<const clang::Type*, Type*> type_map;
+        static std::unordered_map<const clang::QualType, Type*> type_map;
         static std::unordered_map<string, Type*> type_by_name;
 
         public:
         static void printTypeNames();
-        explicit Type(const clang::Type* t, Kind k)
-            : cpp_type(t), kind(k), strategy(UNKNOWN), target_name("")
+        explicit Type(const clang::QualType t, Kind k)
+            : qType(t), cpp_type(t.getTypePtrOrNull()), kind(k), strategy(UNKNOWN), target_name("")
         { }
 
         Type(const Type&) = delete;
@@ -169,7 +180,8 @@ class UnionDeclaration;
         Type* type_in_progress;
         const clang::PrintingPolicy* printPolicy; // Used for generating names of the type
 
-        void allocateType(const clang::Type * t, Type::Kind k);
+        void allocateType(const clang::QualType t, Type::Kind k);
+        void allocateType(const clang::Type* t, Type::Kind k);
         public:
         typedef clang::RecursiveASTVisitor<TypeVisitor> Super;
 
@@ -214,6 +226,7 @@ class UnionDeclaration;
         // of type it is.  If we don't, then we don't wrap that type.
         // So throw an error.
         bool WalkUpFromType(clang::Type * type);
+        bool WalkUpFromRValueReferenceType(clang::RValueReferenceType* type);
 
         bool VisitBuiltinType(clang::BuiltinType* cppType);
         bool VisitPointerType(clang::PointerType* cppType);

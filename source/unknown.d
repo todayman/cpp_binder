@@ -117,6 +117,8 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 extern (C++) struct Type
 {
 
+    clang.QualType qType;
+
     clang.Type* cpp_type;
 
     unknown.Type.Kind kind;
@@ -180,7 +182,8 @@ Array =   6,
 Function =   7,
 Typedef =   8,
 Vector =   9,
-Enum =   10
+Enum =   10,
+Qualified =   11
     }
 
     extern (C++) interface DontSetUnknown : std.runtime_error {}
