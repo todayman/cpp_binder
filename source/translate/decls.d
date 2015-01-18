@@ -383,7 +383,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             catch (Exception exc)
             {
-                stderr.writeln("ERROR: Cannot translate method ", cppDecl.getSourceName(), "::", cpp_method.getSourceName(), ", skipping it");
+                stderr.writeln("ERROR: Cannot translate method ", binder.toDString(cppDecl.getSourceName()), "::", binder.toDString(cpp_method.getSourceName()), ", skipping it");
                 stderr.writeln("\t", exc.msg);
                 continue;
             }
