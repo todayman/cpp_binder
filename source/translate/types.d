@@ -295,6 +295,16 @@ private std.d.ast.Type translate(string kind)(unknown.Type* cppType, QualifierSe
     return result;
 }
 
+// I tried to call this dup, but then I couldn't use dup on the inside
+std.d.ast.Type clone(std.d.ast.Type t)
+{
+    auto result = new std.d.ast.Type();
+    if (t.typeConstructors !is null) result.typeConstructors = t.typeConstructors.dup;
+    if (t.typeSuffixes !is null) result.typeSuffixes = t.typeSuffixes.dup;
+    result.type2 = t.type2;
+    return result;
+}
+
 private std.d.ast.Type translate(string kind : "Qualified")
     (unknown.Type* cppType, QualifierSet qualifiersAlreadApplied)
 {
@@ -303,7 +313,7 @@ private std.d.ast.Type translate(string kind : "Qualified")
     {
         innerQualifiers.const_ = true;
     }
-    std.d.ast.Type result = translateType(cppType.unqualifiedType(), innerQualifiers);
+    std.d.ast.Type result = translateType(cppType.unqualifiedType(), innerQualifiers).clone;
 
     // Apply qualifiers that 
     if (cppType.isConst() && !qualifiersAlreadApplied.const_)
