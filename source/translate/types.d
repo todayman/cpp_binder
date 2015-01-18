@@ -309,7 +309,7 @@ private std.d.ast.Type translate(string kind : "Qualified")
     (unknown.Type* cppType, QualifierSet qualifiersAlreadApplied)
 {
     QualifierSet innerQualifiers;
-    if (cppType.isConst())
+    if (cppType.isConst() || qualifiersAlreadApplied.const_)
     {
         innerQualifiers.const_ = true;
     }
