@@ -200,26 +200,9 @@ private std.d.ast.Type translatePointerOrReference
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
     determineStrategy(target_type);
-    bool target_is_reference_type = false;
-    switch (target_type.getStrategy())
-    {
-        case unknown.Strategy.UNKNOWN:
-            throw new Error("Attempted to determine the translation strategy for a pointer or referenced decided on UNKNOWN.");
-        case unknown.Strategy.REPLACE:
-        case unknown.Strategy.STRUCT:
-            target_is_reference_type = false;
-            break;
-        case unknown.Strategy.INTERFACE:
-        case unknown.Strategy.CLASS:
-        case unknown.Strategy.OPAQUE_CLASS:
-            target_is_reference_type = true;
-            break;
-        default:
-            throw new Error("I don't know what strategy was selected for a pointer or reference type.");
-    }
 
     std.d.ast.Type result;
-    if (target_is_reference_type)
+    if (target_type.isReferenceType())
     {
         result = translateType(target_type, qualifiers);
     }
