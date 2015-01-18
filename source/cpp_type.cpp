@@ -127,6 +127,19 @@ Type * Type::unqualifiedType()
         return Type::get(unqual);
     }
 }
+const Type * Type::unqualifiedType() const
+{
+    if (qType.getQualifiers().empty())
+    {
+        return this;
+    }
+    else
+    {
+        clang::QualType unqual = qType;
+        unqual.removeLocalConst();
+        return Type::get(unqual);
+    }
+}
 
 bool Type::isConst() const
 {
@@ -152,6 +165,10 @@ Declaration * Type::getDeclaration() const
 
 RecordDeclaration * Type::getRecordDeclaration() const
 {
+    if (kind == Qualified)
+    {
+        return unqualifiedType()->getRecordDeclaration();
+    }
     assert(kind == Record);
     const clang::RecordType * cpp_record = cpp_type->getAs<clang::RecordType>();
     return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));

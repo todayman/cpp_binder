@@ -227,10 +227,16 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType, Qualif
         std.d.ast.Type translatedTargetType = translateType(target_type, qualifiers);
         if (translatedTargetType.typeConstructors.length > 0)
         {
-            throw new Error("This case is not handled yet!");
+            result.type2 = new Type2();
+            result.type2.typeConstructor = translatedTargetType.typeConstructors[0];
+            translatedTargetType.typeConstructors = translatedTargetType.typeConstructors[1 .. $];
+            result.type2.type = translatedTargetType;
         }
-        result.typeSuffixes ~= translatedTargetType.typeSuffixes;
-        result.type2 = translatedTargetType.type2;
+        else
+        {
+            result.typeSuffixes ~= translatedTargetType.typeSuffixes;
+            result.type2 = translatedTargetType.type2;
+        }
     }
 
     return result;

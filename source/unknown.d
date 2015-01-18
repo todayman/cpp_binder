@@ -119,7 +119,7 @@ extern (C++) struct Type
 
     clang.QualType qType;
 
-    clang.Type* cpp_type;
+    const(clang.Type)* cpp_type;
 
     unknown.Type.Kind kind;
 
@@ -131,11 +131,11 @@ extern (C++) struct Type
 
     static public void printTypeNames();
 
-    static public unknown.Type* get(clang.QualType* qType, clang.PrintingPolicy* pp);
+    static public unknown.Type* get(const(clang.QualType)* qType, const(clang.PrintingPolicy)* pp);
 
     static public unknown.Type* getByName(binder.binder.string name);
 
-    final public clang.Type* cppType() const;
+    final public const(clang.Type)* cppType() const;
 
     final public void setKind(unknown.Type.Kind k);
 
@@ -148,6 +148,8 @@ extern (C++) struct Type
     final public unknown.Strategy getStrategy() const;
 
     final public unknown.Type* unqualifiedType();
+
+    final public unknown.Type* unqualifiedType() const;
 
     final public bool isConst() const;
 
@@ -200,31 +202,31 @@ Qualified =   11
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
 {
 
-    public clang.Type* getType() const;
+    public const(clang.Type)* getType() const;
 }
 
 extern (C++) interface SkipUnwrappableType : unknown.NotWrappableException
 {
 
-    public clang.Type* getType() const;
+    public const(clang.Type)* getType() const;
 }
 
 extern (C++) interface SkipRValueRef : unknown.SkipUnwrappableType
 {
 
-    public char* what() const;
+    public const(char)* what() const;
 }
 
 extern (C++) interface SkipTemplate : unknown.SkipUnwrappableType
 {
 
-    public char* what() const;
+    public const(char)* what() const;
 }
 
 extern (C++) interface SkipMemberPointer : unknown.SkipUnwrappableType
 {
 
-    public char* what() const;
+    public const(char)* what() const;
 }
 
 enum Visibility : uint 
@@ -422,6 +424,6 @@ extern (C++) unknown.Declaration getDeclaration(clang.Decl* decl);
 
 extern (C++) interface SkipUnwrappableDeclaration : unknown.NotWrappableException {}
 
-extern (C++) extern clang.SourceManager* source_manager;
+extern (C++) extern const(clang.SourceManager)* source_manager;
 
 extern (C++) clang.ASTUnit* buildAST(char* contents, size_t arg_len, char** raw_args, char* filename);

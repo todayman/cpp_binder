@@ -154,6 +154,7 @@ class UnionDeclaration;
         Strategy getStrategy() const;
 
         Type * unqualifiedType();
+        const Type * unqualifiedType() const;
         bool isConst() const;
 
         struct WrongStrategy : public std::runtime_error
