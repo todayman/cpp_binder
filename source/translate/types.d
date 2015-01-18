@@ -22,6 +22,7 @@ import core.exception : RangeError;
 
 import std.conv : to;
 import std.stdio : stderr;
+import std.typecons : Flag;
 
 import std.d.ast;
 import std.d.lexer;
@@ -181,10 +182,20 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
     return result;
 }
 
-// FIXME need to preserve pointer/refness
-// FIXME D ref isn't a type constructor, it's a storage class, so this doesn't really work anymore
-// ref is applied to the argument declaration, not the type
-private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType, QualifierSet qualifiers)
+class RefTypeException : Exception
+{
+    public:
+    unknown.Type * type;
+    this(unknown.Type * t)
+    {
+        super("Trying to translate into a ref");
+        type = t;
+    }
+};
+
+private std.d.ast.Type translatePointerOrReference
+    (Flag!"ref" ref_)
+    (unknown.Type* cppType, QualifierSet qualifiers)
 {
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
@@ -214,28 +225,39 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType, Qualif
     }
     else
     {
-        // FIXME assuming pointer here, and not reference
-        result = new std.d.ast.Type();
-        TypeSuffix pointerSuffix = new TypeSuffix();
-        pointerSuffix.star = Token(tok!"*", "", 0, 0, 0);
-        result.typeSuffixes = [pointerSuffix];
-
-        // FIXME potentially does many concatenations; there should be a way
-        // to build them all into the same array.
-        // But this probably won't be a real problem, because
-        // how deep do people's types actually go? (Don't answer that!)
-        std.d.ast.Type translatedTargetType = translateType(target_type, qualifiers);
-        if (translatedTargetType.typeConstructors.length > 0)
+        static if (ref_)
         {
-            result.type2 = new Type2();
-            result.type2.typeConstructor = translatedTargetType.typeConstructors[0];
-            translatedTargetType.typeConstructors = translatedTargetType.typeConstructors[1 .. $];
-            result.type2.type = translatedTargetType;
+            // Since D refs aren't allowed everywhere, indicate that cppType is
+            // a ref, causing us to look higher up in the call stack where we
+            // can tell if this is an allowed place for a ref.
+            // If it is allowed, then the caller will deal with the ref and
+            // translate the un-ref-ed type.
+            throw new RefTypeException(cppType);
         }
         else
         {
-            result.typeSuffixes ~= translatedTargetType.typeSuffixes;
-            result.type2 = translatedTargetType.type2;
+            result = new std.d.ast.Type();
+            TypeSuffix pointerSuffix = new TypeSuffix();
+            pointerSuffix.star = Token(tok!"*", "", 0, 0, 0);
+            result.typeSuffixes = [pointerSuffix];
+
+            std.d.ast.Type translatedTargetType = translateType(target_type, qualifiers).clone;
+            if (translatedTargetType.typeConstructors.length > 0)
+            {
+                result.type2 = new Type2();
+                result.type2.typeConstructor = translatedTargetType.typeConstructors[0];
+                translatedTargetType.typeConstructors = translatedTargetType.typeConstructors[1 .. $];
+                result.type2.type = translatedTargetType;
+            }
+            else
+            {
+                // FIXME potentially does many concatenations; there should be a way
+                // to build them all into the same array.
+                // But this probably won't be a real problem, because
+                // how deep do people's types actually go? (Don't answer that!)
+                result.typeSuffixes ~= translatedTargetType.typeSuffixes;
+                result.type2 = translatedTargetType.type2;
+            }
         }
     }
 
@@ -244,11 +266,11 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType, Qualif
 
 private std.d.ast.Type translatePointer(unknown.Type* cppType, QualifierSet qualifiers)
 {
-    return translatePointerOrReference(cppType, qualifiers);
+    return translatePointerOrReference!(Flag!"ref".no)(cppType, qualifiers);
 }
 private std.d.ast.Type translateReference(unknown.Type* cppType, QualifierSet qualifiers)
 {
-    return translatePointerOrReference(cppType, qualifiers);
+    return translatePointerOrReference!(Flag!"ref".yes)(cppType, qualifiers);
 }
 
 // FIXME add a method on the Type struct that just gets the declaration,

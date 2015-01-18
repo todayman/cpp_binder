@@ -163,7 +163,6 @@ class OverloadedOperatorError : Exception
     }
 };
 
-// Would kind of like a WhiteHole for these
 private class TranslatorVisitor : unknown.DeclarationVisitor
 {
     IdentifierChain parent_package_name;
@@ -220,7 +219,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              !arg_iter.equals(arg_end);
              arg_iter.advance())
         {
-            // FIXME check these types
             d_decl.parameters.parameters ~= [translateArgument(arg_iter.get())];
         }
         return outerDeclaration;
@@ -551,8 +549,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl);
         result.identifierList = new IdentifierList();
         result.identifierList.identifiers = [nameFromDecl(cppDecl)];
-        if (nameFromDecl(cppDecl).text == "size_t")
-            stdout.writeln("Translating size_t");
         result.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
         makeSymbolForDecl(cppDecl, result.identifierList.identifiers[0], parent_package_name, package_internal_path, namespace_path);
 
@@ -802,7 +798,25 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
         auto arg = new std.d.ast.Parameter();
         arg.name = nameFromDecl(cppDecl);
-        arg.type = translateType(cppDecl.getType(), QualifierSet.init);
+
+        unknown.Type * cppType = cppDecl.getType();
+
+        try {
+            arg.type = translateType(cppType, QualifierSet.init);
+        }
+        catch (RefTypeException e)
+        {
+            // Make sure that this isn't a ref farther down, since the ref
+            // modifier can only be applied to the parameter
+            if (e.type != cppType)
+            {
+                throw e;
+            }
+
+            unknown.Type * targetType = cppType.getPointeeType();
+            arg.type = translateType(targetType, QualifierSet.init).clone;
+            arg.type.typeConstructors ~= [tok!"ref"];
+        }
 
         return arg;
     }
