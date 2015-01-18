@@ -128,6 +128,11 @@ Type * Type::unqualifiedType()
     }
 }
 
+bool Type::isConst() const
+{
+    return qType.isLocalConstQualified();
+}
+
 Declaration * Type::getDeclaration() const
 {
     switch (kind)

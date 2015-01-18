@@ -210,7 +210,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             throw new Exception("Function declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
-        d_decl.returnType = translateType(cppDecl.getReturnType());
+        d_decl.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
 
         d_decl.parameters = new Parameters();
         // FIXME obviously not always true
@@ -438,7 +438,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             // Do the translation before checking if it's an interface because
             // the translation will force the type to pick a strategy
-            std.d.ast.Type superType = translateType(superclass.base);
+            std.d.ast.Type superType = translateType(superclass.base, QualifierSet.init);
             // FIXME cannot handle arbitrary replacement of superclasses
             if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE
                     && superclass.base.getStrategy() != unknown.Strategy.REPLACE)
@@ -553,7 +553,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.identifierList.identifiers = [nameFromDecl(cppDecl)];
         if (nameFromDecl(cppDecl).text == "size_t")
             stdout.writeln("Translating size_t");
-        result.type = translateType(cppDecl.getTargetType());
+        result.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
         makeSymbolForDecl(cppDecl, result.identifierList.identifiers[0], parent_package_name, package_internal_path, namespace_path);
 
         return result;
@@ -577,7 +577,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
         unknown.Type * cppType = cppDecl.getMemberType();
-        result.type = translateType(cppType);
+        result.type = translateType(cppType, QualifierSet.init);
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
@@ -645,7 +645,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
         auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl);
-        result.type = translateType(cppDecl.getType());
+        result.type = translateType(cppDecl.getType(), QualifierSet.init);
 
         auto declarator = new Declarator();
         declarator.name = nameFromDecl(cppDecl);
@@ -762,7 +762,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             throw new Exception("Method declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
-        result.returnType = translateType(cppDecl.getReturnType());
+        result.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
         if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
         {
             cppDecl.dump();
@@ -802,7 +802,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
         auto arg = new std.d.ast.Parameter();
         arg.name = nameFromDecl(cppDecl);
-        arg.type = translateType(cppDecl.getType());
+        arg.type = translateType(cppDecl.getType(), QualifierSet.init);
 
         return arg;
     }
@@ -830,7 +830,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto declarator = new Declarator();
         declarator.name = nameFromDecl(cppDecl);
         var.declarators ~= [declarator];
-        var.type = translateType(cppDecl.getType());
+        var.type = translateType(cppDecl.getType(), QualifierSet.init);
 
         return var;
     }

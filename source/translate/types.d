@@ -77,10 +77,19 @@ package void determineStrategy(unknown.Type* cppType)
             break;
         case unknown.Type.Kind.Vector:
             throw new Error("Cannot translate vector (e.g. SSE, AVX) types.");
+        case unknown.Type.Kind.Qualified:
+            determineStrategy(cppType.unqualifiedType());
+            cppType.setStrategy(cppType.unqualifiedType().getStrategy());
+            break;
     }
 }
 
-private std.d.ast.Type replaceType(unknown.Type* cppType)
+struct QualifierSet
+{
+    bool const_ = false;
+}
+
+private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifiers)
 {
     std.d.ast.Type result;
     string replacement_name = binder.toDString(cppType.getReplacement());
@@ -132,19 +141,19 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("Called replaceType on a Builtin");
                     break;
                 case unknown.Type.Kind.Pointer:
-                    result = translatePointer(cppType);
+                    result = translatePointer(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.Reference:
-                    result = translateReference(cppType);
+                    result = translateReference(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.Typedef:
-                    result = translate!"Typedef"(cppType);
+                    result = translate!"Typedef"(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.Enum:
-                    result = translate!"Enum"(cppType);
+                    result = translate!"Enum"(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.Function:
-                    result = replaceFunction(cppType);
+                    result = replaceFunction(cppType, qualifiers);
                     break;
 
                 case unknown.Type.Kind.Record:
@@ -153,7 +162,7 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
                     throw new Error("Called replaceType on a Record");
                     break;
                 case unknown.Type.Kind.Union:
-                    result = translate!"Union"(cppType);
+                    result = translate!"Union"(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.Array:
                     // TODO
@@ -161,6 +170,9 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
                     break;
                 case unknown.Type.Kind.Vector:
                     throw new Error("replaceType on Vector types is not implemented yet.");
+                    break;
+                case unknown.Type.Kind.Qualified:
+                    result = translate!"Qualified"(cppType, qualifiers);
                     break;
             }
             translated_types[cppType] = result;
@@ -172,7 +184,7 @@ private std.d.ast.Type replaceType(unknown.Type* cppType)
 // FIXME need to preserve pointer/refness
 // FIXME D ref isn't a type constructor, it's a storage class, so this doesn't really work anymore
 // ref is applied to the argument declaration, not the type
-private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
+private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType, QualifierSet qualifiers)
 {
     unknown.Type* target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
@@ -198,7 +210,7 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
     std.d.ast.Type result;
     if (target_is_reference_type)
     {
-        result = translateType(target_type);
+        result = translateType(target_type, qualifiers);
     }
     else
     {
@@ -212,7 +224,7 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
         // to build them all into the same array.
         // But this probably won't be a real problem, because
         // how deep do people's types actually go? (Don't answer that!)
-        std.d.ast.Type translatedTargetType = translateType(target_type);
+        std.d.ast.Type translatedTargetType = translateType(target_type, qualifiers);
         if (translatedTargetType.typeConstructors.length > 0)
         {
             throw new Error("This case is not handled yet!");
@@ -224,13 +236,13 @@ private std.d.ast.Type translatePointerOrReference(unknown.Type* cppType)
     return result;
 }
 
-private std.d.ast.Type translatePointer(unknown.Type* cppType)
+private std.d.ast.Type translatePointer(unknown.Type* cppType, QualifierSet qualifiers)
 {
-    return translatePointerOrReference(cppType);
+    return translatePointerOrReference(cppType, qualifiers);
 }
-private std.d.ast.Type translateReference(unknown.Type* cppType)
+private std.d.ast.Type translateReference(unknown.Type* cppType, QualifierSet qualifiers)
 {
-    return translatePointerOrReference(cppType);
+    return translatePointerOrReference(cppType, qualifiers);
 }
 
 // FIXME add a method on the Type struct that just gets the declaration,
@@ -268,7 +280,7 @@ mixin (replaceMixin!("Union", "Union"));
 mixin (replaceMixin!("Record", "Struct"));
 mixin (replaceMixin!("Record", "Interface"));
 
-private std.d.ast.Type translate(string kind)(unknown.Type* cppType)
+private std.d.ast.Type translate(string kind)(unknown.Type* cppType, QualifierSet qualifiers)
 {
     auto result = new std.d.ast.Type();
     auto type2 = new std.d.ast.Type2();
@@ -277,14 +289,36 @@ private std.d.ast.Type translate(string kind)(unknown.Type* cppType)
     return result;
 }
 
-private std.d.ast.Type replaceFunction(unknown.Type*)
+private std.d.ast.Type translate(string kind : "Qualified")
+    (unknown.Type* cppType, QualifierSet qualifiersAlreadApplied)
+{
+    QualifierSet innerQualifiers;
+    if (cppType.isConst())
+    {
+        innerQualifiers.const_ = true;
+    }
+    std.d.ast.Type result = translateType(cppType.unqualifiedType(), innerQualifiers);
+
+    // Apply qualifiers that 
+    if (cppType.isConst() && !qualifiersAlreadApplied.const_)
+    {
+        result.typeConstructors ~= [tok!"const"];
+    }
+
+    return result;
+}
+
+private std.d.ast.Type replaceFunction(unknown.Type*, QualifierSet)
 {
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
     throw new Error("Translation of function types is not implemented yet.");
 }
 
-public std.d.ast.Type translateType(unknown.Type* cppType)
+// Qualifiers are the qualifiers that have already been applied to the type.
+// e.g. when const(int*) does the const * part then calls translateType(int, const)
+// So that const is not applied transitively all the way down
+public std.d.ast.Type translateType(unknown.Type* cppType, QualifierSet qualifiers)
 {
     if (cppType in translated_types)
     {
@@ -297,20 +331,20 @@ public std.d.ast.Type translateType(unknown.Type* cppType)
         {
             case unknown.Strategy.UNKNOWN:
                 determineStrategy(cppType);
-                result = translateType(cppType);
+                result = translateType(cppType, qualifiers);
                 break;
             case unknown.Strategy.REPLACE:
-                result = replaceType(cppType);
+                result = replaceType(cppType, qualifiers);
                 break;
             case unknown.Strategy.STRUCT:
-                result = translate!"Struct"(cppType);
+                result = translate!"Struct"(cppType, qualifiers);
                 break;
             case unknown.Strategy.INTERFACE:
                 // TODO I should check what the code paths into here are,
                 // because you shouldn't translate to interfaces directly,
                 // you should translate a pointer or ref to an interface into
                 // an interface
-                result = translate!"Interface"(cppType);
+                result = translate!"Interface"(cppType, qualifiers);
                 break;
             case unknown.Strategy.CLASS:
                 break;
@@ -328,12 +362,6 @@ public std.d.ast.Type translateType(unknown.Type* cppType)
         }
         return result;
     }
-}
-
-private std.d.ast.Type2 translateType2(unknown.Type* cppType)
-{
-    std.d.ast.Type type = translateType(cppType);
-    return type.type2;
 }
 
 package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)

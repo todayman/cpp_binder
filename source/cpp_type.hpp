@@ -145,7 +145,7 @@ class UnionDeclaration;
             {
                 throw DontSetUnknown();
             }
-            if( s == REPLACE ) {
+            if( kind != Qualified && s == REPLACE ) {
                 throw UseReplaceMethod();
             }
             strategy = s;
@@ -154,6 +154,7 @@ class UnionDeclaration;
         Strategy getStrategy() const;
 
         Type * unqualifiedType();
+        bool isConst() const;
 
         struct WrongStrategy : public std::runtime_error
         {

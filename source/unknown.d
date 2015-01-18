@@ -149,6 +149,8 @@ extern (C++) struct Type
 
     final public unknown.Type* unqualifiedType();
 
+    final public bool isConst() const;
+
     final public binder.binder.string getReplacement() const;
 
     final public binder.binder.string getReplacementModule() const;
