@@ -15,6 +15,13 @@
             }
             , "target_module": "."
         },
+        "nullptr_t": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "void*"
+            }
+            , "target_module": "."
+        },
         "char": {
             "strategy": {
                 "name": "replace",
