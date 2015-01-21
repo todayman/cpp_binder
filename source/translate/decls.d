@@ -880,7 +880,6 @@ private std.d.ast.Module findTargetModule(unknown.Declaration declaration)
 }
 private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.Declaration translation)
 {
-    // TODO rethink this entire method for libdparse
     // FIXME sometimes this gets called multiple times on the same declaration,
     // so it will get output multiple times, which is clearly wrong
     // It happens because there are multiple declarations of the same type

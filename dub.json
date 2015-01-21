@@ -1,0 +1,38 @@
+{
+	  "name": "cpp_binder"
+	, "description": "A C++ binding generator for D."
+	, "copyright": "Copyright © 2014-2015, Paul O'Neil"
+    , "license": "GPL-3.0"
+	, "authors": ["Paul O'Neil"]
+    , "targetType": "executable"
+	, "dependencies": {
+        "libdparse": "~master"
+      , "yajl": "~>0.2.0"
+	}
+    , "preBuildCommands": [
+        "mkdir -p build"
+      , "cd build; cmake ..; make -j"
+    ]
+    , "lflags": [
+        "-Lbuild"
+    ]
+    , "libs": [
+        "cpp_binder"
+      , "clangTooling"
+      , "clangDriver"
+      , "clangFrontend"
+      , "clangParse"
+      , "clangSema"
+      , "clangEdit"
+      , "clangAnalysis"
+      , "clangAST"
+      , "clangLex"
+      , "clangSerialization"
+      , "clangBasic"
+      , "clang"
+      , "LLVM-3.5"
+      , "boost_filesystem"
+      , "boost_system"
+      , "stdc++"
+    ]
+}
