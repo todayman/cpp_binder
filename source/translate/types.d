@@ -52,13 +52,11 @@ package void determineStrategy(unknown.Type* cppType)
         case unknown.Type.Kind.Invalid:
             cppType.dump();
             throw new Exception("Attempting to determine strategy for invalid type.");
-            break;
         case unknown.Type.Kind.Builtin:
             stderr.write("I don't know how to translate the builtin C++ type:\n");
             cppType.dump();
             stderr.write("\n");
             throw new Exception("Cannot translate builtin.");
-            break;
         case unknown.Type.Kind.Pointer:
         case unknown.Type.Kind.Reference:
         case unknown.Type.Kind.Typedef:
@@ -135,12 +133,10 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
             {
                 case unknown.Type.Kind.Invalid:
                     throw new Error("Attempting to translate an Invalid type");
-                    break;
                 case unknown.Type.Kind.Builtin:
                     // TODO figure out (again) why this is an error and add
                     // a comment explaining that
                     throw new Error("Called replaceType on a Builtin");
-                    break;
                 case unknown.Type.Kind.Pointer:
                     result = translatePointer(cppType, qualifiers);
                     break;
@@ -161,17 +157,14 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
                     // TODO figure out (again) why this is an error and add
                     // a comment explaining that
                     throw new Error("Called replaceType on a Record");
-                    break;
                 case unknown.Type.Kind.Union:
                     result = translate!"Union"(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.Array:
                     // TODO
                     throw new Error("replaceType on Arrays is not implemented yet.");
-                    break;
                 case unknown.Type.Kind.Vector:
                     throw new Error("replaceType on Vector types is not implemented yet.");
-                    break;
                 case unknown.Type.Kind.Qualified:
                     result = translate!"Qualified"(cppType, qualifiers);
                     break;
