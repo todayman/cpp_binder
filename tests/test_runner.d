@@ -282,7 +282,7 @@ int main(string[] args)
     // Find all the test cases
     auto test_cases =
         dirEntries(test_directory, SpanMode.shallow)
-        .filter!(x=> x.isDir);
+        .filter!(x=> (x.isDir && x.baseName()[0] != '.'));
 
     myTmpDir = join([tempDir(), "test_runner-" ~ randomUUID().toString()[0..8]], dirSeparator);
     mkdir(myTmpDir);
