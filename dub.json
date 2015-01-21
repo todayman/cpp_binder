@@ -35,4 +35,7 @@
       , "boost_system"
       , "stdc++"
     ]
+    , "subPackages": [
+        "./tests"
+    ]
 }

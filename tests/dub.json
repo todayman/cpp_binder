@@ -1,0 +1,11 @@
+{
+    "name": "test_runner"
+  , "targetType": "executable"
+  , "targetName": "test_runner"
+  , "dependencies": {
+      "libdparse": "~master"
+    }
+  , "sourceFiles": [
+      "test_runner.d"
+    ]
+}

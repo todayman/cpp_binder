@@ -6,4 +6,6 @@ docs.json
 __dummy.html
 *.o
 *.obj
+
 tests/test_runner
+cpp_binder
