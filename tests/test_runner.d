@@ -1,6 +1,6 @@
 /*
  *  test_runner: runs the tests for cpp_binder
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -241,6 +241,7 @@ bool configure_and_run_test(string directory, string executable, StringCache* st
             writeln("\t", failure.msg);
         if (curTest.cmd.length > 0)
             writeln("\t", curTest.cmd);
+        return false;
     }
     return true;
 }
@@ -288,6 +289,6 @@ int main(string[] args)
     scope(exit) rmdirRecurse(myTmpDir);
     bool success = true;
     foreach (d; test_cases)
-        success = configure_and_run_test(d.name, executable, &strCache) || success;
+        success = configure_and_run_test(d.name, executable, &strCache) && success;
     return (success ? 0 : 1);
 }
