@@ -388,6 +388,65 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
+    class IsRecord : unknown.DeclarationVisitor
+    {
+        // TODO when dmd issues #14020 is fixed, use a BlackHole instead
+        override extern(C++) public void visitFunction(unknown.FunctionDeclaration node) { }
+
+        override extern(C++) public void visitNamespace(unknown.NamespaceDeclaration node) { }
+
+        override extern(C++) public void visitTypedef(unknown.TypedefDeclaration node) { }
+
+        override extern(C++) public void visitEnum(unknown.EnumDeclaration node) { }
+
+        override extern(C++) public void visitField(unknown.FieldDeclaration node) { }
+
+        override extern(C++) public void visitEnumConstant(unknown.EnumConstantDeclaration node) { }
+
+        override extern(C++) public void visitUnion(unknown.UnionDeclaration node) { }
+
+        override extern(C++) public void visitMethod(unknown.MethodDeclaration node) { }
+
+        override extern(C++) public void visitConstructor(unknown.ConstructorDeclaration node) { }
+
+        override extern(C++) public void visitDestructor(unknown.DestructorDeclaration node) { }
+
+        override extern(C++) public void visitArgument(unknown.ArgumentDeclaration node) { }
+
+        override extern(C++) public void visitVariable(unknown.VariableDeclaration node) { }
+
+        override extern(C++) public void visitUnwrappable(unknown.UnwrappableDeclaration node) { }
+        // END BlackHole workaround
+
+        public bool result;
+        public unknown.RecordDeclaration outer;
+        this(unknown.RecordDeclaration o)
+        {
+            result = false;
+            outer = o;
+        }
+        override
+        extern(C++) void visitRecord(unknown.RecordDeclaration inner)
+        {
+            if (binder.toDString(inner.getSourceName()) != binder.toDString(outer.getSourceName()))
+                return;
+
+            if (inner.getChildBegin().equals(inner.getChildEnd()))
+                result = true;
+        }
+    }
+    // The clang AST has an extra record inside of each struct that appears spurious
+    // struct A {
+    //     void methodOnA();
+    //     struct A { }; <- What's this for?
+    // We filter this out
+    private bool isEmptyDuplicateStructThingy(unknown.RecordDeclaration outer, unknown.Declaration inner)
+    {
+        auto visitor = new IsRecord(outer);
+        inner.visit(visitor);
+        return visitor.result;
+    }
+
     private void translateStructBody(TargetDeclaration)(unknown.RecordDeclaration cppDecl, TargetDeclaration result)
     {
         for (unknown.DeclarationIterator iter = cppDecl.getChildBegin(),
@@ -403,7 +462,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 auto visitor = new TranslatorVisitor(parent_package_name, namespace_path, package_internal_path);
                 unknown.Declaration decl = iter.get();
                 decl.visit(visitor);
-                if (visitor.last_result)
+                if (visitor.last_result && !isEmptyDuplicateStructThingy(cppDecl, iter.get()))
                 {
                     result.structBody.declarations ~= [visitor.last_result];
                 }
