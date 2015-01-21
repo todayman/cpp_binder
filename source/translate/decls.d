@@ -328,8 +328,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              !iter.equals(finish);
              iter.advance())
         {
-            VariableDeclaration field = translateField(iter.get());
-            result.structBody.declarations ~= [makeDeclaration(field)];
+            Declaration field = translateField(iter.get());
+            result.structBody.declarations ~= [field];
         }
     }
 
@@ -636,20 +636,23 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Error("Attempted to translate an enum constant directly, instead of via an enum.");
     }
 
-    std.d.ast.VariableDeclaration translateField(unknown.FieldDeclaration cppDecl)
+    std.d.ast.Declaration translateField(unknown.FieldDeclaration cppDecl)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl);
+
+        std.d.ast.Declaration outerDeclaration;
+        // FIXME this type needs to correspond with the CHECK_FOR_DECL
+        auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
 
         auto declarator = new Declarator();
         declarator.name = nameFromDecl(cppDecl);
         result.declarators = [declarator];
 
-        result.attributes ~= [translateVisibility(cppDecl)];
+        outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
 
-        return result;
+        return outerDeclaration;
     }
     extern(C++) override void visitField(unknown.FieldDeclaration)
     {
@@ -678,8 +681,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              !iter.equals(finish);
              iter.advance() )
         {
-            std.d.ast.VariableDeclaration field = translateField(iter.get());
-            result.structBody.declarations ~= [makeDeclaration(field)];
+            std.d.ast.Declaration field = translateField(iter.get());
+            result.structBody.declarations ~= [field];
         }
 
         // TODO static methods and other things?
