@@ -570,6 +570,12 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
     return Super::WalkUpFromRecordDecl(cppDecl);
 }
 
+bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
+{
+    // TODO fill in
+    return Super::WalkUpFromClassTemplateDecl(cppDecl);
+}
+
 // This method is called after WalkUpFromDecl, which
 // throws an exception if decl_in_progress hasn't been allocated yet.
 bool DeclVisitor::VisitDecl(clang::Decl* Declaration)

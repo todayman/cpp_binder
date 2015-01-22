@@ -1308,6 +1308,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromEnumConstantDecl(clang::EnumConstantDecl* cppDecl);
         bool WalkUpFromVarDecl(clang::VarDecl* cppDecl);
         bool WalkUpFromFieldDecl(clang::FieldDecl* cppDecl);
+        bool WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
 
         bool VisitDecl(clang::Decl* Declaration);
         // Also gets cxx method/ctor/dtor
