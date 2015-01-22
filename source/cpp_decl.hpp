@@ -1171,6 +1171,50 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
+    class TemplateArgumentIterator
+    {
+        private:
+        clang::TemplateParameterList::iterator cpp_iter;
+
+        public:
+        explicit TemplateArgumentIterator(clang::TemplateParameterList::iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const TemplateArgumentIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const TemplateArgumentIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        Declaration* operator*();
+        Declaration* operator->()
+        {
+            return operator*();
+        }
+
+        virtual Declaration* get()
+        {
+            return operator*();
+        }
+
+        virtual void advance()
+        {
+            cpp_iter++;
+        }
+
+        virtual bool equals(TemplateArgumentIterator* other)
+        {
+            return (*this) == (*other);
+        }
+    };
+
     class RecordTemplateDeclaration : public Declaration
     {
         private:
@@ -1191,7 +1235,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(clang::QualType(_decl->getTemplatedDecl()->getTypeForDecl(), 0));
         }
 
-        virtual void visit(DeclarationVisitor& visitor) override
+        virtual void visit(DeclarationVisitor&) override
         {
             // TODO fill in
         }
@@ -1392,6 +1436,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class FieldIterator;
         friend class MethodIterator;
         friend class OverriddenMethodIterator;
+        friend class TemplateArgumentIterator;
     };
 
 namespace clang

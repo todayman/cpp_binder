@@ -211,6 +211,17 @@ Superclass* SuperclassIterator::operator*()
 
     return result;
 }
+Declaration* TemplateArgumentIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    return decl;
+}
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 {
