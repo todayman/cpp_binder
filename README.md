@@ -18,3 +18,12 @@ The D modules are placed into `output_dir`; there can be only one.
 The arguments can appear in any order.
 
 Someday, when this is a real tool, I'll ship a configuration file in `/etc/cpp_binder.json` with builtin types and such and that will get parsed automatically.
+
+## Dependencies
+
+*   dmd 2.066 or higher
+*   dub
+*   clang 3.5 (dev packages)
+*   yajl 2.1 or higher (maybe 2.0 works, but I haven't tested)
+*   boost filesystem (and boost system)
+*   C++11 compiler
