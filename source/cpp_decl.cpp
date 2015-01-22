@@ -583,7 +583,21 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
 
 bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
 {
-    // TODO fill in
+    // FIXME reduce redundancy with WalkUpFromRecordDecl
+    clang::CXXRecordDecl * templatedDecl = cppDecl->getTemplatedDecl();
+    if (templatedDecl->isUnion())
+    {
+        // Skip unions for now
+        std::cerr << "WARNING: Skipping templated union\n";
+        cppDecl->dump();
+    }
+    else if (templatedDecl->isStruct() || templatedDecl->isClass())
+    {
+        allocateDeclaration<clang::ClassTemplateDecl, RecordTemplateDeclaration>(cppDecl);
+    }
+    else {
+        throw SkipUnwrappableDeclaration(cppDecl);
+    }
     return Super::WalkUpFromClassTemplateDecl(cppDecl);
 }
 
