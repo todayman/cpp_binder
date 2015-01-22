@@ -1171,6 +1171,58 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
+    class RecordTemplateDeclaration : public Declaration
+    {
+        private:
+        const clang::ClassTemplateDecl* _decl;
+
+        public:
+        RecordTemplateDeclaration(const clang::ClassTemplateDecl* d)
+            : _decl(d)
+        { }
+
+        virtual clang::SourceLocation getSourceLocation() const override
+        {
+            return _decl->getLocation();
+        }
+
+        virtual Type* getType() const override
+        {
+            return Type::get(clang::QualType(_decl->getTemplatedDecl()->getTypeForDecl(), 0));
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            // TODO fill in
+        }
+        /*virtual void visit(ConstDeclarationVisitor& visitor) override
+        {
+            visitor.visitUnion(*this);
+        }*/
+
+        virtual FieldIterator * getFieldBegin()
+        {
+            return new FieldIterator(_decl->getTemplatedDecl()->field_begin());
+        }
+        virtual FieldIterator * getFieldEnd()
+        {
+            return new FieldIterator(_decl->getTemplatedDecl()->field_end());
+        }
+        virtual DeclarationIterator * getChildBegin()
+        {
+            return new DeclarationIterator(_decl->getTemplatedDecl()->decls_begin());
+        }
+        virtual DeclarationIterator * getChildEnd()
+        {
+            return new DeclarationIterator(_decl->getTemplatedDecl()->decls_end());
+        }
+
+        virtual void dump() override
+        {
+            _decl->dump();
+        }
+    };
+
     class UnwrappableDeclaration : public Declaration
     {
         private:
