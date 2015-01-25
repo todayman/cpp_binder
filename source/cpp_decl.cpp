@@ -112,7 +112,7 @@ void printPresumedLocation(const clang::NamedDecl* Declaration)
     std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
-RecordDeclaration* RecordDeclaration::getDefinition() const
+const RecordDeclaration* RecordDeclaration::getDefinition() const
 {
     auto search_result = DeclVisitor::getDeclarations().find(_decl->getDefinition());
     if( search_result == DeclVisitor::getDeclarations().end() )
@@ -120,7 +120,7 @@ RecordDeclaration* RecordDeclaration::getDefinition() const
         return nullptr;
     }
     Declaration* decl = search_result->second;
-    return dynamic_cast<RecordDeclaration*>(decl);
+    return dynamic_cast<const RecordDeclaration*>(decl);
 }
 
 /*template<typename ClangType, typename TranslatorType>

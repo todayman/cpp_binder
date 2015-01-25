@@ -161,7 +161,7 @@ extern (C++) struct Type
 
     final public unknown.Declaration getDeclaration() const;
 
-    final public unknown.RecordDeclaration getRecordDeclaration() const;
+    final public const unknown.RecordDeclaration getRecordDeclaration() const;
 
     final public unknown.Type* getPointeeType() const;
 

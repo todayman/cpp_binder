@@ -1101,7 +1101,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return (_decl->getDefinition() != nullptr);
         }
 
-        virtual RecordDeclaration* getDefinition() const;
+        virtual const RecordDeclaration* getDefinition() const;
 
         virtual bool isDynamicClass() const
         {
