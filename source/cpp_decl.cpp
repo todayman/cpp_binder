@@ -615,7 +615,7 @@ bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     {
         // Skip unions for now
         std::cerr << "WARNING: Skipping templated union\n";
-        cppDecl->dump();
+        allocateDeclaration<clang::ClassTemplateDecl, UnwrappableDeclaration>(cppDecl);
     }
     else if (templatedDecl->isStruct() || templatedDecl->isClass())
     {
@@ -644,6 +644,17 @@ bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl
 
     return true;
 }
+
+bool DeclVisitor::WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl)
+{
+    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
+    return false;
+}
+
+UNWRAPPABLE_TRAVERSE(FunctionTemplate)
+UNWRAPPABLE_TRAVERSE(TypeAliasTemplate)
+UNWRAPPABLE_TRAVERSE(TypeAlias)
+UNWRAPPABLE_TRAVERSE(UnresolvedUsingValue)
 
 // This method is called after WalkUpFromDecl, which
 // throws an exception if decl_in_progress hasn't been allocated yet.

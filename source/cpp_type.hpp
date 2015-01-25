@@ -230,9 +230,19 @@ class TemplateTypeArgumentDeclaration;
         bool WalkUpFromDecayedType(clang::DecayedType* cppType);
         bool WalkUpFromParenType(clang::ParenType* cppType);
         bool WalkUpFromDecltypeType(clang::DecltypeType* cppType);
+
+        // Types we can't handle yet
         bool WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type);
         bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type);
         bool WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type);
+        bool WalkUpFromDependentNameType(clang::DependentNameType* type);
+        bool WalkUpFromTypeOfExprType(clang::TypeOfExprType* type);
+        bool WalkUpFromUnaryTransformType(clang::UnaryTransformType* type);
+        bool WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type);
+        bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
+        bool WalkUpFromPackExpansionType(clang::PackExpansionType* type);
+
+        // Template types we can handle
         bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
 
         // By the time this method is called, we should know what kind

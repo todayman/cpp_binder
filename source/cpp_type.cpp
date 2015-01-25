@@ -379,6 +379,7 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
     if( !type_in_progress )
     {
         allocateType(type, Type::Invalid);
+        type->dump();
         throw std::logic_error("Can not wrap type!");
         return false;
     }
@@ -524,4 +525,40 @@ bool TypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* 
     // I don't translate those just yet...
     allocateType(type, Type::Record);
     return Super::WalkUpFromInjectedClassNameType(type);
+}
+
+bool TypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
+bool TypeVisitor::WalkUpFromTypeOfExprType(clang::TypeOfExprType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
+bool TypeVisitor::WalkUpFromUnaryTransformType(clang::UnaryTransformType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
+bool TypeVisitor::WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
+bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
+bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
 }

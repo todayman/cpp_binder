@@ -1442,6 +1442,14 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromFieldDecl(clang::FieldDecl* cppDecl);
         bool WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
         bool WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
+        bool WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl);
+
+        // Template stuff I can't handle yet
+        bool TraverseFunctionTemplateDecl(clang::FunctionTemplateDecl* cppDecl);
+        bool TraverseTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl* cppDecl);
+
+        bool TraverseTypeAliasDecl(clang::TypeAliasDecl* cppDecl);
+        bool TraverseUnresolvedUsingValueDecl(clang::UnresolvedUsingValueDecl* cppDecl);
 
         bool VisitDecl(clang::Decl* Declaration);
         // Also gets cxx method/ctor/dtor
