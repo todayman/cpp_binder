@@ -80,7 +80,8 @@ class TemplateTypeArgumentDeclaration;
             Vector, // MMX, SSE, etc
             Enum,
             Qualified,
-            TemplateArgument
+            TemplateArgument,
+            TemplateSpecialization,
         };
 
         private:
@@ -181,6 +182,8 @@ class TemplateTypeArgumentDeclaration;
         {
             template_list = tl;
         }
+        Declaration* getTemplateDeclaration() const;
+
         void dump();
     };
 

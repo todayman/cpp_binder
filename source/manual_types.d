@@ -7,6 +7,7 @@ extern(C++, clang)
     struct Decl;
     struct SourceManager;
     struct TemplateParameterList;
+    struct RecordDecl;
 
     // Dummy implementation to have the same size as a pointer
     struct QualType

@@ -193,7 +193,16 @@ Declaration * Type::getDeclaration() const
 
 RecordDeclaration * Type::getRecordDeclaration() const
 {
-    assert(kind == Record);
+    if (kind != Record)
+        type.dump();
+    assert(kind == Record || kind == TemplateSpecialization);
+
+    if (kind == TemplateSpecialization)
+    {
+        Declaration * decl = getTemplateDeclaration();
+        return dynamic_cast<RecordTemplateDeclaration*>(decl);
+    }
+
     const clang::RecordType * cpp_record = type.getTypePtr()->getAs<clang::RecordType>();
     if (cpp_record != nullptr)
     {
@@ -210,6 +219,7 @@ RecordDeclaration * Type::getRecordDeclaration() const
         auto result = dynamic_cast<RecordDeclaration*>(decl);
         return result;
     }
+
     return nullptr;
 }
 
@@ -277,6 +287,16 @@ TemplateTypeArgumentDeclaration * Type::getTemplateTypeArgumentDeclaration() con
     clang::NamedDecl* clang_decl = template_list->getParam(clang_type->getIndex());
     assert(isTemplateTypeParmDecl(clang_decl));
     return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
+}
+
+Declaration* Type::getTemplateDeclaration() const
+{
+    assert(kind == TemplateSpecialization);
+
+    // Not sure why I need the getCanonicalType part
+    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
+    clang::TemplateDecl* clang_decl = clang_type->getTemplateName().getAsTemplateDecl();
+    return ::getDeclaration(clang_decl);
 }
 
 void Type::dump()
@@ -502,7 +522,7 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateType(type, Type::TemplateSpecialization);
     return false;
 }
 

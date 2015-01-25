@@ -179,6 +179,8 @@ extern (C++) struct Type
 
     final public void setTemplateList(clang.TemplateParameterList* tl);
 
+    final public unknown.Declaration getTemplateDeclaration() const;
+
     final public void dump();
 
     enum Kind : uint 
@@ -196,7 +198,8 @@ Typedef =   8,
 Vector =   9,
 Enum =   10,
 Qualified =   11,
-TemplateArgument =   12
+TemplateArgument =   12,
+TemplateSpecialization =   13
     }
 
     extern (C++) interface DontSetUnknown : std.runtime_error {}
