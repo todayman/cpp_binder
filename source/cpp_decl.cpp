@@ -582,9 +582,13 @@ bool DeclVisitor::TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     {
         if (!registerDeclaration(param)) return false;
     }
-    if (!TraverseDecl(cppDecl->getTemplatedDecl())) return false;
 
-    return true;
+    bool old_top_level = top_level_decls;
+    top_level_decls = false;
+    bool result = TraverseDecl(cppDecl->getTemplatedDecl());
+    top_level_decls = old_top_level;
+
+    return result;
 }
 
 bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
