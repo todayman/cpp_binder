@@ -106,10 +106,6 @@ class UnionDeclaration;
         static Type* get(const clang::QualType& qType, const clang::PrintingPolicy* pp = nullptr);
         static Type* getByName(const string* name);
 
-        void setKind(Kind k) {
-            kind = k;
-        }
-
         Kind getKind() const;
 
         friend class TypeVisitor;
