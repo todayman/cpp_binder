@@ -303,29 +303,22 @@ bool DeclVisitor::TraverseDecl(clang::Decl * Declaration)
     if( !Declaration ) // FIXME sometimes Declaration is null.  I don't know why.
         return true;
 
-    if( Declaration->isTemplateDecl() )
+    if( declarations.find(Declaration) != declarations.end() )
     {
-        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
+        return true;
     }
-    else
+    try {
+        RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
+    }
+    catch( SkipUnwrappableType& e)
     {
-        if( declarations.find(Declaration) != declarations.end() )
+        if( decl_in_progress )
         {
-            return true;
+            decl_in_progress->markUnwrappable();
         }
-        try {
-            RecursiveASTVisitor<DeclVisitor>::TraverseDecl(Declaration);
-        }
-        catch( SkipUnwrappableType& e)
+        else
         {
-            if( decl_in_progress )
-            {
-                decl_in_progress->markUnwrappable();
-            }
-            else
-            {
-                allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
-            }
+            allocateDeclaration<clang::Decl, UnwrappableDeclaration>(Declaration);
         }
     }
 
@@ -581,6 +574,19 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
     return Super::WalkUpFromRecordDecl(cppDecl);
 }
 
+bool DeclVisitor::TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
+{
+    if (!WalkUpFromClassTemplateDecl(cppDecl)) return false;
+
+    for (clang::NamedDecl* param : *(cppDecl->getTemplateParameters()))
+    {
+        if (!registerDeclaration(param)) return false;
+    }
+    if (!TraverseDecl(cppDecl->getTemplatedDecl())) return false;
+
+    return true;
+}
+
 bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
 {
     // FIXME reduce redundancy with WalkUpFromRecordDecl
@@ -598,7 +604,16 @@ bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     else {
         throw SkipUnwrappableDeclaration(cppDecl);
     }
-    return Super::WalkUpFromClassTemplateDecl(cppDecl);
+    if (!Super::WalkUpFromClassTemplateDecl(cppDecl)) return false;
+
+    return true;
+}
+
+bool DeclVisitor::WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
+{
+    allocateDeclaration<clang::TemplateTypeParmDecl, TemplateTypeArgumentDeclaration>(cppDecl);
+
+    return Super::WalkUpFromTemplateTypeParmDecl(cppDecl);
 }
 
 // This method is called after WalkUpFromDecl, which

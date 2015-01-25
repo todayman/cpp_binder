@@ -254,6 +254,7 @@ func(Constructor)   \
 func(Destructor)    \
 func(Argument)      \
 func(Variable)      \
+func(TemplateTypeArgument) \
 func(Unwrappable)
 
 #define FORWARD_DECL(x) class x##Declaration;
@@ -985,7 +986,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
     class RecordDeclaration : public Declaration
     {
-        private:
+        protected:
         const clang::RecordDecl* _decl;
 
         const clang::RecordDecl* definitionOrThis()
@@ -1117,6 +1118,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return _decl->isCanonicalDecl();
         }
+
+        virtual unsigned getTemplateArgumentCount()
+        {
+            return 0;
+        }
     };
 
     class UnionDeclaration : public Declaration
@@ -1215,13 +1221,47 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
-    class RecordTemplateDeclaration : public Declaration
+    class RecordTemplateDeclaration : public RecordDeclaration
     {
-        private:
-        const clang::ClassTemplateDecl* _decl;
+        protected:
+        const clang::ClassTemplateDecl* outer_decl;
 
         public:
         RecordTemplateDeclaration(const clang::ClassTemplateDecl* d)
+            : RecordDeclaration(d->getTemplatedDecl()), outer_decl(d)
+        { }
+
+        virtual clang::SourceLocation getSourceLocation() const override
+        {
+            return outer_decl->getLocation();
+        }
+
+        virtual unsigned getTemplateArgumentCount() override
+        {
+            return outer_decl->getTemplateParameters()->size();
+        }
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin()
+        {
+            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
+        }
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd()
+        {
+            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
+        }
+
+        virtual void dump() override
+        {
+            _decl->dump();
+        }
+    };
+
+    class TemplateTypeArgumentDeclaration : public Declaration
+    {
+        private:
+        const clang::TemplateTypeParmDecl* _decl;
+
+        public:
+        TemplateTypeArgumentDeclaration(const clang::TemplateTypeParmDecl* d)
             : _decl(d)
         { }
 
@@ -1232,34 +1272,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual Type* getType() const override
         {
-            return Type::get(clang::QualType(_decl->getTemplatedDecl()->getTypeForDecl(), 0));
+            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
         }
 
-        virtual void visit(DeclarationVisitor&) override
+        virtual void visit(DeclarationVisitor& visitor) override
         {
-            // TODO fill in
+            visitor.visitTemplateTypeArgument(*this);
         }
-        /*virtual void visit(ConstDeclarationVisitor& visitor) override
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {
-            visitor.visitUnion(*this);
         }*/
-
-        virtual FieldIterator * getFieldBegin()
-        {
-            return new FieldIterator(_decl->getTemplatedDecl()->field_begin());
-        }
-        virtual FieldIterator * getFieldEnd()
-        {
-            return new FieldIterator(_decl->getTemplatedDecl()->field_end());
-        }
-        virtual DeclarationIterator * getChildBegin()
-        {
-            return new DeclarationIterator(_decl->getTemplatedDecl()->decls_begin());
-        }
-        virtual DeclarationIterator * getChildEnd()
-        {
-            return new DeclarationIterator(_decl->getTemplatedDecl()->decls_end());
-        }
 
         virtual void dump() override
         {
@@ -1370,6 +1392,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
         bool TraverseNamespaceDecl(clang::NamespaceDecl* cppDecl);
         bool TraverseFunctionDecl(clang::FunctionDecl* cppDecl);
+        bool TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
         bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
         bool TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
@@ -1405,6 +1428,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromVarDecl(clang::VarDecl* cppDecl);
         bool WalkUpFromFieldDecl(clang::FieldDecl* cppDecl);
         bool WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
+        bool WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
 
         bool VisitDecl(clang::Decl* Declaration);
         // Also gets cxx method/ctor/dtor

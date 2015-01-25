@@ -416,6 +416,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         override extern(C++) public void visitVariable(unknown.VariableDeclaration node) { }
 
         override extern(C++) public void visitUnwrappable(unknown.UnwrappableDeclaration node) { }
+
+        override extern(C++) public void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration node) { }
         // END BlackHole workaround
 
         public bool result;
@@ -531,6 +533,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // This only matters for methods
         // FIXME should decide on C linkage sometimes, right?
         addCppLinkageAttribute(outerDeclaration);
+
+        if (cppDecl.getTemplateArgumentCount() > 0)
+        {
+            // This cast always succeeds because we know there are template
+            // arguments.
+            auto templateDecl = cast(unknown.RecordTemplateDeclaration)cppDecl;
+            result.templateParameters = translateTemplateParameters(templateDecl);
+        }
 
         result.structBody = new StructBody();
 
@@ -918,6 +928,39 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration)
     {
         // Cannot wrap unwrappable declarations, ;)
+    }
+
+    // This should only ever be called when putting together the argument list
+    // for a template, so we don't need to check for duplicates
+    std.d.ast.TemplateTypeParameter translateTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
+    {
+        auto result = new std.d.ast.TemplateTypeParameter();
+        result.identifier = nameFromDecl(cppDecl);
+        return result;
+    }
+
+    extern(C++) override void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
+    {
+        throw new Exception("Attempting to translate a template type argument not via the template itself.");
+    }
+
+    std.d.ast.TemplateParameters translateTemplateParameters(unknown.RecordTemplateDeclaration cppDecl)
+    {
+        auto result = new std.d.ast.TemplateParameters();
+        result.templateParameterList = new std.d.ast.TemplateParameterList();
+
+        for (unknown.TemplateArgumentIterator iter = cppDecl.getTemplateArgumentBegin(),
+                end = cppDecl.getTemplateArgumentEnd();
+             !iter.equals(end);
+             iter.advance() )
+        {
+            // TODO only translating types for now
+            auto current = new std.d.ast.TemplateParameter();
+            current.templateTypeParameter = translateTemplateTypeArgument(cast(unknown.TemplateTypeArgumentDeclaration)iter.get());
+            result.templateParameterList.items ~= [current];
+        }
+
+        return result;
     }
 };
 

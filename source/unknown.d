@@ -84,6 +84,8 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
     public bool isDynamicClass() const;
 
     public bool isCanonical() const;
+
+    public uint getTemplateArgumentCount();
 }
 
 extern (C++) interface TypedefDeclaration : unknown.Declaration
@@ -117,15 +119,15 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 extern (C++) struct Type
 {
 
-    const clang.QualType type;
+    private const clang.QualType type;
 
-    unknown.Type.Kind kind;
+    private unknown.Type.Kind kind;
 
-    unknown.Strategy strategy;
+    private unknown.Strategy strategy;
 
-    binder.binder.string target_name;
+    private binder.binder.string target_name;
 
-    binder.binder.string target_module;
+    private binder.binder.string target_module;
 
     static public void printTypeNames();
 
@@ -170,8 +172,6 @@ extern (C++) struct Type
     final public unknown.UnionDeclaration getUnionDeclaration() const;
 
     final public void dump();
-
-    extern (C++) struct Type {}
 
     enum Kind : uint 
 
@@ -280,6 +280,8 @@ extern (C++) interface DeclarationVisitor
     public void visitArgument(unknown.ArgumentDeclaration node);
 
     public void visitVariable(unknown.VariableDeclaration node);
+
+    public void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration node);
 
     public void visitUnwrappable(unknown.UnwrappableDeclaration node);
 }
@@ -391,13 +393,11 @@ extern (C++) interface MethodIterator
 extern (C++) struct Superclass
 {
 
-    bool isVirtual;
+    public bool isVirtual;
 
-    unknown.Visibility visibility;
+    public unknown.Visibility visibility;
 
-    unknown.Type* base;
-
-    extern (C++) struct Superclass {}
+    public unknown.Type* base;
 }
 
 extern (C++) interface SuperclassIterator
@@ -409,6 +409,26 @@ extern (C++) interface SuperclassIterator
 
     public bool equals(unknown.SuperclassIterator other);
 }
+
+extern (C++) interface TemplateArgumentIterator
+{
+
+    public unknown.Declaration get();
+
+    public void advance();
+
+    public bool equals(unknown.TemplateArgumentIterator other);
+}
+
+extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
+{
+
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
+
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
+}
+
+extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration {}
 
 extern (C++) interface UnwrappableDeclaration : unknown.Declaration {}
 
