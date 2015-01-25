@@ -1251,7 +1251,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual void dump() override
         {
-            _decl->dump();
+            outer_decl->dump();
         }
     };
 
