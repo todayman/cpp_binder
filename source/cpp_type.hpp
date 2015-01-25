@@ -217,6 +217,7 @@ class UnionDeclaration;
         bool WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type);
         bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type);
         bool WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type);
+        bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
 
         // By the time this method is called, we should know what kind
         // of type it is.  If we don't, then we don't wrap that type.

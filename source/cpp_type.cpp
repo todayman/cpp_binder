@@ -193,10 +193,6 @@ Declaration * Type::getDeclaration() const
 
 RecordDeclaration * Type::getRecordDeclaration() const
 {
-    /*if (kind == Qualified)
-    {
-        return unqualifiedType()->getRecordDeclaration();
-    }*/
     assert(kind == Record);
     const clang::RecordType * cpp_record = type.getTypePtr()->getAs<clang::RecordType>();
     return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
@@ -361,9 +357,6 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
         return false;
     }
 
-    if( type->isInstantiationDependentType() )
-        throw SkipTemplate(type);
-
     return Super::WalkUpFromType(type);
 }
 
@@ -496,4 +489,13 @@ bool TypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypePa
 {
     allocateType(type, Type::Invalid);
     return false;
+}
+
+// A non-instantiated class template
+bool TypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type)
+{
+    // FIXME what if the template is a union?
+    // I don't translate those just yet...
+    allocateType(type, Type::Record);
+    return Super::WalkUpFromInjectedClassNameType(type);
 }
