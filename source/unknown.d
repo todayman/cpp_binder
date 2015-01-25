@@ -79,7 +79,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public bool hasDefinition() const;
 
-    public unknown.RecordDeclaration getDefinition() const;
+    public const unknown.RecordDeclaration getDefinition() const;
 
     public bool isDynamicClass() const;
 
@@ -116,6 +116,8 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
     public unknown.DeclarationIterator getChildEnd();
 }
 
+extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration {}
+
 extern (C++) struct Type
 {
 
@@ -129,13 +131,13 @@ extern (C++) struct Type
 
     private binder.binder.string target_module;
 
+    private clang.TemplateParameterList* template_list;
+
     static public void printTypeNames();
 
     static public unknown.Type* get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
 
     static public unknown.Type* getByName(const binder.binder.string name);
-
-    final public void setKind(unknown.Type.Kind k);
 
     final public unknown.Type.Kind getKind() const;
 
@@ -161,7 +163,7 @@ extern (C++) struct Type
 
     final public unknown.Declaration getDeclaration() const;
 
-    final public const unknown.RecordDeclaration getRecordDeclaration() const;
+    final public unknown.RecordDeclaration getRecordDeclaration() const;
 
     final public unknown.Type* getPointeeType() const;
 
@@ -173,9 +175,7 @@ extern (C++) struct Type
 
     final public unknown.TemplateTypeArgumentDeclaration getTemplateTypeArgumentDeclaration() const;
 
-    final public binder.binder.string getTemplateTypeArgumentName() const;
-
-    final public void setTemplateList(clang.TemplateParameterList*) const;
+    final public void setTemplateList(clang.TemplateParameterList* tl);
 
     final public void dump();
 
@@ -194,7 +194,7 @@ Typedef =   8,
 Vector =   9,
 Enum =   10,
 Qualified =   11,
-TemplateArgument = 12
+TemplateArgument =   12
     }
 
     extern (C++) interface DontSetUnknown : std.runtime_error {}
@@ -246,6 +246,8 @@ EXPORT =   5
 }
 
 extern (C++) unknown.Visibility accessSpecToVisibility(clang.AccessSpecifier as);
+
+extern (C++) bool isTemplateTypeParmDecl(const(clang.Decl)* decl);
 
 extern (C++) interface NotTypeDecl : std.runtime_error {}
 
@@ -434,8 +436,6 @@ extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
 
     public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
 }
-
-extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration {}
 
 extern (C++) interface UnwrappableDeclaration : unknown.Declaration {}
 

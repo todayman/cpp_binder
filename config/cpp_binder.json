@@ -82,6 +82,13 @@
             }
           , "target_module": "manual_types"
         }
+        , "clang::TemplateParameterList": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.TemplateParameterList"
+            }
+          , "target_module": "manual_types"
+        }
         , "DeclVisitor": {
             "bound": 0
         }
