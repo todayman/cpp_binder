@@ -195,7 +195,22 @@ RecordDeclaration * Type::getRecordDeclaration() const
 {
     assert(kind == Record);
     const clang::RecordType * cpp_record = type.getTypePtr()->getAs<clang::RecordType>();
-    return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
+    if (cpp_record != nullptr)
+    {
+        return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
+    }
+
+    const clang::InjectedClassNameType * classname_type = type.getTypePtr()->getAs<clang::InjectedClassNameType>();
+    if (classname_type != nullptr)
+    {
+        Declaration* decl = ::getDeclaration(classname_type->getDecl());
+        // TODO the declaration of an injected classname type is the
+        // CXXRecordDecl inside of the ClassTemplateDecl
+        // Make sure this is behaving the way I expect
+        auto result = dynamic_cast<RecordDeclaration*>(decl);
+        return result;
+    }
+    return nullptr;
 }
 
 Type * Type::getPointeeType() const
@@ -251,6 +266,17 @@ UnionDeclaration * Type::getUnionDeclaration() const
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
+}
+
+TemplateTypeArgumentDeclaration * Type::getTemplateTypeArgumentDeclaration() const
+{
+    assert(kind == TemplateArgument);
+    assert(template_list != nullptr);
+
+    const clang::TemplateTypeParmType * clang_type = type.getTypePtr()->castAs<clang::TemplateTypeParmType>();
+    clang::NamedDecl* clang_decl = template_list->getParam(clang_type->getIndex());
+    assert(isTemplateTypeParmDecl(clang_decl));
+    return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
 }
 
 void Type::dump()
@@ -353,7 +379,7 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
     if( !type_in_progress )
     {
         allocateType(type, Type::Invalid);
-        //throw std::logic_error("Can not wrap type!");
+        throw std::logic_error("Can not wrap type!");
         return false;
     }
 
@@ -481,8 +507,8 @@ bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializa
 
 bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
 {
-    allocateType(type, Type::Invalid);
-    return false;
+    allocateType(type, Type::TemplateArgument);
+    return Super::WalkUpFromTemplateTypeParmType(type);
 }
 
 bool TypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)

@@ -1172,6 +1172,7 @@ private class SymbolFinder : std.d.ast.ASTVisitor
         catch (RangeError e)
         {
             string symbol_name = makeString(sym);
+            // FIXME this is always a false positive on template arguments.
             stderr.writeln("WARNING: Could not find the module containing \"", symbol_name, "\", there may be undefined symbols in the generated code.");
         }
     }

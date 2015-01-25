@@ -54,6 +54,7 @@ class RecordDeclaration;
 class TypedefDeclaration;
 class EnumDeclaration;
 class UnionDeclaration;
+class TemplateTypeArgumentDeclaration;
 
 //namespace cpp
 //{
@@ -61,6 +62,8 @@ class UnionDeclaration;
     // knowledge we need about each C++ type.  They all
     // get landed here, and we basically use this as the value
     // in a dictionary, where the C++ type is the key.
+    // TODO given the number of kind specific methods at the end of this,
+    // break this up and use inheritance
     class Type
     {
         public:
@@ -77,6 +80,7 @@ class UnionDeclaration;
             Vector, // MMX, SSE, etc
             Enum,
             Qualified,
+            TemplateArgument
         };
 
         private:
@@ -89,13 +93,20 @@ class UnionDeclaration;
         string target_module; // only meaningful for types using the replacement strategy
                               // This is kind of a kludge to deal with builtins.  FIXME?
 
+        // The only way I can figure out to do the lookup from
+        // TemplateTypeParmType to its decl is using the index into the
+        // original list.  Otherwise, if the type is "CanonicalUnqualified",
+        // calling getDecl() etc. returns null
+        clang::TemplateParameterList * template_list;
+
         static std::unordered_map<const clang::QualType, Type*> type_map;
         static std::unordered_map<string, Type*> type_by_name;
 
         public:
         static void printTypeNames();
-        explicit Type(const clang::QualType t, Kind k)
-            : type(t), kind(k), strategy(UNKNOWN), target_name("")
+        explicit Type(const clang::QualType t, Kind k, clang::TemplateParameterList* tl = nullptr)
+            : type(t), kind(k), strategy(UNKNOWN), target_name(""),
+              target_module(""), template_list(tl)
         { }
 
         Type(const Type&) = delete;
@@ -165,6 +176,11 @@ class UnionDeclaration;
         TypedefDeclaration * getTypedefDeclaration() const;
         EnumDeclaration * getEnumDeclaration() const;
         UnionDeclaration * getUnionDeclaration() const;
+        TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
+        void setTemplateList(clang::TemplateParameterList* tl)
+        {
+            template_list = tl;
+        }
         void dump();
     };
 

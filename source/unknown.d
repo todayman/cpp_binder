@@ -171,6 +171,12 @@ extern (C++) struct Type
 
     final public unknown.UnionDeclaration getUnionDeclaration() const;
 
+    final public unknown.TemplateTypeArgumentDeclaration getTemplateTypeArgumentDeclaration() const;
+
+    final public binder.binder.string getTemplateTypeArgumentName() const;
+
+    final public void setTemplateList(clang.TemplateParameterList*) const;
+
     final public void dump();
 
     enum Kind : uint 
@@ -187,7 +193,8 @@ Function =   7,
 Typedef =   8,
 Vector =   9,
 Enum =   10,
-Qualified =   11
+Qualified =   11,
+TemplateArgument = 12
     }
 
     extern (C++) interface DontSetUnknown : std.runtime_error {}

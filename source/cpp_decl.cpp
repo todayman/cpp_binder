@@ -100,6 +100,20 @@ bool isCXXMethodDecl(const clang::Decl* decl)
     #undef ABSTRACT_DECL
     return CXXMethodKinds.count(decl->getKind()) > 0;
 }
+bool isTemplateTypeParmDecl(const clang::Decl* decl)
+{
+    // This set is of all the DeclKinds that are subclasses of CXXRecord
+    #define ABSTRACT_DECL(Type)
+    #define DECL(Type, Base)
+    #define TEMPLATETYPEPARM(Type, Base)   clang::Decl::Type,
+    static std::unordered_set<int> TemplateTypeParmKinds({
+    #include "clang/AST/DeclNodes.inc"
+            });
+    #undef CXXMETHOD
+    #undef DECL
+    #undef ABSTRACT_DECL
+    return TemplateTypeParmKinds.count(decl->getKind()) > 0;
+}
 
 std::unordered_map<clang::Decl*, Declaration*> DeclVisitor::declarations;
 std::unordered_set<Declaration*> DeclVisitor::free_declarations;
@@ -248,15 +262,17 @@ bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
-    : Super(), top_level_decls(false), decl_in_progress(nullptr), print_policy(pp)
+    : Super(), top_level_decls(false), decl_in_progress(nullptr),
+      print_policy(pp), template_list(nullptr)
 { }
 
 // FIXME this method doesn't do registration anymore
-bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level)
+bool DeclVisitor::registerDeclaration(clang::Decl* cppDecl, bool top_level, clang::TemplateParameterList* tl)
 {
     bool result = true;
     DeclVisitor next_visitor(print_policy);
     next_visitor.top_level_decls = top_level;
+    next_visitor.template_list = tl;
     result = next_visitor.TraverseDecl(cppDecl);
 
     auto search_result = declarations.find(cppDecl);
@@ -580,7 +596,7 @@ bool DeclVisitor::TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
 
     for (clang::NamedDecl* param : *(cppDecl->getTemplateParameters()))
     {
-        if (!registerDeclaration(param)) return false;
+        if (!registerDeclaration(param, false, cppDecl->getTemplateParameters())) return false;
     }
 
     bool old_top_level = top_level_decls;
@@ -618,6 +634,15 @@ bool DeclVisitor::WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cp
     allocateDeclaration<clang::TemplateTypeParmDecl, TemplateTypeArgumentDeclaration>(cppDecl);
 
     return Super::WalkUpFromTemplateTypeParmDecl(cppDecl);
+}
+
+bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
+{
+    assert(template_list != nullptr);
+    Type * t = Type::get(clang::QualType(cppDecl->getTypeForDecl(), 0));
+    t->setTemplateList(template_list);
+
+    return true;
 }
 
 // This method is called after WalkUpFromDecl, which

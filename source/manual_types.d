@@ -6,6 +6,7 @@ extern(C++, clang)
     struct ASTUnit;
     struct Decl;
     struct SourceManager;
+    struct TemplateParameterList;
 
     // Dummy implementation to have the same size as a pointer
     struct QualType

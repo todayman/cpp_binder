@@ -53,6 +53,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
     class ConstDeclarationVisitor;
 
     bool isCXXRecord(const clang::Decl* decl);
+    bool isTemplateTypeParmDecl(const clang::Decl* decl);
 
     // Same thing as Type, but for declarations of functions,
     // classes, etc.
@@ -1236,6 +1237,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return outer_decl->getLocation();
         }
 
+        virtual bool hasDefinition() const override
+        {
+            // TODO I don't know what forward declared templates look like
+            return true;
+        }
+
+        virtual const RecordDeclaration* getDefinition() const override
+        {
+            return this;
+        }
+
         virtual unsigned getTemplateArgumentCount() override
         {
             return outer_decl->getTemplateParameters()->size();
@@ -1357,7 +1369,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        bool registerDeclaration(clang::Decl* cppDecl, bool top_level = false);
+        bool registerDeclaration(clang::Decl* cppDecl, bool top_level = false, clang::TemplateParameterList * tl = nullptr);
 
         // All declarations ever
         static std::unordered_map<clang::Decl*, Declaration*> declarations;
@@ -1367,6 +1379,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool top_level_decls;
         Declaration* decl_in_progress;
         const clang::PrintingPolicy* print_policy;
+        clang::TemplateParameterList * template_list;
 
         bool TraverseDeclContext(clang::DeclContext * cpp_context, bool top_level = false);
         bool TraverseFieldHelper(clang::CXXRecordDecl* record, bool top_level);
@@ -1438,6 +1451,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool VisitNamedDecl(clang::NamedDecl* cppDecl);
         bool VisitFieldDecl(clang::FieldDecl* cppDecl);
         bool VisitVarDecl(clang::VarDecl* cppDecl);
+        bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
 
         private:
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);

@@ -62,6 +62,7 @@ package void determineStrategy(unknown.Type* cppType)
         case unknown.Type.Kind.Typedef:
         case unknown.Type.Kind.Enum:
         case unknown.Type.Kind.Function:
+        case unknown.Type.Kind.TemplateArgument:
             // FIXME empty string means resolve to an actual AST type, not a string
             cppType.chooseReplaceStrategy(binder.toBinderString(""));
             break;
@@ -167,6 +168,9 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
                     throw new Error("replaceType on Vector types is not implemented yet.");
                 case unknown.Type.Kind.Qualified:
                     result = translate!"Qualified"(cppType, qualifiers);
+                    break;
+                case unknown.Type.Kind.TemplateArgument:
+                    result = translate!"TemplateArgument"(cppType, qualifiers);
                     break;
             }
             translated_types[cppType] = result;
@@ -283,6 +287,32 @@ mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
 mixin (replaceMixin!("Record", "Struct"));
 mixin (replaceMixin!("Record", "Interface"));
+
+// TODO merge this in to the mixin
+private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppType)
+{
+    unknown.TemplateTypeArgumentDeclaration cppDecl = cppType.getTemplateTypeArgumentDeclaration();
+    try {
+        return symbolForDecl[cast(void*)cppDecl];
+    }
+    catch (RangeError e)
+    {
+        std.d.ast.Symbol result = null;
+        if (cppDecl !is null)
+        {
+            result = new std.d.ast.Symbol();
+            string name = binder.toDString(cppDecl.getTargetName());
+            result.identifierOrTemplateChain = makeIdentifierOrTemplateChain!"."(name);
+            // This symbol will be filled in when the declaration is traversed
+            symbolForDecl[cast(void*)cppDecl] = result;
+            // Template arguments are always in the local scope, so they are
+            // always resolved.  Don't put them into the unresolved set.
+        }
+        // cppDecl can be null if the type is a builtin type,
+        // i.e., when it is not declared in the C++ anywhere
+        return result;
+    }
+}
 
 private std.d.ast.Type translate(string kind)(unknown.Type* cppType, QualifierSet qualifiers)
 {
