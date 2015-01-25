@@ -59,6 +59,8 @@ extern (C++) interface Declaration
 extern (C++) interface RecordDeclaration : unknown.Declaration
 {
 
+    final protected const(clang.RecordDecl)* definitionOrThis();
+
     public unknown.FieldIterator getFieldBegin();
 
     public unknown.FieldIterator getFieldEnd();

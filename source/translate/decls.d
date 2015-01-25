@@ -573,7 +573,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         translateAllBaseClasses(cppDecl, result);
 
         result.structBody = new StructBody();
-        translateAllMethods!(VirtualBehavior.REQUIRED)(cppDecl, result);
+        translateAllMethods!(VirtualBehavior.ALLOWED)(cppDecl, result);
 
         // TODO static methods and other things
         return result;

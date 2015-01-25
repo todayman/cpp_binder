@@ -89,6 +89,13 @@
             }
           , "target_module": "manual_types"
         }
+        , "clang::RecordDecl": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.RecordDecl"
+            }
+          , "target_module": "manual_types"
+        }
         , "DeclVisitor": {
             "bound": 0
         }
