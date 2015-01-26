@@ -34,7 +34,7 @@ import dlang_decls : concat, makeIdentifierOrTemplateChain;
 
 private std.d.ast.Type[unknown.Type*] translated_types;
 private std.d.ast.Type[string] types_by_name;
-private std.d.ast.Symbol[void*] symbolForDecl;
+package std.d.ast.Symbol[void*] symbolForType;
 package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
 package string [const std.d.ast.Symbol] symbolModules;
 
@@ -259,18 +259,18 @@ private string replaceMixin(string SourceType, string TargetType)() {
     return "
 private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cppType)
 {
-    unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
     try {
-        return symbolForDecl[cast(void*)cppDecl];
+        return symbolForType[cast(void*)cppType];
     }
     catch (RangeError e)
     {
+        unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
         std.d.ast.Symbol result = null;
         if (cppDecl !is null)
         {
             result = new std.d.ast.Symbol();
             // This symbol will be filled in when the declaration is traversed
-            symbolForDecl[cast(void*)cppDecl] = result;
+            symbolForType[cast(void*)cppType] = result;
             unresolvedSymbols[result] = cppDecl;
         }
         // cppDecl can be null if the type is a builtin type,
@@ -291,12 +291,12 @@ mixin (replaceMixin!("Record", "Interface"));
 // TODO merge this in to the mixin
 private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppType)
 {
-    unknown.TemplateTypeArgumentDeclaration cppDecl = cppType.getTemplateTypeArgumentDeclaration();
     try {
-        return symbolForDecl[cast(void*)cppDecl];
+        return symbolForType[cast(void*)cppType];
     }
     catch (RangeError e)
     {
+        unknown.TemplateTypeArgumentDeclaration cppDecl = cppType.getTemplateTypeArgumentDeclaration();
         std.d.ast.Symbol result = null;
         if (cppDecl !is null)
         {
@@ -304,7 +304,7 @@ private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppT
             string name = binder.toDString(cppDecl.getTargetName());
             result.identifierOrTemplateChain = makeIdentifierOrTemplateChain!"."(name);
             // This symbol will be filled in when the declaration is traversed
-            symbolForDecl[cast(void*)cppDecl] = result;
+            symbolForType[cast(void*)cppType] = result;
             // Template arguments are always in the local scope, so they are
             // always resolved.  Don't put them into the unresolved set.
         }
@@ -415,17 +415,18 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     import dlang_decls : append;
 
     std.d.ast.Symbol symbol;
-    try {
-        symbol = symbolForDecl[cast(void*)cppDecl];
+    if (auto s_ptr = (cast(void*)cppDecl.getType()) in symbolForType)
+    {
+        symbol = *s_ptr;
         // Since the symbol is already in the table, this means
         // that it was used unresolved in a type somewhere.
         // We're resolving it right here, right now.
         unresolvedSymbols.remove(symbol);
     }
-    catch (RangeError e)
+    else
     {
         symbol = new std.d.ast.Symbol();
-        symbolForDecl[cast(void*)cppDecl] = symbol;
+        symbolForType[cast(void*)cppDecl.getType()] = symbol;
     }
 
     IdentifierOrTemplateChain chain = concat(package_name, internal_path);
