@@ -461,10 +461,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
             }
             try {
+                if (isEmptyDuplicateStructThingy(cppDecl, iter.get()))
+                {
+                    continue;
+                }
                 auto visitor = new TranslatorVisitor(parent_package_name, namespace_path, package_internal_path);
                 unknown.Declaration decl = iter.get();
                 decl.visit(visitor);
-                if (visitor.last_result && !isEmptyDuplicateStructThingy(cppDecl, iter.get()))
+                if (visitor.last_result)
                 {
                     result.structBody.declarations ~= [visitor.last_result];
                 }
