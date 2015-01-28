@@ -37,7 +37,7 @@ private std.d.ast.Type[string] types_by_name;
 package std.d.ast.Symbol[void*] symbolForType;
 package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
 package string [const std.d.ast.Symbol] symbolModules;
-package int[DeferredTemplateInstantiation] deferredTemplates;
+package DeferredTemplateInstantiation[const std.d.ast.Symbol] deferredTemplates;
 
 package void determineStrategy(unknown.Type* cppType)
 {
@@ -321,7 +321,7 @@ private std.d.ast.Symbol resolveOrDeferStructSymbol(unknown.Type* cppType)
         else
         {
             auto deferred = new DeferredTemplateInstantiation();
-            deferredTemplates[deferred] = 1;
+            deferredTemplates[deferred.answer] = deferred;
             // This is dangerously close to recursion
             // but it isn't because this is the generic template type, not us
             // (the instantiation)

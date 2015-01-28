@@ -1070,7 +1070,7 @@ void populateDAST()
         }
     }
 
-    foreach (DeferredTemplateInstantiation temp; deferredTemplates.keys())
+    foreach (DeferredTemplateInstantiation temp; deferredTemplates.values())
     {
         temp.resolve();
     }
@@ -1166,8 +1166,9 @@ private class SymbolFinder : std.d.ast.ASTVisitor
     override
     void visit(const std.d.ast.Symbol sym)
     {
-        try {
-            string mod = symbolModules[sym];
+        if (auto pmod = sym in symbolModules)
+        {
+            string mod = *pmod;
             if (mod == ".")
             {
                 // indicates global scope, no import necessary
@@ -1183,7 +1184,7 @@ private class SymbolFinder : std.d.ast.ASTVisitor
                 (*counter) += 1;
             }
         }
-        catch (RangeError e)
+        else if ((sym in deferredTemplates) is null)
         {
             string symbol_name = makeString(sym);
             // FIXME this is always a false positive on template arguments.
