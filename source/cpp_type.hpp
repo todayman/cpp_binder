@@ -284,7 +284,6 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromDecltypeType(clang::DecltypeType* cppType);
 
         // Types we can't handle yet
-        bool WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type);
         bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type);
         bool WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type);
         bool WalkUpFromDependentNameType(clang::DependentNameType* type);
@@ -296,6 +295,7 @@ class TemplateArgumentInstanceIterator;
 
         // Template types we can handle
         bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
+        bool WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type);
 
         // By the time this method is called, we should know what kind
         // of type it is.  If we don't, then we don't wrap that type.

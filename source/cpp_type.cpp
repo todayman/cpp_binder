@@ -557,7 +557,7 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
     allocateType(type, Type::TemplateSpecialization);
-    return false;
+    return true;
 }
 
 bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
