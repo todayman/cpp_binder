@@ -1,8 +1,8 @@
 module unknown;
 
-extern(C++) struct Template(T)
+extern (C++) struct Template(T)
 {
     public T var;
 }
 
-Template!(int) global
+extern (C++) extern unknown.Template!(int) global;
