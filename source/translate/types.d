@@ -37,6 +37,7 @@ private std.d.ast.Type[string] types_by_name;
 package std.d.ast.Symbol[void*] symbolForType;
 package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
 package string [const std.d.ast.Symbol] symbolModules;
+package int[DeferredTemplateInstantiation] deferredTemplates;
 
 package void determineStrategy(unknown.Type* cppType)
 {
@@ -80,6 +81,12 @@ package void determineStrategy(unknown.Type* cppType)
         case unknown.Type.Kind.Qualified:
             determineStrategy(cppType.unqualifiedType());
             cppType.chooseReplaceStrategy(binder.toBinderString(""));
+            break;
+        case unknown.Type.Kind.TemplateSpecialization:
+            unknown.Type* generic_type = cppType.getTemplateDeclaration().getType();
+            determineStrategy(generic_type);
+            cppType.setStrategy(generic_type.getStrategy());
+            // TODO if strategy is replace, then call chooseReplaceStrategy
             break;
     }
 }
@@ -172,6 +179,8 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
                 case unknown.Type.Kind.TemplateArgument:
                     result = translate!"TemplateArgument"(cppType, qualifiers);
                     break;
+                case unknown.Type.Kind.TemplateSpecialization:
+                    assert(0); // TODO
             }
             translated_types[cppType] = result;
         }
@@ -285,8 +294,56 @@ private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cp
 mixin (replaceMixin!("Typedef", "Typedef"));
 mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
-mixin (replaceMixin!("Record", "Struct"));
+//mixin (replaceMixin!("Record", "Struct"));
 mixin (replaceMixin!("Record", "Interface"));
+
+private std.d.ast.Symbol resolveOrDeferStructSymbol(unknown.Type* cppType)
+{
+    try {
+        return symbolForType[cast(void*)cppType];
+    }
+    catch (RangeError e)
+    {
+        std.d.ast.Symbol result = null;
+        if (cppType.getKind() != unknown.Type.Kind.TemplateSpecialization)
+        {
+            unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+            if (cppDecl !is null)
+            {
+                result = new std.d.ast.Symbol();
+                // This symbol will be filled in when the declaration is traversed
+                symbolForType[cast(void*)cppType] = result;
+                unresolvedSymbols[result] = cppDecl;
+            }
+            // cppDecl can be null if the type is a builtin type,
+            // i.e., when it is not declared in the C++ anywhere
+        }
+        else
+        {
+            auto deferred = new DeferredTemplateInstantiation();
+            deferredTemplates[deferred] = 1;
+            // This is dangerously close to recursion
+            // but it isn't because this is the generic template type, not us
+            // (the instantiation)
+            deferred.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
+            assert(deferred.templateName !is null);
+            deferred.arguments.length = cppType.getTemplateArgumentCount();
+            uint idx = 0;
+            for (auto iter = cppType.getTemplateArgumentBegin(),
+                    finish = cppType.getTemplateArgumentEnd();
+                    !iter.equals(finish);
+                    iter.advance(), ++idx )
+            {
+                deferred.arguments[idx] = translateType(iter.get(), QualifierSet.init);
+            }
+            symbolForType[cast(void*)cppType] = deferred.answer;
+            result = deferred.answer;
+            stderr.writeln(cast(void*)result, " is a deferred template");
+        }
+
+        return result;
+    }
+};
 
 // TODO merge this in to the mixin
 private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppType)
@@ -438,5 +495,57 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     if (package_name.identifiers.length > 0)
     {
         symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
+    }
+}
+
+// We need this because we cannot compute the beginning of template
+// instatiations before placing things into modules
+// Example: std.container.RedBlackTree!Node
+// If we don't know that RedBlackTree is in std.container yet, then we cannot
+// produce a symbol that has (std, container, RedBlackTree!Node), since (std, container)
+// is not a symbol; we don't have a good way to resolve parts of symbols later.
+// This provides that resolution facility.
+class DeferredTemplateInstantiation
+{
+    public:
+    std.d.ast.Symbol templateName;
+    // TODO non-type arguments
+    // Check out std.d.ast.TemplateArgument
+    std.d.ast.Type[] arguments;
+
+    std.d.ast.Symbol answer;
+
+    this()
+    {
+        answer = new std.d.ast.Symbol();
+    }
+
+    void resolve()
+    {
+        auto chain = new std.d.ast.IdentifierOrTemplateChain();
+        answer.identifierOrTemplateChain = chain;
+
+        assert(templateName.identifierOrTemplateChain.identifiersOrTemplateInstances.length > 0);
+        chain.identifiersOrTemplateInstances = templateName.identifierOrTemplateChain.identifiersOrTemplateInstances[0 .. $-1];
+        auto lastIorT = templateName.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];
+
+        auto iorT = new std.d.ast.IdentifierOrTemplateInstance();
+        chain.identifiersOrTemplateInstances ~= [iorT];
+        std.d.ast.TemplateInstance templateInstance = new TemplateInstance();
+        iorT.templateInstance = templateInstance;
+
+        Token name = lastIorT.identifier;
+        templateInstance.identifier = name;
+        templateInstance.templateArguments = new std.d.ast.TemplateArguments();
+        templateInstance.templateArguments.templateArgumentList = new std.d.ast.TemplateArgumentList();
+        auto temp_arg_list = templateInstance.templateArguments.templateArgumentList;
+        temp_arg_list.items.length = arguments.length;
+
+        foreach (idx, sym; arguments)
+        {
+            auto arg = new std.d.ast.TemplateArgument();
+            arg.type = sym;
+            temp_arg_list.items[idx] = arg;
+        }
     }
 }

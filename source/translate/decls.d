@@ -1069,6 +1069,11 @@ void populateDAST()
             throw new Exception("Not all types could be resolved.");
         }
     }
+
+    foreach (DeferredTemplateInstantiation temp; deferredTemplates.keys())
+    {
+        temp.resolve();
+    }
     
     foreach (path, mod; rootPackage.children)
     {
