@@ -55,6 +55,7 @@ class TypedefDeclaration;
 class EnumDeclaration;
 class UnionDeclaration;
 class TemplateTypeArgumentDeclaration;
+class TemplateArgumentInstanceIterator;
 
 //namespace cpp
 //{
@@ -184,7 +185,55 @@ class TemplateTypeArgumentDeclaration;
         }
         Declaration* getTemplateDeclaration() const;
 
+        unsigned getTemplateArgumentCount() const;
+        TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
+        TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
+
         void dump();
+    };
+
+    class TemplateArgumentInstanceIterator
+    {
+        private:
+        clang::TemplateSpecializationType::iterator cpp_iter;
+
+        public:
+        explicit TemplateArgumentInstanceIterator(clang::TemplateSpecializationType::iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const TemplateArgumentInstanceIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const TemplateArgumentInstanceIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        Type* operator*();
+        Type* operator->()
+        {
+            return operator*();
+        }
+
+        virtual Type* get()
+        {
+            return operator*();
+        }
+
+        virtual void advance()
+        {
+            cpp_iter++;
+        }
+
+        virtual bool equals(TemplateArgumentInstanceIterator* other)
+        {
+            return (*this) == (*other);
+        }
     };
 
     class TypeVisitor : public clang::RecursiveASTVisitor<TypeVisitor>

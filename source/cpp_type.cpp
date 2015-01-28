@@ -299,9 +299,43 @@ Declaration* Type::getTemplateDeclaration() const
     return ::getDeclaration(clang_decl);
 }
 
+unsigned Type::getTemplateArgumentCount() const
+{
+    assert(kind == TemplateSpecialization);
+
+    // Not sure why I need the getCanonicalType part
+    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
+    return clang_type->getNumArgs();
+}
+
+TemplateArgumentInstanceIterator* Type::getTemplateArgumentBegin()
+{
+    assert(kind == TemplateSpecialization);
+
+    // Not sure why I need the getCanonicalType part
+    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
+    return new TemplateArgumentInstanceIterator(clang_type->begin());
+}
+
+TemplateArgumentInstanceIterator* Type::getTemplateArgumentEnd()
+{
+    assert(kind == TemplateSpecialization);
+
+    // Not sure why I need the getCanonicalType part
+    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
+    return new TemplateArgumentInstanceIterator(clang_type->end());
+}
+
 void Type::dump()
 {
     type.dump();
+}
+
+Type* TemplateArgumentInstanceIterator::operator*()
+{
+    assert(cpp_iter->getKind() == clang::TemplateArgument::Type);
+
+    return Type::get(cpp_iter->getAsType());
 }
 
 TypeVisitor::TypeVisitor(const clang::PrintingPolicy* pp)
