@@ -24,6 +24,7 @@ import std.conv : to;
 import std.stdio : stdout, stderr;
 
 import std.d.ast;
+import std.d.formatter : format;
 import std.d.lexer;
 
 static import binder;
@@ -1140,11 +1141,15 @@ package void resolveSymbol(unknown.Declaration cppDecl)
 
 string makeString(IdentifierChain chain)
 {
-    return join(chain.identifiers.map!(a => a.text), ".");
+    auto dest = appender!string();
+    format(delegate(const char[] t) { dest.put(t); }, chain);
+    return dest.data.idup;
 }
 string makeString(const Symbol sym)
 {
-    return join(sym.identifierOrTemplateChain.identifiersOrTemplateInstances.map!(a => a.identifier.text), ".");
+    auto dest = appender!string();
+    format(delegate(const char[] t) { dest.put(t); }, sym);
+    return dest.data.idup;
 }
 
 private class SymbolFinder : std.d.ast.ASTVisitor
