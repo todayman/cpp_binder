@@ -181,6 +181,12 @@ extern (C++) struct Type
 
     final public unknown.Declaration getTemplateDeclaration() const;
 
+    final public uint getTemplateArgumentCount() const;
+
+    final public TemplateArgumentInstanceIterator getTemplateArgumentBegin();
+
+    final public TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+
     final public void dump();
 
     enum Kind : uint 
@@ -432,6 +438,16 @@ extern (C++) interface TemplateArgumentIterator
     public void advance();
 
     public bool equals(unknown.TemplateArgumentIterator other);
+}
+
+extern (C++) interface TemplateArgumentInstanceIterator
+{
+
+    public unknown.Type* get();
+
+    public void advance();
+
+    public bool equals(unknown.TemplateArgumentInstanceIterator other);
 }
 
 extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
