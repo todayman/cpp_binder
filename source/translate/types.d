@@ -338,7 +338,6 @@ private std.d.ast.Symbol resolveOrDeferStructSymbol(unknown.Type* cppType)
             }
             symbolForType[cast(void*)cppType] = deferred.answer;
             result = deferred.answer;
-            stderr.writeln(cast(void*)result, " is a deferred template");
         }
 
         return result;
