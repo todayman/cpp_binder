@@ -85,8 +85,14 @@ package void determineStrategy(unknown.Type* cppType)
         case unknown.Type.Kind.TemplateSpecialization:
             unknown.Type* generic_type = cppType.getTemplateDeclaration().getType();
             determineStrategy(generic_type);
-            cppType.setStrategy(generic_type.getStrategy());
-            // TODO if strategy is replace, then call chooseReplaceStrategy
+            if (generic_type.getStrategy() == unknown.Strategy.REPLACE)
+            {
+                cppType.chooseReplaceStrategy(binder.toBinderString(""));
+            }
+            else
+            {
+                cppType.setStrategy(generic_type.getStrategy());
+            }
             break;
     }
 }
@@ -180,7 +186,9 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
                     result = translate!"TemplateArgument"(cppType, qualifiers);
                     break;
                 case unknown.Type.Kind.TemplateSpecialization:
-                    assert(0); // TODO
+                    // TODO should change depending on strategy
+                    result = translate!"Struct"(cppType, qualifiers);
+                    break;
             }
             translated_types[cppType] = result;
         }
