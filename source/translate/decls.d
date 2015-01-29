@@ -579,6 +579,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // Find the superclasses of this interface
         translateAllBaseClasses(cppDecl, result);
 
+        if (cppDecl.getTemplateArgumentCount() > 0)
+        {
+            // This cast always succeeds because we know there are template
+            // arguments.
+            auto templateDecl = cast(unknown.RecordTemplateDeclaration)cppDecl;
+            result.templateParameters = translateTemplateParameters(templateDecl);
+        }
+
         result.structBody = new StructBody();
         translateAllMethods!(VirtualBehavior.ALLOWED)(cppDecl, result);
 
