@@ -102,13 +102,16 @@
         , "TypeVisitor": {
             "bound": 0
         }
-        , "Type::Kind": {
-            "visibility":"public"
-        }
-        , "isCXXRecord": {
+        , "ConstDeclarationVisitor": {
             "bound": 0
         }
-        , "ConstDeclarationVisitor": {
+        , "Type::iter_t": {
+            "bound": 0
+        }
+        , "Type::range_t": {
+            "bound": 0
+        }
+        , "Type::getByName": {
             "bound": 0
         }
     }

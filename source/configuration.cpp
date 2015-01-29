@@ -361,38 +361,45 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
     }
     else {
         string str(name.c_str());
-        Type* type = Type::getByName(&str);
-        if( !type )
+        Type::range_t search_result = Type::getByName(&str);
+
+        if( search_result.first == search_result.second )
         {
             // FIXME better error handling with stuff like localization
             std::cerr << "WARNING: type " << name << " does not appear in the C++ source.\n";
             return;
         }
 
-        for( size_t idx = 0; idx < obj.u.object.len; ++idx )
+        for (Type * type = search_result.first->second;
+                search_result.first != search_result.second;
+                type = (++search_result.first)->second)
         {
-            std::string attrib_name = obj.u.object.keys[idx];
-            const yajl_val_s* sub_obj = obj.u.object.values[idx];
-            if( attrib_name == "strategy" )
+            // FIXME only validate json once per type in the above loop
+            for( size_t idx = 0; idx < obj.u.object.len; ++idx )
             {
-                if( !YAJL_IS_OBJECT(sub_obj) )
+                std::string attrib_name = obj.u.object.keys[idx];
+                const yajl_val_s* sub_obj = obj.u.object.values[idx];
+                if( attrib_name == "strategy" )
                 {
-                    throw ExpectedObject(sub_obj);
+                    if( !YAJL_IS_OBJECT(sub_obj) )
+                    {
+                        throw ExpectedObject(sub_obj);
+                    }
+                    readStrategyConfiguration(*sub_obj, type);
                 }
-                readStrategyConfiguration(*sub_obj, type);
-            }
-            else if (attrib_name == "target_module")
-            {
-                if (!YAJL_IS_STRING(sub_obj))
+                else if (attrib_name == "target_module")
                 {
-                    throw ExpectedString(sub_obj);
+                    if (!YAJL_IS_STRING(sub_obj))
+                    {
+                        throw ExpectedString(sub_obj);
+                    }
+                    type->setReplacementModule(sub_obj->u.string);
                 }
-                type->setReplacementModule(sub_obj->u.string);
-            }
-            else {
-                // throw UnrecognizedAttribute(attrib_name);
-                // TODO I think I should just log this instead
-                throw UnrecognizedAttribute(attrib_name);
+                else {
+                    // throw UnrecognizedAttribute(attrib_name);
+                    // TODO I think I should just log this instead
+                    throw UnrecognizedAttribute(attrib_name);
+                }
             }
         }
     }

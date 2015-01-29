@@ -102,7 +102,7 @@ class TemplateArgumentInstanceIterator;
         clang::TemplateParameterList * template_list;
 
         static std::unordered_map<const clang::QualType, Type*> type_map;
-        static std::unordered_map<string, Type*> type_by_name;
+        static std::unordered_multimap<string, Type*> type_by_name;
 
         public:
         static void printTypeNames();
@@ -117,7 +117,10 @@ class TemplateArgumentInstanceIterator;
         Type& operator=(Type&&) = delete;
 
         static Type* get(const clang::QualType& qType, const clang::PrintingPolicy* pp = nullptr);
-        static Type* getByName(const string* name);
+
+        typedef std::unordered_multimap<string, Type*>::iterator iter_t;
+        typedef std::pair<iter_t, iter_t> range_t;
+        static range_t getByName(const string* name);
 
         Kind getKind() const;
 

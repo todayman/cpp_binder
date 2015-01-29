@@ -31,7 +31,7 @@
 //using namespace cpp;
 
 std::unordered_map<const clang::QualType, Type*> Type::type_map;
-std::unordered_map<string, Type*> Type::type_by_name;
+std::unordered_multimap<string, Type*> Type::type_by_name;
 
 void Type::printTypeNames()
 {
@@ -69,14 +69,14 @@ Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* print
     return type_map.find(qType)->second;
 }
 
-Type* Type::getByName(const string* name)
+Type::range_t Type::getByName(const string* name)
 {
-    decltype(type_by_name)::iterator iter = type_by_name.find(*name);
-    if( iter != Type::type_by_name.end() ) {
-        return iter->second;
+    range_t search = type_by_name.equal_range(*name);
+    if( search.first != Type::type_by_name.end() ) {
+        return search;
     }
     else {
-        return nullptr;
+        return range_t();
     }
 }
 
@@ -293,7 +293,6 @@ Declaration* Type::getTemplateDeclaration() const
 {
     assert(kind == TemplateSpecialization);
 
-    // Not sure why I need the getCanonicalType part
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     clang::TemplateDecl* clang_decl = clang_type->getTemplateName().getAsTemplateDecl();
     return ::getDeclaration(clang_decl);
@@ -303,7 +302,6 @@ unsigned Type::getTemplateArgumentCount() const
 {
     assert(kind == TemplateSpecialization);
 
-    // Not sure why I need the getCanonicalType part
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     return clang_type->getNumArgs();
 }
@@ -312,7 +310,6 @@ TemplateArgumentInstanceIterator* Type::getTemplateArgumentBegin()
 {
     assert(kind == TemplateSpecialization);
 
-    // Not sure why I need the getCanonicalType part
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     return new TemplateArgumentInstanceIterator(clang_type->begin());
 }
@@ -321,7 +318,6 @@ TemplateArgumentInstanceIterator* Type::getTemplateArgumentEnd()
 {
     assert(kind == TemplateSpecialization);
 
-    // Not sure why I need the getCanonicalType part
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     return new TemplateArgumentInstanceIterator(clang_type->end());
 }
@@ -527,7 +523,7 @@ bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
     // TODO nullptr
     Type* t = Type::type_map.find(type->getDecayedType())->second;
     // FIXME does this really need to go into the map here?  Does that happen during TraverseType?
-    Type::type_map.insert(std::make_pair(type->getDecayedType(), t)); 
+    Type::type_map.insert(std::make_pair(type->getDecayedType(), t));
     Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
     return result;
 }
@@ -557,6 +553,10 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
     allocateType(type, Type::TemplateSpecialization);
+    std::string name = type->getTemplateName().getAsTemplateDecl()->getQualifiedNameAsString();
+    // TODO Make sure I'm not making too many of these!
+    string binder_name(name.c_str(), name.size());
+    Type::type_by_name.insert(std::make_pair(binder_name, type_in_progress));
     return true;
 }
 
