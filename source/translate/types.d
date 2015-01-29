@@ -302,10 +302,10 @@ private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cp
 mixin (replaceMixin!("Typedef", "Typedef"));
 mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
-//mixin (replaceMixin!("Record", "Struct"));
-mixin (replaceMixin!("Record", "Interface"));
 
-private std.d.ast.Symbol resolveOrDeferStructSymbol(unknown.Type* cppType)
+private string resolveTemplatesMixin(string SourceType, string TargetType)() {
+    return "
+private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cppType)
 {
     try {
         return symbolForType[cast(void*)cppType];
@@ -315,7 +315,7 @@ private std.d.ast.Symbol resolveOrDeferStructSymbol(unknown.Type* cppType)
         std.d.ast.Symbol result = null;
         if (cppType.getKind() != unknown.Type.Kind.TemplateSpecialization)
         {
-            unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+            unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
             if (cppDecl !is null)
             {
                 result = new std.d.ast.Symbol();
@@ -350,7 +350,10 @@ private std.d.ast.Symbol resolveOrDeferStructSymbol(unknown.Type* cppType)
 
         return result;
     }
-};
+}";
+}
+mixin (resolveTemplatesMixin!("Record", "Struct"));
+mixin (resolveTemplatesMixin!("Record", "Interface"));
 
 // TODO merge this in to the mixin
 private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppType)
