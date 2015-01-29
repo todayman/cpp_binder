@@ -374,8 +374,8 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     // FIXME hack to avoid translating out-of-line methods
     bool old_top_level = top_level_decls;
     top_level_decls = false; // method are never top level
-    const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
-    if( hasTemplateParent(parent_decl) || cppDecl->isDeleted() )
+    //const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
+    if( cppDecl->isDeleted() )
     {
         allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
         return true;
@@ -411,32 +411,12 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
 
 bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
 {
-    const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
-    if( !hasTemplateParent(parent_decl) )
-    {
-        RecursiveASTVisitor<DeclVisitor>::TraverseCXXConstructorDecl(cppDecl);
-    }
-    else
-    {
-        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
-    }
-
-    return true;
+    return RecursiveASTVisitor<DeclVisitor>::TraverseCXXConstructorDecl(cppDecl);
 }
 
 bool DeclVisitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl)
 {
-    const clang::CXXRecordDecl * parent_decl = cppDecl->getParent();
-    if( !hasTemplateParent(parent_decl) )
-    {
-        RecursiveASTVisitor<DeclVisitor>::TraverseCXXDestructorDecl(cppDecl);
-    }
-    else
-    {
-        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
-    }
-
-    return true;
+    return RecursiveASTVisitor<DeclVisitor>::TraverseCXXDestructorDecl(cppDecl);
 }
 
 bool DeclVisitor::WalkUpFromDecl(clang::Decl* cppDecl)
