@@ -1410,8 +1410,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
         bool TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
         bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration);
-        bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* Declaration);
-        bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* Declaration);
         bool TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl);
         bool TraverseEnumDecl(clang::EnumDecl* cppDecl);
         //bool TraverseEnumConstantDecl(clang::EnumConstantDecl* cppDecl);

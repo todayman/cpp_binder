@@ -409,16 +409,6 @@ bool DeclVisitor::TraverseCXXMethodDecl(clang::CXXMethodDecl* cppDecl)
     return result;
 }
 
-bool DeclVisitor::TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl)
-{
-    return RecursiveASTVisitor<DeclVisitor>::TraverseCXXConstructorDecl(cppDecl);
-}
-
-bool DeclVisitor::TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl)
-{
-    return RecursiveASTVisitor<DeclVisitor>::TraverseCXXDestructorDecl(cppDecl);
-}
-
 bool DeclVisitor::WalkUpFromDecl(clang::Decl* cppDecl)
 {
     if( !decl_in_progress )
