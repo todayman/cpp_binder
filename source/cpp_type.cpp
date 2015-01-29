@@ -58,6 +58,13 @@ Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* print
         return iter->second;
     }
 
+    // TODO understand why this happens
+    if (qType.getTypePtrOrNull() == nullptr)
+    {
+        std::cerr << "WARNING: Attempted to look up a QualType that has a null Type pointer\n";
+        return nullptr;
+    }
+
     TypeVisitor type_visitor(printPolicy);
     type_visitor.TraverseType(qType);
 
@@ -193,8 +200,6 @@ Declaration * Type::getDeclaration() const
 
 RecordDeclaration * Type::getRecordDeclaration() const
 {
-    if (kind != Record)
-        type.dump();
     assert(kind == Record || kind == TemplateSpecialization);
 
     if (kind == TemplateSpecialization)
@@ -612,6 +617,13 @@ bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* type)
 }
 
 bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* type)
+{
+    allocateType(type, Type::Invalid);
+    return false;
+}
+
+
+bool TypeVisitor::WalkUpFromAutoType(clang::AutoType* type)
 {
     allocateType(type, Type::Invalid);
     return false;

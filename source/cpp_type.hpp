@@ -295,6 +295,7 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type);
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
         bool WalkUpFromPackExpansionType(clang::PackExpansionType* type);
+        bool WalkUpFromAutoType(clang::AutoType* type);
 
         // Template types we can handle
         bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
