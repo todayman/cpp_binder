@@ -120,6 +120,16 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 
 extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration {}
 
+extern (C++) interface TemplateArgumentInstanceIterator
+{
+
+    public unknown.Type* get();
+
+    public void advance();
+
+    public bool equals(unknown.TemplateArgumentInstanceIterator other);
+}
+
 extern (C++) struct Type
 {
 
@@ -138,8 +148,6 @@ extern (C++) struct Type
     static public void printTypeNames();
 
     static public unknown.Type* get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
-
-    static public unknown.Type* getByName(const binder.binder.string name);
 
     final public unknown.Type.Kind getKind() const;
 
@@ -183,9 +191,9 @@ extern (C++) struct Type
 
     final public uint getTemplateArgumentCount() const;
 
-    final public TemplateArgumentInstanceIterator getTemplateArgumentBegin();
+    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
 
-    final public TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
 
     final public void dump();
 
@@ -257,6 +265,8 @@ EXPORT =   5
 }
 
 extern (C++) unknown.Visibility accessSpecToVisibility(clang.AccessSpecifier as);
+
+extern (C++) bool isCXXRecord(const(clang.Decl)* decl);
 
 extern (C++) bool isTemplateTypeParmDecl(const(clang.Decl)* decl);
 
@@ -438,16 +448,6 @@ extern (C++) interface TemplateArgumentIterator
     public void advance();
 
     public bool equals(unknown.TemplateArgumentIterator other);
-}
-
-extern (C++) interface TemplateArgumentInstanceIterator
-{
-
-    public unknown.Type* get();
-
-    public void advance();
-
-    public bool equals(unknown.TemplateArgumentInstanceIterator other);
 }
 
 extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
