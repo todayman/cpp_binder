@@ -624,17 +624,17 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    // FIXME I don't understand libdparse aliases
     std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
         auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl);
-        result.identifierList = new IdentifierList();
-        result.identifierList.identifiers = [nameFromDecl(cppDecl)];
-        result.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
-        makeSymbolForDecl(cppDecl, result.identifierList.identifiers[0], parent_package_name, package_internal_path, namespace_path);
+        auto initializer = new std.d.ast.AliasInitializer();
+        initializer.name = nameFromDecl(cppDecl);
+        initializer.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
+        result.initializers ~= [initializer];
+        makeSymbolForDecl(cppDecl, initializer.name, parent_package_name, package_internal_path, namespace_path);
 
         return result;
     }
