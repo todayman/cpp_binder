@@ -462,7 +462,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
             }
             try {
-                if (isEmptyDuplicateStructThingy(cppDecl, iter.get()))
+                // FIXME the check for whether or not to bind shouldn't be made
+                // everywhere; there should be a good, common place for it
+                if (isEmptyDuplicateStructThingy(cppDecl, iter.get()) || !iter.get().getShouldBind())
                 {
                     continue;
                 }
