@@ -175,8 +175,10 @@ class TemplateArgumentInstanceIterator;
         string* getReplacementModule() const;
         void setReplacementModule(string mod);
 
-        virtual Declaration * getDeclaration() const;
-        UnionDeclaration * getUnionDeclaration() const;
+        virtual Declaration * getDeclaration() const
+        {
+            assert(0);
+        }
         TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
         void setTemplateList(clang::TemplateParameterList* tl)
         {
@@ -258,8 +260,29 @@ class TemplateArgumentInstanceIterator;
             : Type(t, Type::Enum, nullptr)
         { }
 
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+
         virtual Declaration* getDeclaration() const override;
         EnumDeclaration * getEnumDeclaration() const;
+    };
+
+    class UnionType : public Type
+    {
+        public:
+        explicit UnionType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
+            : Type(t, Type::Union, tl)
+        { }
+
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+
+        virtual Declaration* getDeclaration() const override;
+        UnionDeclaration * getUnionDeclaration() const;
     };
 
     class TemplateArgumentInstanceIterator

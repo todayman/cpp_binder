@@ -179,17 +179,6 @@ bool Type::isConst() const
     return type.isLocalConstQualified();
 }
 
-Declaration * Type::getDeclaration() const
-{
-    switch (kind)
-    {
-        case Union:
-            return getUnionDeclaration();
-        default:
-            return nullptr;
-    }
-}
-
 Declaration* RecordType::getDeclaration() const
 {
     return getRecordDeclaration();
@@ -281,9 +270,12 @@ EnumDeclaration * EnumType::getEnumDeclaration() const
     return dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
 }
 
-UnionDeclaration * Type::getUnionDeclaration() const
+Declaration* UnionType::getDeclaration() const
 {
-    assert(kind == Union);
+    return getUnionDeclaration();
+}
+UnionDeclaration * UnionType::getUnionDeclaration() const
+{
     const clang::RecordType * clang_type = type.getTypePtr()->castAs<clang::RecordType>();
     clang::RecordDecl * clang_decl = clang_type->getDecl();
 
@@ -426,7 +418,7 @@ bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
     }
     else if( type->isUnionType() )
     {
-        allocateType(type, Type::Union);
+        allocateType<UnionType>(type, Type::Union);
     }
     return Super::WalkUpFromRecordType(type);
 }
