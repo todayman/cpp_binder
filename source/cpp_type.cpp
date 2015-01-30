@@ -117,9 +117,6 @@ bool Type::isReferenceType() const
     {
         case Qualified:
             return unqualifiedType()->isReferenceType();
-        case Reference:
-            // TODO think about this again and add a comment
-            return getPointeeType()->isReferenceType();
         case Typedef:
             return get(reinterpret_cast<const clang::TypedefType*>(type.getTypePtr())->desugar())->isReferenceType();
         default:
@@ -234,24 +231,21 @@ RecordDeclaration * RecordType::getRecordDeclaration() const
     return nullptr;
 }
 
-Type * Type::getPointeeType() const
+Type * PointerType::getPointeeType() const
 {
-    assert(kind == Pointer || kind == Reference);
-    if (kind == Pointer)
-    {
-        const clang::PointerType* ptr_type = type.getTypePtr()->castAs<clang::PointerType>();
-        return Type::get(ptr_type->getPointeeType());
-    }
-    else if (kind == Reference)
-    {
-        const clang::ReferenceType* ref_type = type.getTypePtr()->castAs<clang::ReferenceType>();
-        return Type::get(ref_type->getPointeeType());
-    }
-    else
-    {
-        assert(0);
-    }
-    return nullptr;
+    const clang::PointerType* ptr_type = type.getTypePtr()->castAs<clang::PointerType>();
+    return Type::get(ptr_type->getPointeeType());
+}
+
+Type * ReferenceType::getPointeeType() const
+{
+    const clang::ReferenceType* ref_type = type.getTypePtr()->castAs<clang::ReferenceType>();
+    return Type::get(ref_type->getPointeeType());
+}
+bool ReferenceType::isReferenceType() const
+{
+    // TODO think about this again and add a comment
+    return getPointeeType()->isReferenceType();
 }
 
 TypedefDeclaration * Type::getTypedefDeclaration() const
@@ -406,10 +400,14 @@ bool TypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
     return Super::WalkUpFrom##KIND##Type(type); \
 }
 WALK_UP_METHOD(Builtin)
-WALK_UP_METHOD(Pointer)
+bool TypeVisitor::WalkUpFromPointerType(clang::PointerType* type)
+{
+    allocateType<PointerType>(type, Type::Pointer);
+    return Super::WalkUpFromPointerType(type);
+}
 bool TypeVisitor::WalkUpFromLValueReferenceType(clang::LValueReferenceType* type)
 {
-    allocateType(type, Type::Reference);
+    allocateType<ReferenceType>(type, Type::Reference);
     return Super::WalkUpFromLValueReferenceType(type);
 }
 

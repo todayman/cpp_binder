@@ -159,7 +159,7 @@ class TemplateArgumentInstanceIterator;
         }
 
         Strategy getStrategy() const;
-        bool isReferenceType() const;
+        virtual bool isReferenceType() const;
 
         Type * unqualifiedType();
         const Type * unqualifiedType() const;
@@ -176,7 +176,6 @@ class TemplateArgumentInstanceIterator;
         void setReplacementModule(string mod);
 
         virtual Declaration * getDeclaration() const;
-        Type * getPointeeType() const;
         TypedefDeclaration * getTypedefDeclaration() const;
         EnumDeclaration * getEnumDeclaration() const;
         UnionDeclaration * getUnionDeclaration() const;
@@ -203,6 +202,42 @@ class TemplateArgumentInstanceIterator;
 
         virtual Declaration* getDeclaration() const override;
         RecordDeclaration * getRecordDeclaration() const;
+    };
+
+    class PointerOrReferenceType : public Type
+    {
+        public:
+        explicit PointerOrReferenceType(const clang::QualType t, Kind k, clang::TemplateParameterList* tl = nullptr)
+            : Type(t, k, tl)
+        { }
+
+        virtual Declaration* getDeclaration() const override
+        {
+            return nullptr;
+        }
+        virtual Type * getPointeeType() const = 0;
+    };
+
+    class PointerType : public PointerOrReferenceType
+    {
+        public:
+        explicit PointerType(const clang::QualType t, Kind)
+            : PointerOrReferenceType(t, Type::Pointer, nullptr)
+        { }
+        virtual Type * getPointeeType() const override;
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+    };
+    class ReferenceType : public PointerOrReferenceType
+    {
+        public:
+        explicit ReferenceType(const clang::QualType t, Kind)
+            : PointerOrReferenceType(t, Type::Reference, nullptr)
+        { }
+        virtual bool isReferenceType() const override;
+        virtual Type * getPointeeType() const override;
     };
 
     class TemplateArgumentInstanceIterator
