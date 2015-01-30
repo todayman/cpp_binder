@@ -117,8 +117,6 @@ bool Type::isReferenceType() const
     {
         case Qualified:
             return unqualifiedType()->isReferenceType();
-        case Typedef:
-            return get(reinterpret_cast<const clang::TypedefType*>(type.getTypePtr())->desugar())->isReferenceType();
         default:
             return false;
             // TODO this may not be all cases
@@ -185,8 +183,6 @@ Declaration * Type::getDeclaration() const
 {
     switch (kind)
     {
-        case Typedef:
-            return getTypedefDeclaration();
         case Enum:
             return getEnumDeclaration();
         case Union:
@@ -248,9 +244,18 @@ bool ReferenceType::isReferenceType() const
     return getPointeeType()->isReferenceType();
 }
 
-TypedefDeclaration * Type::getTypedefDeclaration() const
+bool TypedefType::isReferenceType() const
 {
-    assert(kind == Typedef);
+    return get(reinterpret_cast<const clang::TypedefType*>(type.getTypePtr())->desugar())->isReferenceType();
+}
+
+Declaration* TypedefType::getDeclaration() const
+{
+    return getTypedefDeclaration();
+}
+
+TypedefDeclaration * TypedefType::getTypedefDeclaration() const
+{
     const clang::TypedefType * clang_type = type.getTypePtr()->getAs<clang::TypedefType>();
     clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
 
@@ -425,7 +430,12 @@ bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
 }
 WALK_UP_METHOD(Array)
 WALK_UP_METHOD(Function)
-WALK_UP_METHOD(Typedef)
+bool TypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
+{
+    allocateType<TypedefType>(type, Type::Typedef);
+    return Super::WalkUpFromTypedefType(type);
+}
+    
 WALK_UP_METHOD(Vector)
 WALK_UP_METHOD(Enum)
 

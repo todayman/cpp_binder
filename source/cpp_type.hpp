@@ -176,7 +176,6 @@ class TemplateArgumentInstanceIterator;
         void setReplacementModule(string mod);
 
         virtual Declaration * getDeclaration() const;
-        TypedefDeclaration * getTypedefDeclaration() const;
         EnumDeclaration * getEnumDeclaration() const;
         UnionDeclaration * getUnionDeclaration() const;
         TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
@@ -238,6 +237,18 @@ class TemplateArgumentInstanceIterator;
         { }
         virtual bool isReferenceType() const override;
         virtual Type * getPointeeType() const override;
+    };
+
+    class TypedefType : public Type
+    {
+        public:
+        explicit TypedefType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
+            : Type(t, Type::Typedef, tl)
+        { }
+
+        virtual bool isReferenceType() const override;
+        virtual Declaration * getDeclaration() const override;
+        TypedefDeclaration * getTypedefDeclaration() const;
     };
 
     class TemplateArgumentInstanceIterator
