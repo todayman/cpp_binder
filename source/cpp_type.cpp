@@ -97,32 +97,6 @@ Strategy Type::getStrategy() const
     return strategy;
 }
 
-bool Type::isReferenceType() const
-{
-    switch (strategy)
-    {
-        case INTERFACE:
-        case CLASS:
-        case OPAQUE_CLASS:
-            return true;
-        case STRUCT:
-            return false;
-        case UNKNOWN:
-        case REPLACE:
-            // deliberately falling out
-            ;
-    };
-
-    switch (kind)
-    {
-        case Qualified:
-            return unqualifiedType()->isReferenceType();
-        default:
-            return false;
-            // TODO this may not be all cases
-    }
-}
-
 string* Type::getReplacement() const
 {
     if( strategy != REPLACE )
@@ -179,6 +153,24 @@ bool Type::isConst() const
     return type.isLocalConstQualified();
 }
 
+bool RecordType::isReferenceType() const
+{
+    switch (strategy)
+    {
+        case INTERFACE:
+        case CLASS:
+        case OPAQUE_CLASS:
+            return true;
+        case STRUCT:
+            return false;
+        case UNKNOWN:
+        case REPLACE:
+        default:
+            type.dump();
+            throw std::logic_error("Haven't decided strategy for Record yet, so it is not known whether it is a reference type.");
+            ;
+    };
+}
 Declaration* RecordType::getDeclaration() const
 {
     return getRecordDeclaration();
@@ -186,14 +178,6 @@ Declaration* RecordType::getDeclaration() const
 
 RecordDeclaration * RecordType::getRecordDeclaration() const
 {
-    assert(kind == Record || kind == TemplateSpecialization);
-
-    if (kind == TemplateSpecialization)
-    {
-        Declaration * decl = getTemplateDeclaration();
-        return dynamic_cast<RecordTemplateDeclaration*>(decl);
-    }
-
     const clang::RecordType * cpp_record = type.getTypePtr()->getAs<clang::RecordType>();
     if (cpp_record != nullptr)
     {
@@ -282,9 +266,13 @@ UnionDeclaration * UnionType::getUnionDeclaration() const
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
 }
 
-TemplateTypeArgumentDeclaration * Type::getTemplateTypeArgumentDeclaration() const
+bool QualifiedType::isReferenceType() const
 {
-    assert(kind == TemplateArgument);
+    return unqualifiedType()->isReferenceType();
+}
+
+TemplateTypeArgumentDeclaration * TemplateArgumentType::getTemplateTypeArgumentDeclaration() const
+{
     assert(template_list != nullptr);
 
     const clang::TemplateTypeParmType * clang_type = type.getTypePtr()->castAs<clang::TemplateTypeParmType>();
@@ -293,35 +281,27 @@ TemplateTypeArgumentDeclaration * Type::getTemplateTypeArgumentDeclaration() con
     return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
 }
 
-Declaration* Type::getTemplateDeclaration() const
+Declaration* TemplateSpecializationType::getTemplateDeclaration() const
 {
-    assert(kind == TemplateSpecialization);
-
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     clang::TemplateDecl* clang_decl = clang_type->getTemplateName().getAsTemplateDecl();
     return ::getDeclaration(clang_decl);
 }
 
-unsigned Type::getTemplateArgumentCount() const
+unsigned TemplateSpecializationType::getTemplateArgumentCount() const
 {
-    assert(kind == TemplateSpecialization);
-
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     return clang_type->getNumArgs();
 }
 
-TemplateArgumentInstanceIterator* Type::getTemplateArgumentBegin()
+TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentBegin()
 {
-    assert(kind == TemplateSpecialization);
-
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     return new TemplateArgumentInstanceIterator(clang_type->begin());
 }
 
-TemplateArgumentInstanceIterator* Type::getTemplateArgumentEnd()
+TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentEnd()
 {
-    assert(kind == TemplateSpecialization);
-
     const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
     return new TemplateArgumentInstanceIterator(clang_type->end());
 }
@@ -352,7 +332,7 @@ bool TypeVisitor::TraverseType(clang::QualType type)
     bool result;
     if (type.isLocalConstQualified())
     {
-        allocateType(type, Type::Qualified);
+        allocateType<QualifiedType>(type, Type::Qualified);
 
         clang::QualType unqual = type;
         // Qualifiers handled here also should to be handled in
@@ -571,6 +551,7 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
+    // TODO
     allocateType(type, Type::TemplateSpecialization);
     std::string name = type->getTemplateName().getAsTemplateDecl()->getQualifiedNameAsString();
     // TODO Make sure I'm not making too many of these!
@@ -581,7 +562,7 @@ bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializa
 
 bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
 {
-    allocateType(type, Type::TemplateArgument);
+    allocateType<TemplateArgumentType>(type, Type::TemplateArgument);
     return Super::WalkUpFromTemplateTypeParmType(type);
 }
 
@@ -596,7 +577,7 @@ bool TypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* 
 {
     // FIXME what if the template is a union?
     // I don't translate those just yet...
-    allocateType(type, Type::Record);
+    allocateType<RecordType>(type, Type::Record);
     return Super::WalkUpFromInjectedClassNameType(type);
 }
 

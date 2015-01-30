@@ -95,20 +95,15 @@ class TemplateArgumentInstanceIterator;
         string target_module; // only meaningful for types using the replacement strategy
                               // This is kind of a kludge to deal with builtins.  FIXME?
 
-        // The only way I can figure out to do the lookup from
-        // TemplateTypeParmType to its decl is using the index into the
-        // original list.  Otherwise, if the type is "CanonicalUnqualified",
-        // calling getDecl() etc. returns null
-        clang::TemplateParameterList * template_list;
 
         static std::unordered_map<const clang::QualType, Type*> type_map;
         static std::unordered_multimap<string, Type*> type_by_name;
 
         public:
         static void printTypeNames();
-        explicit Type(const clang::QualType t, Kind k, clang::TemplateParameterList* tl = nullptr)
+        explicit Type(const clang::QualType t, Kind k, clang::TemplateParameterList* =nullptr)
             : type(t), kind(k), strategy(UNKNOWN), target_name(""),
-              target_module(""), template_list(tl)
+              target_module("")
         { }
 
         Type(const Type&) = delete;
@@ -159,7 +154,10 @@ class TemplateArgumentInstanceIterator;
         }
 
         Strategy getStrategy() const;
-        virtual bool isReferenceType() const;
+        virtual bool isReferenceType() const
+        {
+            return false;
+        }
 
         Type * unqualifiedType();
         const Type * unqualifiedType() const;
@@ -179,16 +177,6 @@ class TemplateArgumentInstanceIterator;
         {
             assert(0);
         }
-        TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
-        void setTemplateList(clang::TemplateParameterList* tl)
-        {
-            template_list = tl;
-        }
-        Declaration* getTemplateDeclaration() const;
-
-        unsigned getTemplateArgumentCount() const;
-        TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
-        TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
 
         void dump();
     };
@@ -200,6 +188,7 @@ class TemplateArgumentInstanceIterator;
             : Type(t, Type::Record, tl)
         { }
 
+        virtual bool isReferenceType() const override;
         virtual Declaration* getDeclaration() const override;
         RecordDeclaration * getRecordDeclaration() const;
     };
@@ -285,6 +274,47 @@ class TemplateArgumentInstanceIterator;
         UnionDeclaration * getUnionDeclaration() const;
     };
 
+    class QualifiedType : public Type
+    {
+        public:
+        QualifiedType(const clang::QualType t, Kind)
+            : Type(t, Type::Qualified, nullptr)
+        { }
+
+        virtual bool isReferenceType() const override;
+    };
+
+    class TemplateArgumentType : public Type
+    {
+        // The only way I can figure out to do the lookup from
+        // TemplateTypeParmType to its decl is using the index into the
+        // original list.  Otherwise, if the type is "CanonicalUnqualified",
+        // calling getDecl() etc. returns null
+        clang::TemplateParameterList * template_list;
+
+        public:
+        explicit TemplateArgumentType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
+            : Type(t, Type::TemplateArgument, tl)
+        { }
+
+        virtual Declaration * getDeclaration() const override;
+        TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
+        void setTemplateList(clang::TemplateParameterList* tl)
+        {
+            template_list = tl;
+        }
+    };
+
+    class TemplateSpecializationType : public Type
+    {
+        public:
+        Declaration* getTemplateDeclaration() const;
+
+        unsigned getTemplateArgumentCount() const;
+        TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
+        TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
+    };
+
     class TemplateArgumentInstanceIterator
     {
         private:
@@ -328,6 +358,7 @@ class TemplateArgumentInstanceIterator;
             return (*this) == (*other);
         }
     };
+
 
     class TypeVisitor : public clang::RecursiveASTVisitor<TypeVisitor>
     {

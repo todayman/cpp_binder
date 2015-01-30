@@ -609,7 +609,7 @@ bool DeclVisitor::WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cp
 bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
 {
     assert(template_list != nullptr);
-    Type * t = Type::get(clang::QualType(cppDecl->getTypeForDecl(), 0));
+    TemplateArgumentType * t = dynamic_cast<TemplateArgumentType*>(Type::get(clang::QualType(cppDecl->getTypeForDecl(), 0)));
     t->setTemplateList(template_list);
 
     return true;
