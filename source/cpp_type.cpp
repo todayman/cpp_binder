@@ -118,7 +118,10 @@ bool Type::isReferenceType() const
         case Qualified:
             return unqualifiedType()->isReferenceType();
         case Reference:
+            // TODO think about this again and add a comment
             return getPointeeType()->isReferenceType();
+        case Typedef:
+            return get(reinterpret_cast<const clang::TypedefType*>(type.getTypePtr())->desugar())->isReferenceType();
         default:
             return false;
             // TODO this may not be all cases
