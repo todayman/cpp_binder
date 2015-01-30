@@ -85,7 +85,7 @@ class TemplateArgumentInstanceIterator;
             TemplateSpecialization,
         };
 
-        private:
+        protected:
         const clang::QualType type;
         Kind kind;
         // Attributes! from config files or inferred
@@ -175,8 +175,7 @@ class TemplateArgumentInstanceIterator;
         string* getReplacementModule() const;
         void setReplacementModule(string mod);
 
-        Declaration * getDeclaration() const;
-        RecordDeclaration * getRecordDeclaration() const;
+        virtual Declaration * getDeclaration() const;
         Type * getPointeeType() const;
         TypedefDeclaration * getTypedefDeclaration() const;
         EnumDeclaration * getEnumDeclaration() const;
@@ -193,6 +192,17 @@ class TemplateArgumentInstanceIterator;
         TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
 
         void dump();
+    };
+
+    class RecordType : public Type
+    {
+        public:
+        explicit RecordType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
+            : Type(t, Type::Record, tl)
+        { }
+
+        virtual Declaration* getDeclaration() const override;
+        RecordDeclaration * getRecordDeclaration() const;
     };
 
     class TemplateArgumentInstanceIterator
@@ -247,7 +257,9 @@ class TemplateArgumentInstanceIterator;
         Type* type_in_progress;
         const clang::PrintingPolicy* printPolicy; // Used for generating names of the type
 
+        template<typename T = Type>
         void allocateType(const clang::QualType t, Type::Kind k);
+        template<typename T = Type>
         void allocateType(const clang::Type* t, Type::Kind k);
         public:
         typedef clang::RecursiveASTVisitor<TypeVisitor> Super;

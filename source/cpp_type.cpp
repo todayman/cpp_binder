@@ -188,8 +188,6 @@ Declaration * Type::getDeclaration() const
 {
     switch (kind)
     {
-        case Record:
-            return getRecordDeclaration();
         case Typedef:
             return getTypedefDeclaration();
         case Enum:
@@ -201,7 +199,12 @@ Declaration * Type::getDeclaration() const
     }
 }
 
-RecordDeclaration * Type::getRecordDeclaration() const
+Declaration* RecordType::getDeclaration() const
+{
+    return getRecordDeclaration();
+}
+
+RecordDeclaration * RecordType::getRecordDeclaration() const
 {
     assert(kind == Record || kind == TemplateSpecialization);
 
@@ -381,16 +384,18 @@ bool TypeVisitor::TraverseType(clang::QualType type)
     return result;
 }
 
+template<typename T>
 void TypeVisitor::allocateType(const clang::QualType t, Type::Kind k)
 {
-    type_in_progress = new Type(t, k);
+    type_in_progress = new T(t, k);
     Type::type_map.insert(std::make_pair(t, type_in_progress));
 }
 
+template<typename T>
 void TypeVisitor::allocateType(const clang::Type* t, Type::Kind k)
 {
     clang::QualType qType(t, 0);
-    type_in_progress = new Type(qType, k);
+    type_in_progress = new T(qType, k);
     Type::type_map.insert(std::make_pair(qType, type_in_progress));
 }
 
@@ -412,7 +417,7 @@ bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
 {
     if( type->isStructureType() || type->isClassType() )
     {
-        allocateType(type, Type::Record);
+        allocateType<RecordType>(type, Type::Record);
     }
     else if( type->isUnionType() )
     {
