@@ -183,8 +183,6 @@ Declaration * Type::getDeclaration() const
 {
     switch (kind)
     {
-        case Enum:
-            return getEnumDeclaration();
         case Union:
             return getUnionDeclaration();
         default:
@@ -269,9 +267,13 @@ TypedefDeclaration * TypedefType::getTypedefDeclaration() const
     return dynamic_cast<TypedefDeclaration*>(this_declaration);
 }
 
-EnumDeclaration * Type::getEnumDeclaration() const
+Declaration* EnumType::getDeclaration() const
 {
-    assert(kind == Enum);
+    return getEnumDeclaration();
+}
+
+EnumDeclaration * EnumType::getEnumDeclaration() const
+{
     const clang::EnumType * clang_type = type.getTypePtr()->castAs<clang::EnumType>();
     clang::EnumDecl * clang_decl = clang_type->getDecl();
 
@@ -437,7 +439,11 @@ bool TypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 }
     
 WALK_UP_METHOD(Vector)
-WALK_UP_METHOD(Enum)
+bool TypeVisitor::WalkUpFromEnumType(clang::EnumType* type)
+{
+    allocateType<EnumType>(type, Type::Enum);
+    return Super::WalkUpFromEnumType(type);
+}
 
 bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* type)
 {

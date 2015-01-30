@@ -176,7 +176,6 @@ class TemplateArgumentInstanceIterator;
         void setReplacementModule(string mod);
 
         virtual Declaration * getDeclaration() const;
-        EnumDeclaration * getEnumDeclaration() const;
         UnionDeclaration * getUnionDeclaration() const;
         TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
         void setTemplateList(clang::TemplateParameterList* tl)
@@ -249,6 +248,18 @@ class TemplateArgumentInstanceIterator;
         virtual bool isReferenceType() const override;
         virtual Declaration * getDeclaration() const override;
         TypedefDeclaration * getTypedefDeclaration() const;
+    };
+
+    class EnumType : public Type
+    {
+        public:
+        // enums can't be templates, can they?
+        explicit EnumType(const clang::QualType t, Kind)
+            : Type(t, Type::Enum, nullptr)
+        { }
+
+        virtual Declaration* getDeclaration() const override;
+        EnumDeclaration * getEnumDeclaration() const;
     };
 
     class TemplateArgumentInstanceIterator
