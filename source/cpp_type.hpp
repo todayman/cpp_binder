@@ -119,7 +119,7 @@ class TemplateArgumentInstanceIterator;
 
         Kind getKind() const;
 
-        friend class TypeVisitor;
+        friend class ClangTypeVisitor;
 
         void chooseReplaceStrategy(string* replacement)
         {
@@ -515,7 +515,7 @@ class TemplateArgumentInstanceIterator;
     };
 
 
-    class TypeVisitor : public clang::RecursiveASTVisitor<TypeVisitor>
+    class ClangTypeVisitor : public clang::RecursiveASTVisitor<ClangTypeVisitor>
     {
         private:
         // The TypeVisitor does not own this pointer
@@ -528,10 +528,9 @@ class TemplateArgumentInstanceIterator;
         void allocateInvalidType(const clang::QualType& t);
         void allocateQualType(const clang::QualType t);
         public:
-        typedef clang::RecursiveASTVisitor<TypeVisitor> Super;
+        typedef clang::RecursiveASTVisitor<ClangTypeVisitor> Super;
 
-        // Pass in the Type object that this visitor should fill in.
-        explicit TypeVisitor(const clang::PrintingPolicy* s);
+        explicit ClangTypeVisitor(const clang::PrintingPolicy* s);
 
         Type* getType() {
             return type_in_progress;
@@ -574,6 +573,7 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
         bool WalkUpFromPackExpansionType(clang::PackExpansionType* type);
         bool WalkUpFromAutoType(clang::AutoType* type);
+        bool WalkUpFromRValueReferenceType(clang::RValueReferenceType* type);
 
         // Template types we can handle
         bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
@@ -583,7 +583,6 @@ class TemplateArgumentInstanceIterator;
         // of type it is.  If we don't, then we don't wrap that type.
         // So throw an error.
         bool WalkUpFromType(clang::Type * type);
-        bool WalkUpFromRValueReferenceType(clang::RValueReferenceType* type);
 
         bool VisitBuiltinType(clang::BuiltinType* cppType);
         bool VisitPointerType(clang::PointerType* cppType);

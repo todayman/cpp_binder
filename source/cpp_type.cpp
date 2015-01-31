@@ -70,7 +70,7 @@ Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* print
         return nullptr;
     }
 
-    TypeVisitor type_visitor(printPolicy);
+    ClangTypeVisitor type_visitor(printPolicy);
     type_visitor.TraverseType(qType);
 
     if( type_map.find(qType) == type_map.end() )
@@ -325,13 +325,13 @@ Type* TemplateArgumentInstanceIterator::operator*()
     return Type::get(cpp_iter->getAsType());
 }
 
-TypeVisitor::TypeVisitor(const clang::PrintingPolicy* pp)
-    : clang::RecursiveASTVisitor<TypeVisitor>(),
+ClangTypeVisitor::ClangTypeVisitor(const clang::PrintingPolicy* pp)
+    : clang::RecursiveASTVisitor<ClangTypeVisitor>(),
     type_to_traverse(nullptr), type_in_progress(nullptr),
     printPolicy(pp)
 { }
 
-bool TypeVisitor::TraverseType(clang::QualType type)
+bool ClangTypeVisitor::TraverseType(clang::QualType type)
 {
     if( Type::type_map.find(type) != Type::type_map.end() )
         return true;
@@ -364,32 +364,32 @@ bool TypeVisitor::TraverseType(clang::QualType type)
     return result;
 }
 
-void TypeVisitor::allocateQualType(const clang::QualType t)
+void ClangTypeVisitor::allocateQualType(const clang::QualType t)
 {
     type_in_progress = new QualifiedType(t);
     Type::type_map.insert(std::make_pair(t, type_in_progress));
 }
 
 template<typename T, typename ClangType>
-void TypeVisitor::allocateType(const ClangType* t)
+void ClangTypeVisitor::allocateType(const ClangType* t)
 {
     type_in_progress = new T(t);
     Type::type_map.insert(std::make_pair(clang::QualType(t, 0), type_in_progress));
 }
 
 #define WALK_UP_METHOD(KIND) \
-bool TypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
+bool ClangTypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
 { \
     allocateType<KIND##Type>(type); \
     return Super::WalkUpFrom##KIND##Type(type); \
 }
-bool TypeVisitor::WalkUpFromLValueReferenceType(clang::LValueReferenceType* type)
+bool ClangTypeVisitor::WalkUpFromLValueReferenceType(clang::LValueReferenceType* type)
 {
     allocateType<ReferenceType>(type);
     return Super::WalkUpFromLValueReferenceType(type);
 }
 
-bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
+bool ClangTypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
 {
     if( type->isStructureType() || type->isClassType() )
     {
@@ -405,7 +405,7 @@ WALK_UP_METHOD(Builtin)
 WALK_UP_METHOD(Pointer)
 WALK_UP_METHOD(Array)
 WALK_UP_METHOD(Function)
-bool TypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
+bool ClangTypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 {
     allocateType<TypedefType>(type);
     return Super::WalkUpFromTypedefType(type);
@@ -414,13 +414,13 @@ bool TypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 WALK_UP_METHOD(Vector)
 WALK_UP_METHOD(Enum)
 
-bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* type)
+bool ClangTypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
-bool TypeVisitor::WalkUpFromType(clang::Type* type)
+bool ClangTypeVisitor::WalkUpFromType(clang::Type* type)
 {
     if( !type_in_progress )
     {
@@ -433,7 +433,7 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
     return Super::WalkUpFromType(type);
 }
 
-bool TypeVisitor::VisitBuiltinType(clang::BuiltinType* cppType)
+bool ClangTypeVisitor::VisitBuiltinType(clang::BuiltinType* cppType)
 {
     assert(printPolicy != nullptr);
     string name = cppType->getName(*printPolicy).data();
@@ -441,13 +441,13 @@ bool TypeVisitor::VisitBuiltinType(clang::BuiltinType* cppType)
     return true;
 }
 
-bool TypeVisitor::VisitPointerType(clang::PointerType* cppType)
+bool ClangTypeVisitor::VisitPointerType(clang::PointerType* cppType)
 {
-    TypeVisitor pointeeVisitor(printPolicy);
+    ClangTypeVisitor pointeeVisitor(printPolicy);
     return pointeeVisitor.TraverseType(cppType->getPointeeType());
 }
 
-bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
+bool ClangTypeVisitor::VisitRecordType(clang::RecordType* cppType)
 {
     bool continue_traversal = true;
 
@@ -461,7 +461,7 @@ bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
     if( !decl->field_empty() )
     {
         clang::RecordDecl::field_iterator end = decl->field_end();
-        TypeVisitor field_visitor(printPolicy);
+        ClangTypeVisitor field_visitor(printPolicy);
         for( clang::RecordDecl::field_iterator iter = decl->field_begin();
                 iter != end && continue_traversal; ++iter )
         {
@@ -473,16 +473,16 @@ bool TypeVisitor::VisitRecordType(clang::RecordType* cppType)
     return continue_traversal;
 }
 
-bool TypeVisitor::VisitArrayType(clang::ArrayType* cppType)
+bool ClangTypeVisitor::VisitArrayType(clang::ArrayType* cppType)
 {
-    TypeVisitor element_visitor(printPolicy);
+    ClangTypeVisitor element_visitor(printPolicy);
     return element_visitor.TraverseType(cppType->getElementType());
 }
 
-bool TypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
+bool ClangTypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
 {
     bool continue_traversal = true;
-    TypeVisitor arg_visitor(printPolicy); // Also visits return type
+    ClangTypeVisitor arg_visitor(printPolicy); // Also visits return type
     continue_traversal = arg_visitor.TraverseType(cppType->getReturnType());
 
     // TODO get all the arguments
@@ -490,19 +490,19 @@ bool TypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
     return continue_traversal;
 }
 
-bool TypeVisitor::VisitLValueReferenceType(clang::LValueReferenceType* cppType)
+bool ClangTypeVisitor::VisitLValueReferenceType(clang::LValueReferenceType* cppType)
 {
-    TypeVisitor target_visitor(printPolicy);
+    ClangTypeVisitor target_visitor(printPolicy);
     return target_visitor.TraverseType(cppType->getPointeeType());
 }
 
-bool TypeVisitor::VisitTypedefType(clang::TypedefType* cppType)
+bool ClangTypeVisitor::VisitTypedefType(clang::TypedefType* cppType)
 {
-    TypeVisitor real_visitor(printPolicy);
+    ClangTypeVisitor real_visitor(printPolicy);
     return real_visitor.TraverseType(cppType->desugar());
 }
 
-bool TypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
+bool ClangTypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
     bool result = TraverseType(type->getNamedType());
     // TODO nullptr
@@ -513,7 +513,7 @@ bool TypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
     return result;
 }
 
-bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
+bool ClangTypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
 {
     bool result = TraverseType(type->getDecayedType());
     // TODO nullptr
@@ -524,7 +524,7 @@ bool TypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
     return result;
 }
 
-bool TypeVisitor::WalkUpFromParenType(clang::ParenType* type)
+bool ClangTypeVisitor::WalkUpFromParenType(clang::ParenType* type)
 {
     bool result = TraverseType(type->getInnerType());
     // TODO nullptr
@@ -534,7 +534,7 @@ bool TypeVisitor::WalkUpFromParenType(clang::ParenType* type)
     return result;
 }
 
-bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
+bool ClangTypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 {
     bool result = TraverseType(type->getUnderlyingType());
     // TODO nullptr
@@ -546,7 +546,7 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
     return result;
 }
 
-bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
+bool ClangTypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
     // TODO
     allocateType<TemplateSpecializationType>(type);
@@ -557,20 +557,20 @@ bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializa
     return true;
 }
 
-bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
+bool ClangTypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
 {
     allocateType<TemplateArgumentType>(type);
     return Super::WalkUpFromTemplateTypeParmType(type);
 }
 
-bool TypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
+bool ClangTypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 // A non-instantiated class template
-bool TypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type)
+bool ClangTypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type)
 {
     // FIXME what if the template is a union?
     // I don't translate those just yet...
@@ -578,44 +578,44 @@ bool TypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* 
     return Super::WalkUpFromInjectedClassNameType(type);
 }
 
-bool TypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* type)
+bool ClangTypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
-bool TypeVisitor::WalkUpFromTypeOfExprType(clang::TypeOfExprType* type)
+bool ClangTypeVisitor::WalkUpFromTypeOfExprType(clang::TypeOfExprType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
-bool TypeVisitor::WalkUpFromUnaryTransformType(clang::UnaryTransformType* type)
+bool ClangTypeVisitor::WalkUpFromUnaryTransformType(clang::UnaryTransformType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
-bool TypeVisitor::WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type)
+bool ClangTypeVisitor::WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
-bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* type)
+bool ClangTypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
-bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* type)
+bool ClangTypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 
-bool TypeVisitor::WalkUpFromAutoType(clang::AutoType* type)
+bool ClangTypeVisitor::WalkUpFromAutoType(clang::AutoType* type)
 {
     allocateInvalidType(clang::QualType(type, 0));
     return false;
