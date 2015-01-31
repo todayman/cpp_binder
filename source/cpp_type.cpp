@@ -51,6 +51,11 @@ std::size_t std::hash<const clang::QualType>::operator()(const clang::QualType q
     return llvm::DenseMapInfo<clang::QualType>::getHashValue(qType);
 }
 
+Type* Type::get(const clang::Type* type, const clang::PrintingPolicy* printPolicy)
+{
+    return Type::get(clang::QualType(type, 0), printPolicy);
+}
+
 Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* printPolicy)
 {
     decltype(type_map)::iterator iter = type_map.find(qType);
@@ -121,7 +126,7 @@ void Type::setReplacementModule(string new_mod)
     target_module = new_mod;
 }
 
-Type * Type::unqualifiedType()
+Type * QualifiedType::unqualifiedType()
 {
     if (type.getQualifiers().empty())
     {
@@ -134,7 +139,7 @@ Type * Type::unqualifiedType()
         return Type::get(unqual);
     }
 }
-const Type * Type::unqualifiedType() const
+const Type * QualifiedType::unqualifiedType() const
 {
     if (type.getQualifiers().empty())
     {
@@ -148,7 +153,7 @@ const Type * Type::unqualifiedType() const
     }
 }
 
-bool Type::isConst() const
+bool QualifiedType::isConst() const
 {
     return type.isLocalConstQualified();
 }
@@ -166,7 +171,7 @@ bool RecordType::isReferenceType() const
         case UNKNOWN:
         case REPLACE:
         default:
-            type.dump();
+            dump();
             throw std::logic_error("Haven't decided strategy for Record yet, so it is not known whether it is a reference type.");
             ;
     };
@@ -176,38 +181,29 @@ Declaration* RecordType::getDeclaration() const
     return getRecordDeclaration();
 }
 
-RecordDeclaration * RecordType::getRecordDeclaration() const
+RecordDeclaration * NonTemplateRecordType::getRecordDeclaration() const
 {
-    const clang::RecordType * cpp_record = type.getTypePtr()->getAs<clang::RecordType>();
-    if (cpp_record != nullptr)
-    {
-        return dynamic_cast<RecordDeclaration*>(::getDeclaration(cpp_record->getDecl()));
-    }
+    return dynamic_cast<RecordDeclaration*>(::getDeclaration(type->getDecl()));
+}
 
-    const clang::InjectedClassNameType * classname_type = type.getTypePtr()->getAs<clang::InjectedClassNameType>();
-    if (classname_type != nullptr)
-    {
-        Declaration* decl = ::getDeclaration(classname_type->getDecl());
-        // TODO the declaration of an injected classname type is the
-        // CXXRecordDecl inside of the ClassTemplateDecl
-        // Make sure this is behaving the way I expect
-        auto result = dynamic_cast<RecordDeclaration*>(decl);
-        return result;
-    }
-
-    return nullptr;
+RecordDeclaration* TemplateRecordType::getRecordDeclaration() const
+{
+    Declaration* decl = ::getDeclaration(type->getDecl());
+    // TODO the declaration of an injected classname type is the
+    // CXXRecordDecl inside of the ClassTemplateDecl
+    // Make sure this is behaving the way I expect
+    auto result = dynamic_cast<RecordDeclaration*>(decl);
+    return result;
 }
 
 Type * PointerType::getPointeeType() const
 {
-    const clang::PointerType* ptr_type = type.getTypePtr()->castAs<clang::PointerType>();
-    return Type::get(ptr_type->getPointeeType());
+    return Type::get(type->getPointeeType());
 }
 
 Type * ReferenceType::getPointeeType() const
 {
-    const clang::ReferenceType* ref_type = type.getTypePtr()->castAs<clang::ReferenceType>();
-    return Type::get(ref_type->getPointeeType());
+    return Type::get(type->getPointeeType());
 }
 bool ReferenceType::isReferenceType() const
 {
@@ -217,7 +213,7 @@ bool ReferenceType::isReferenceType() const
 
 bool TypedefType::isReferenceType() const
 {
-    return get(reinterpret_cast<const clang::TypedefType*>(type.getTypePtr())->desugar())->isReferenceType();
+    return get(type)->isReferenceType();
 }
 
 Declaration* TypedefType::getDeclaration() const
@@ -227,8 +223,7 @@ Declaration* TypedefType::getDeclaration() const
 
 TypedefDeclaration * TypedefType::getTypedefDeclaration() const
 {
-    const clang::TypedefType * clang_type = type.getTypePtr()->getAs<clang::TypedefType>();
-    clang::TypedefNameDecl * clang_decl = clang_type->getDecl();
+    clang::TypedefNameDecl * clang_decl = type->getDecl();
 
     Declaration* this_declaration = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     if( !this_declaration )
@@ -247,8 +242,7 @@ Declaration* EnumType::getDeclaration() const
 
 EnumDeclaration * EnumType::getEnumDeclaration() const
 {
-    const clang::EnumType * clang_type = type.getTypePtr()->castAs<clang::EnumType>();
-    clang::EnumDecl * clang_decl = clang_type->getDecl();
+    clang::EnumDecl * clang_decl = type->getDecl();
 
     Declaration* cpp_generic_decl = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     return dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
@@ -260,8 +254,7 @@ Declaration* UnionType::getDeclaration() const
 }
 UnionDeclaration * UnionType::getUnionDeclaration() const
 {
-    const clang::RecordType * clang_type = type.getTypePtr()->castAs<clang::RecordType>();
-    clang::RecordDecl * clang_decl = clang_type->getDecl();
+    clang::RecordDecl * clang_decl = type->getDecl();
 
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
 }
@@ -275,41 +268,55 @@ TemplateTypeArgumentDeclaration * TemplateArgumentType::getTemplateTypeArgumentD
 {
     assert(template_list != nullptr);
 
-    const clang::TemplateTypeParmType * clang_type = type.getTypePtr()->castAs<clang::TemplateTypeParmType>();
-    clang::NamedDecl* clang_decl = template_list->getParam(clang_type->getIndex());
+    const clang::NamedDecl* clang_decl = template_list->getParam(type->getIndex());
     assert(isTemplateTypeParmDecl(clang_decl));
     return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
 }
 
 Declaration* TemplateSpecializationType::getTemplateDeclaration() const
 {
-    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
-    clang::TemplateDecl* clang_decl = clang_type->getTemplateName().getAsTemplateDecl();
+    clang::TemplateDecl* clang_decl = type->getTemplateName().getAsTemplateDecl();
     return ::getDeclaration(clang_decl);
 }
 
 unsigned TemplateSpecializationType::getTemplateArgumentCount() const
 {
-    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
-    return clang_type->getNumArgs();
+    return type->getNumArgs();
 }
 
 TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentBegin()
 {
-    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
-    return new TemplateArgumentInstanceIterator(clang_type->begin());
+    return new TemplateArgumentInstanceIterator(type->begin());
 }
 
 TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentEnd()
 {
-    const clang::TemplateSpecializationType* clang_type = reinterpret_cast<const clang::TemplateSpecializationType*>(type.getTypePtr());
-    return new TemplateArgumentInstanceIterator(clang_type->end());
+    return new TemplateArgumentInstanceIterator(type->end());
 }
 
-void Type::dump()
+#define DUMP_METHOD(TYPE) \
+void TYPE##Type::dump() const\
+{ \
+    type->dump(); \
+}
+DUMP_METHOD(Invalid)
+DUMP_METHOD(Builtin)
+DUMP_METHOD(NonTemplateRecord)
+DUMP_METHOD(TemplateRecord)
+DUMP_METHOD(Pointer)
+DUMP_METHOD(Reference)
+DUMP_METHOD(Typedef)
+DUMP_METHOD(Enum)
+DUMP_METHOD(Union)
+DUMP_METHOD(Array)
+DUMP_METHOD(Function)
+void QualifiedType::dump() const
 {
     type.dump();
 }
+DUMP_METHOD(Vector)
+DUMP_METHOD(TemplateArgument)
+DUMP_METHOD(TemplateSpecialization)
 
 Type* TemplateArgumentInstanceIterator::operator*()
 {
@@ -332,7 +339,7 @@ bool TypeVisitor::TraverseType(clang::QualType type)
     bool result;
     if (type.isLocalConstQualified())
     {
-        allocateType<QualifiedType>(type, Type::Qualified);
+        allocateQualType(type);
 
         clang::QualType unqual = type;
         // Qualifiers handled here also should to be handled in
@@ -346,7 +353,7 @@ bool TypeVisitor::TraverseType(clang::QualType type)
     {
         std::cerr << "ERROR: Unrecognized qualifiers (\"" << type.getQualifiers().getAsString() << "\") for type ";
         type.dump();
-        allocateType(type, Type::Invalid);
+        allocateInvalidType(type);
         result = true;
     }
     else
@@ -357,36 +364,28 @@ bool TypeVisitor::TraverseType(clang::QualType type)
     return result;
 }
 
-template<typename T>
-void TypeVisitor::allocateType(const clang::QualType t, Type::Kind k)
+void TypeVisitor::allocateQualType(const clang::QualType t)
 {
-    type_in_progress = new T(t, k);
+    type_in_progress = new QualifiedType(t);
     Type::type_map.insert(std::make_pair(t, type_in_progress));
 }
 
-template<typename T>
-void TypeVisitor::allocateType(const clang::Type* t, Type::Kind k)
+template<typename T, typename ClangType>
+void TypeVisitor::allocateType(const ClangType* t)
 {
-    clang::QualType qType(t, 0);
-    type_in_progress = new T(qType, k);
-    Type::type_map.insert(std::make_pair(qType, type_in_progress));
+    type_in_progress = new T(t);
+    Type::type_map.insert(std::make_pair(clang::QualType(t, 0), type_in_progress));
 }
 
 #define WALK_UP_METHOD(KIND) \
 bool TypeVisitor::WalkUpFrom##KIND##Type( clang::KIND##Type * type) \
 { \
-    allocateType(type, Type::KIND); \
+    allocateType<KIND##Type>(type); \
     return Super::WalkUpFrom##KIND##Type(type); \
-}
-WALK_UP_METHOD(Builtin)
-bool TypeVisitor::WalkUpFromPointerType(clang::PointerType* type)
-{
-    allocateType<PointerType>(type, Type::Pointer);
-    return Super::WalkUpFromPointerType(type);
 }
 bool TypeVisitor::WalkUpFromLValueReferenceType(clang::LValueReferenceType* type)
 {
-    allocateType<ReferenceType>(type, Type::Reference);
+    allocateType<ReferenceType>(type);
     return Super::WalkUpFromLValueReferenceType(type);
 }
 
@@ -394,32 +393,30 @@ bool TypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
 {
     if( type->isStructureType() || type->isClassType() )
     {
-        allocateType<RecordType>(type, Type::Record);
+        allocateType<NonTemplateRecordType>(type);
     }
     else if( type->isUnionType() )
     {
-        allocateType<UnionType>(type, Type::Union);
+        allocateType<UnionType>(type);
     }
     return Super::WalkUpFromRecordType(type);
 }
+WALK_UP_METHOD(Builtin)
+WALK_UP_METHOD(Pointer)
 WALK_UP_METHOD(Array)
 WALK_UP_METHOD(Function)
 bool TypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 {
-    allocateType<TypedefType>(type, Type::Typedef);
+    allocateType<TypedefType>(type);
     return Super::WalkUpFromTypedefType(type);
 }
-    
+
 WALK_UP_METHOD(Vector)
-bool TypeVisitor::WalkUpFromEnumType(clang::EnumType* type)
-{
-    allocateType<EnumType>(type, Type::Enum);
-    return Super::WalkUpFromEnumType(type);
-}
+WALK_UP_METHOD(Enum)
 
 bool TypeVisitor::WalkUpFromRValueReferenceType(clang::RValueReferenceType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
@@ -427,7 +424,7 @@ bool TypeVisitor::WalkUpFromType(clang::Type* type)
 {
     if( !type_in_progress )
     {
-        allocateType(type, Type::Invalid);
+        allocateInvalidType(clang::QualType(type, 0));
         type->dump();
         throw std::logic_error("Can not wrap type!");
         return false;
@@ -552,7 +549,7 @@ bool TypeVisitor::WalkUpFromDecltypeType(clang::DecltypeType* type)
 bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
 {
     // TODO
-    allocateType(type, Type::TemplateSpecialization);
+    allocateType<TemplateSpecializationType>(type);
     std::string name = type->getTemplateName().getAsTemplateDecl()->getQualifiedNameAsString();
     // TODO Make sure I'm not making too many of these!
     string binder_name(name.c_str(), name.size());
@@ -562,13 +559,13 @@ bool TypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpecializa
 
 bool TypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
 {
-    allocateType<TemplateArgumentType>(type, Type::TemplateArgument);
+    allocateType<TemplateArgumentType>(type);
     return Super::WalkUpFromTemplateTypeParmType(type);
 }
 
 bool TypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
@@ -577,49 +574,49 @@ bool TypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* 
 {
     // FIXME what if the template is a union?
     // I don't translate those just yet...
-    allocateType<RecordType>(type, Type::Record);
+    allocateType<TemplateRecordType>(type);
     return Super::WalkUpFromInjectedClassNameType(type);
 }
 
 bool TypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 bool TypeVisitor::WalkUpFromTypeOfExprType(clang::TypeOfExprType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 bool TypeVisitor::WalkUpFromUnaryTransformType(clang::UnaryTransformType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 bool TypeVisitor::WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 bool TypeVisitor::WalkUpFromMemberPointerType(clang::MemberPointerType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 bool TypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
 
 
 bool TypeVisitor::WalkUpFromAutoType(clang::AutoType* type)
 {
-    allocateType(type, Type::Invalid);
+    allocateInvalidType(clang::QualType(type, 0));
     return false;
 }

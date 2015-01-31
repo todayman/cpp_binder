@@ -86,7 +86,6 @@ class TemplateArgumentInstanceIterator;
         };
 
         protected:
-        const clang::QualType type;
         Kind kind;
         // Attributes! from config files or inferred
         // Pointer to D type!
@@ -101,8 +100,8 @@ class TemplateArgumentInstanceIterator;
 
         public:
         static void printTypeNames();
-        explicit Type(const clang::QualType t, Kind k, clang::TemplateParameterList* =nullptr)
-            : type(t), kind(k), strategy(UNKNOWN), target_name(""),
+        explicit Type(Kind k)
+            : kind(k), strategy(UNKNOWN), target_name(""),
               target_module("")
         { }
 
@@ -111,6 +110,7 @@ class TemplateArgumentInstanceIterator;
         Type& operator=(const Type&) = delete;
         Type& operator=(Type&&) = delete;
 
+        static Type* get(const clang::Type* type, const clang::PrintingPolicy* pp = nullptr);
         static Type* get(const clang::QualType& qType, const clang::PrintingPolicy* pp = nullptr);
 
         typedef std::unordered_multimap<string, Type*>::iterator iter_t;
@@ -159,10 +159,6 @@ class TemplateArgumentInstanceIterator;
             return false;
         }
 
-        Type * unqualifiedType();
-        const Type * unqualifiedType() const;
-        bool isConst() const;
-
         struct WrongStrategy : public std::runtime_error
         {
             WrongStrategy()
@@ -178,26 +174,90 @@ class TemplateArgumentInstanceIterator;
             assert(0);
         }
 
-        void dump();
+        virtual void dump() const = 0;
+    };
+
+    class InvalidType : public Type
+    {
+        protected:
+        const clang::QualType type;
+
+        public:
+        explicit InvalidType(const clang::QualType t)
+            : Type(Type::Invalid), type(t)
+        { }
+
+        virtual bool isReferenceType() const override
+        {
+            throw std::logic_error("Asked if an invalid type has reference semantics.");
+        }
+
+        virtual void dump() const override;
+    };
+
+    class BuiltinType : public Type
+    {
+        protected:
+        const clang::BuiltinType* type;
+
+        public:
+        explicit BuiltinType(const clang::BuiltinType* t)
+            : Type(Type::Builtin), type(t)
+        { }
+
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+
+        virtual void dump() const override;
     };
 
     class RecordType : public Type
     {
         public:
-        explicit RecordType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
-            : Type(t, Type::Record, tl)
+        explicit RecordType()
+            : Type(Type::Record)
         { }
 
         virtual bool isReferenceType() const override;
         virtual Declaration* getDeclaration() const override;
-        RecordDeclaration * getRecordDeclaration() const;
+        virtual RecordDeclaration * getRecordDeclaration() const = 0;
+    };
+
+    class NonTemplateRecordType : public RecordType
+    {
+        protected:
+        const clang::RecordType * type;
+        public:
+        explicit NonTemplateRecordType(const clang::RecordType* t)
+            : RecordType(), type(t)
+        { }
+
+        virtual RecordDeclaration * getRecordDeclaration() const override;
+
+        virtual void dump() const override;
+    };
+
+    class TemplateRecordType : public RecordType
+    {
+        protected:
+        const clang::InjectedClassNameType * type;
+        public:
+        explicit TemplateRecordType(const clang::InjectedClassNameType* t)
+            : RecordType(), type(t)
+        { }
+
+        virtual RecordDeclaration * getRecordDeclaration() const override;
+
+        virtual void dump() const override;
     };
 
     class PointerOrReferenceType : public Type
     {
         public:
-        explicit PointerOrReferenceType(const clang::QualType t, Kind k, clang::TemplateParameterList* tl = nullptr)
-            : Type(t, k, tl)
+        explicit PointerOrReferenceType(Kind k)
+            : Type(k)
         { }
 
         virtual Declaration* getDeclaration() const override
@@ -209,44 +269,58 @@ class TemplateArgumentInstanceIterator;
 
     class PointerType : public PointerOrReferenceType
     {
+        protected:
+        const clang::PointerType* type;
         public:
-        explicit PointerType(const clang::QualType t, Kind)
-            : PointerOrReferenceType(t, Type::Pointer, nullptr)
+        explicit PointerType(const clang::PointerType* t)
+            : PointerOrReferenceType(Type::Pointer), type(t)
         { }
         virtual Type * getPointeeType() const override;
         virtual bool isReferenceType() const override
         {
             return false;
         }
+
+        virtual void dump() const override;
     };
     class ReferenceType : public PointerOrReferenceType
     {
+        protected:
+        const clang::LValueReferenceType* type;
         public:
-        explicit ReferenceType(const clang::QualType t, Kind)
-            : PointerOrReferenceType(t, Type::Reference, nullptr)
+        explicit ReferenceType(const clang::LValueReferenceType* t)
+            : PointerOrReferenceType(Type::Reference), type(t)
         { }
         virtual bool isReferenceType() const override;
         virtual Type * getPointeeType() const override;
+
+        virtual void dump() const override;
     };
 
     class TypedefType : public Type
     {
+        protected:
+        const clang::TypedefType* type;
         public:
-        explicit TypedefType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
-            : Type(t, Type::Typedef, tl)
+        explicit TypedefType(const clang::TypedefType* t)
+            : Type(Type::Typedef), type(t)
         { }
 
         virtual bool isReferenceType() const override;
         virtual Declaration * getDeclaration() const override;
         TypedefDeclaration * getTypedefDeclaration() const;
+
+        virtual void dump() const override;
     };
 
     class EnumType : public Type
     {
+        protected:
+        const clang::EnumType* type;
         public:
         // enums can't be templates, can they?
-        explicit EnumType(const clang::QualType t, Kind)
-            : Type(t, Type::Enum, nullptr)
+        explicit EnumType(const clang::EnumType* t)
+            : Type(Type::Enum), type(t)
         { }
 
         virtual bool isReferenceType() const override
@@ -256,13 +330,17 @@ class TemplateArgumentInstanceIterator;
 
         virtual Declaration* getDeclaration() const override;
         EnumDeclaration * getEnumDeclaration() const;
+
+        virtual void dump() const override;
     };
 
     class UnionType : public Type
     {
+        protected:
+        const clang::RecordType* type;
         public:
-        explicit UnionType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
-            : Type(t, Type::Union, tl)
+        explicit UnionType(const clang::RecordType* t)
+            : Type(Type::Union), type(t)
         { }
 
         virtual bool isReferenceType() const override
@@ -272,29 +350,95 @@ class TemplateArgumentInstanceIterator;
 
         virtual Declaration* getDeclaration() const override;
         UnionDeclaration * getUnionDeclaration() const;
+
+        virtual void dump() const override;
+    };
+
+    class ArrayType : public Type
+    {
+        protected:
+        const clang::ArrayType* type;
+
+        public:
+        explicit ArrayType(const clang::ArrayType* t)
+            : Type(Type::Array), type(t)
+        { }
+
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+
+        virtual void dump() const override;
+    };
+
+    class FunctionType : public Type
+    {
+        protected:
+        const clang::FunctionType* type;
+
+        public:
+        explicit FunctionType(const clang::FunctionType* t)
+            : Type(Type::Function), type(t)
+        { }
+
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+
+        virtual void dump() const override;
     };
 
     class QualifiedType : public Type
     {
+        protected:
+        const clang::QualType type;
         public:
-        QualifiedType(const clang::QualType t, Kind)
-            : Type(t, Type::Qualified, nullptr)
+        QualifiedType(const clang::QualType t)
+            : Type(Type::Qualified), type(t)
         { }
 
+        Type * unqualifiedType();
+        const Type * unqualifiedType() const;
+        bool isConst() const;
+
         virtual bool isReferenceType() const override;
+
+        virtual void dump() const override;
+    };
+
+    class VectorType : public Type
+    {
+        protected:
+        const clang::VectorType* type;
+
+        public:
+        explicit VectorType(const clang::VectorType* t)
+            : Type(Type::Vector), type(t)
+        { }
+
+        virtual bool isReferenceType() const override
+        {
+            return false;
+        }
+
+        virtual void dump() const override;
     };
 
     class TemplateArgumentType : public Type
     {
+        protected:
+        const clang::TemplateTypeParmType* type;
         // The only way I can figure out to do the lookup from
         // TemplateTypeParmType to its decl is using the index into the
         // original list.  Otherwise, if the type is "CanonicalUnqualified",
         // calling getDecl() etc. returns null
-        clang::TemplateParameterList * template_list;
+        const clang::TemplateParameterList* template_list;
 
         public:
-        explicit TemplateArgumentType(const clang::QualType t, Kind, clang::TemplateParameterList* tl = nullptr)
-            : Type(t, Type::TemplateArgument, tl)
+        explicit TemplateArgumentType(const clang::TemplateTypeParmType* t)
+            : Type(Type::TemplateArgument), type(t), template_list(nullptr)
         { }
 
         virtual Declaration * getDeclaration() const override;
@@ -303,16 +447,27 @@ class TemplateArgumentInstanceIterator;
         {
             template_list = tl;
         }
+
+        virtual void dump() const override;
     };
 
     class TemplateSpecializationType : public Type
     {
+        protected:
+        const clang::TemplateSpecializationType* type;
+
         public:
+        explicit TemplateSpecializationType(const clang::TemplateSpecializationType* t)
+            : Type(Type::TemplateSpecialization), type(t)
+        { }
+
         Declaration* getTemplateDeclaration() const;
 
         unsigned getTemplateArgumentCount() const;
         TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
         TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
+
+        virtual void dump() const override;
     };
 
     class TemplateArgumentInstanceIterator
@@ -368,10 +523,10 @@ class TemplateArgumentInstanceIterator;
         Type* type_in_progress;
         const clang::PrintingPolicy* printPolicy; // Used for generating names of the type
 
-        template<typename T = Type>
-        void allocateType(const clang::QualType t, Type::Kind k);
-        template<typename T = Type>
-        void allocateType(const clang::Type* t, Type::Kind k);
+        template<typename T = Type, typename ClangType>
+        void allocateType(const ClangType* t);
+        void allocateInvalidType(const clang::QualType& t);
+        void allocateQualType(const clang::QualType t);
         public:
         typedef clang::RecursiveASTVisitor<TypeVisitor> Super;
 
