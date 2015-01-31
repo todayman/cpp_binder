@@ -1372,7 +1372,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool registerDeclaration(clang::Decl* cppDecl, bool top_level = false, clang::TemplateParameterList * tl = nullptr);
 
         // All declarations ever
-        static std::unordered_map<clang::Decl*, Declaration*> declarations;
+        static std::unordered_map<const clang::Decl*, Declaration*> declarations;
         // Root level declarations, i.e. top level functions, namespaces, etc.
         static std::unordered_set<Declaration*> free_declarations;
 
@@ -1462,7 +1462,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         private:
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
 
-        static const std::unordered_map<clang::Decl*, Declaration*>& getDeclarations()
+        static const std::unordered_map<const clang::Decl*, Declaration*>& getDeclarations()
         {
             return declarations;
         }
@@ -1473,7 +1473,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         friend void enableDeclarationsInFiles(size_t count, char ** filenames);
         friend void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
-        friend Declaration * getDeclaration(clang::Decl* decl);
+        friend Declaration * getDeclaration(const clang::Decl* decl);
         friend class RecordDeclaration;
         friend class DeclarationIterator;
         friend class ArgumentIterator;
@@ -1490,7 +1490,7 @@ namespace clang
     void traverseDeclsInAST(clang::ASTUnit* ast);
     void enableDeclarationsInFiles(size_t count, char ** filenames);
     void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
-    Declaration * getDeclaration(clang::Decl* decl);
+    Declaration * getDeclaration(const clang::Decl* decl);
 
     class SkipUnwrappableDeclaration : public NotWrappableException
     {

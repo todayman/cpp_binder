@@ -115,7 +115,7 @@ bool isTemplateTypeParmDecl(const clang::Decl* decl)
     return TemplateTypeParmKinds.count(decl->getKind()) > 0;
 }
 
-std::unordered_map<clang::Decl*, Declaration*> DeclVisitor::declarations;
+std::unordered_map<const clang::Decl*, Declaration*> DeclVisitor::declarations;
 std::unordered_set<Declaration*> DeclVisitor::free_declarations;
 
 void printPresumedLocation(const clang::NamedDecl* Declaration)
@@ -739,10 +739,14 @@ void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& file
 
     for( auto decl_pair : DeclVisitor::declarations )
     {
-        clang::Decl * cppDecl = decl_pair.first;
+        const clang::Decl * cppDecl = decl_pair.first;
         visitor.maybe_emits = decl_pair.second;
         if( visitor.maybe_emits )
-            visitor.TraverseDecl(cppDecl);
+        {
+            // const cast is safe becuase the traversal doesn't modify
+            // the declarations anyway, just looks them up in the dict
+            visitor.TraverseDecl(const_cast<clang::Decl*>(cppDecl));
+        }
     }
 }
 
@@ -778,7 +782,7 @@ void arrayOfFreeDeclarations(size_t* count, Declaration*** array)
         );
 }
 
-Declaration * getDeclaration(clang::Decl* decl)
+Declaration * getDeclaration(const clang::Decl* decl)
 {
     decl = decl->getCanonicalDecl();
     auto search_result = DeclVisitor::declarations.find(decl);
