@@ -49,7 +49,7 @@ extern (C++) interface Declaration
 
     public void removePrefix(binder.binder.string prefix);
 
-    public unknown.Type* getType() const;
+    public unknown.Type getType() const;
 
     public void visit(unknown.DeclarationVisitor visitor);
 
@@ -60,6 +60,8 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 {
 
     final protected const(clang.RecordDecl)* definitionOrThis();
+
+    final public unknown.RecordType getRecordType();
 
     public unknown.FieldIterator getFieldBegin();
 
@@ -93,13 +95,13 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 extern (C++) interface TypedefDeclaration : unknown.Declaration
 {
 
-    public unknown.Type* getTargetType() const;
+    public unknown.Type getTargetType() const;
 }
 
 extern (C++) interface EnumDeclaration : unknown.Declaration
 {
 
-    public unknown.Type* getMemberType() const;
+    public unknown.Type getMemberType() const;
 
     public unknown.DeclarationIterator getChildBegin();
 
@@ -123,31 +125,21 @@ extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration {}
 extern (C++) interface TemplateArgumentInstanceIterator
 {
 
-    public unknown.Type* get();
+    public unknown.Type get();
 
     public void advance();
 
     public bool equals(unknown.TemplateArgumentInstanceIterator other);
 }
 
-extern (C++) struct Type
+extern (C++) interface Type
 {
-
-    private const clang.QualType type;
-
-    private unknown.Type.Kind kind;
-
-    private unknown.Strategy strategy;
-
-    private binder.binder.string target_name;
-
-    private binder.binder.string target_module;
-
-    private clang.TemplateParameterList* template_list;
 
     static public void printTypeNames();
 
-    static public unknown.Type* get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
+    static public unknown.Type get(const(clang.Type)* type, const(clang.PrintingPolicy)* pp);
+
+    static public unknown.Type get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
 
     final public unknown.Type.Kind getKind() const;
 
@@ -157,45 +149,17 @@ extern (C++) struct Type
 
     final public unknown.Strategy getStrategy() const;
 
-    final public bool isReferenceType() const;
+    public bool isReferenceType() const;
 
-    final public unknown.Type* unqualifiedType();
+    public binder.binder.string getReplacement() const;
 
-    final public const(unknown.Type)* unqualifiedType() const;
+    public binder.binder.string getReplacementModule() const;
 
-    final public bool isConst() const;
+    public void setReplacementModule(binder.binder.string mod);
 
-    final public binder.binder.string getReplacement() const;
+    public unknown.Declaration getDeclaration() const;
 
-    final public binder.binder.string getReplacementModule() const;
-
-    final public void setReplacementModule(binder.binder.string mod);
-
-    final public unknown.Declaration getDeclaration() const;
-
-    final public unknown.RecordDeclaration getRecordDeclaration() const;
-
-    final public unknown.Type* getPointeeType() const;
-
-    final public unknown.TypedefDeclaration getTypedefDeclaration() const;
-
-    final public unknown.EnumDeclaration getEnumDeclaration() const;
-
-    final public unknown.UnionDeclaration getUnionDeclaration() const;
-
-    final public unknown.TemplateTypeArgumentDeclaration getTemplateTypeArgumentDeclaration() const;
-
-    final public void setTemplateList(clang.TemplateParameterList* tl);
-
-    final public unknown.Declaration getTemplateDeclaration() const;
-
-    final public uint getTemplateArgumentCount() const;
-
-    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
-
-    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
-
-    final public void dump();
+    public void dump();
 
     enum Kind : uint 
 
@@ -222,6 +186,88 @@ TemplateSpecialization =   13
 
     extern (C++) interface WrongStrategy : std.runtime_error {}
 }
+
+extern (C++) interface TypeVisitor
+{
+    public void visit(const InvalidType type);
+
+    public void visit(const BuiltinType type);
+
+    public void visit(const PointerType type);
+
+    public void visit(const ReferenceType type);
+
+    public void visit(const NonTemplateRecordType type);
+
+    public void visit(const TemplateRecordType type);
+
+    public void visit(const UnionType type);
+
+    public void visit(const ArrayType type);
+
+    public void visit(const FunctionType type);
+
+    public void visit(const TypedefType type);
+
+    public void visit(const VectorType type);
+
+    public void visit(const EnumType type);
+
+    public void visit(const QualifiedType type);
+
+    public void visit(const TemplateArgumentType type);
+
+    public void visit(const TemplateSpecializationType type);
+};
+
+extern (C++) interface InvalidType : unknown.Type {}
+
+extern (C++) interface BuiltinType : unknown.Type {}
+
+extern (C++) interface RecordType : unknown.Type
+{
+
+    public unknown.RecordDeclaration getRecordDeclaration() const;
+}
+
+extern (C++) interface NonTemplateRecordType : unknown.RecordType {}
+
+extern (C++) interface TemplateRecordType : unknown.RecordType {}
+
+extern (C++) interface PointerOrReferenceType : unknown.Type
+{
+
+    public unknown.Type getPointeeType() const;
+}
+
+extern (C++) interface PointerType : unknown.PointerOrReferenceType {}
+
+extern (C++) interface ReferenceType : unknown.PointerOrReferenceType {}
+
+extern (C++) interface TypedefType : unknown.Type {}
+
+extern (C++) interface EnumType : unknown.Type {}
+
+extern (C++) interface UnionType : unknown.Type {}
+
+extern (C++) interface ArrayType : unknown.Type {}
+
+extern (C++) interface FunctionType : unknown.Type {}
+
+extern (C++) interface QualifiedType : unknown.Type
+{
+    final public unknown.Type unqualifiedType();
+
+    final public const(unknown.Type) unqualifiedType() const;
+
+    final public bool isConst() const;
+}
+
+extern (C++) interface VectorType : unknown.Type {}
+
+extern (C++) interface TemplateArgumentType : unknown.Type {}
+
+extern (C++) interface TemplateSpecializationType : unknown.Type {}
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
 {
@@ -357,7 +403,7 @@ extern (C++) interface FunctionDeclaration : unknown.Declaration
 
     public clang.LanguageLinkage getLinkLanguage() const;
 
-    public unknown.Type* getReturnType() const;
+    public unknown.Type getReturnType() const;
 
     public unknown.ArgumentIterator getArgumentBegin();
 
@@ -389,7 +435,7 @@ extern (C++) interface MethodDeclaration : unknown.Declaration
 
     public bool isOverloadedOperator() const;
 
-    public unknown.Type* getReturnType() const;
+    public unknown.Type getReturnType() const;
 
     public unknown.ArgumentIterator getArgumentBegin();
 
@@ -427,7 +473,7 @@ extern (C++) struct Superclass
 
     public unknown.Visibility visibility;
 
-    public unknown.Type* base;
+    public unknown.Type base;
 }
 
 extern (C++) interface SuperclassIterator

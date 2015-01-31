@@ -59,6 +59,21 @@ class TemplateArgumentInstanceIterator;
 
 //namespace cpp
 //{
+    class InvalidType;
+    class BuiltinType;
+    class PointerType;
+    class ReferenceType;
+    class NonTemplateRecordType;
+    class TemplateRecordType;
+    class UnionType;
+    class ArrayType;
+    class FunctionType;
+    class TypedefType;
+    class VectorType;
+    class EnumType;
+    class QualifiedType;
+    class TemplateArgumentType;
+    class TemplateSpecializationType;
     // This is a place for all of the different pieces of
     // knowledge we need about each C++ type.  They all
     // get landed here, and we basically use this as the value
@@ -175,6 +190,26 @@ class TemplateArgumentInstanceIterator;
         }
 
         virtual void dump() const = 0;
+    };
+
+    class TypeVisitor
+    {
+        public:
+        virtual void visit(const InvalidType& type) = 0;
+        virtual void visit(const BuiltinType& type) = 0;
+        virtual void visit(const PointerType& type) = 0;
+        virtual void visit(const ReferenceType& type) = 0;
+        virtual void visit(const NonTemplateRecordType& type) = 0;
+        virtual void visit(const TemplateRecordType& type) = 0;
+        virtual void visit(const UnionType& type) = 0;
+        virtual void visit(const ArrayType& type) = 0;
+        virtual void visit(const FunctionType& type) = 0;
+        virtual void visit(const TypedefType& type) = 0;
+        virtual void visit(const VectorType& type) = 0;
+        virtual void visit(const EnumType& type) = 0;
+        virtual void visit(const QualifiedType& type) = 0;
+        virtual void visit(const TemplateArgumentType& type) = 0;
+        virtual void visit(const TemplateSpecializationType& type) = 0;
     };
 
     class InvalidType : public Type
