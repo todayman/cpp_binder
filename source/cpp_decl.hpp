@@ -150,6 +150,9 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             remove_prefix = *prefix;
         }
 
+        // This is for the configuration pass, so it can look up decls,
+        // then apply attributes to their types
+        // TODO split into TypeDeclarations and other declarations?
         virtual Type* getType() const = 0;
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
@@ -297,7 +300,7 @@ func(Unwrappable)
         virtual Type* getType() const override \
         { \
             throw NotTypeDecl(); \
-        } \
+        }\
 \
         virtual void visit(DeclarationVisitor& visitor) override \
         { \
@@ -332,7 +335,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        virtual Type* getType() const override
+        virtual Type* getType() const
         {
             return Type::get(_decl->getType());
         }
@@ -372,7 +375,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        virtual Type* getType() const override
+        virtual Type* getType() const
         {
             return Type::get(_decl->getType());
         }
@@ -454,9 +457,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
+        TypedefType* getTypedefType() const
+        {
+            return dynamic_cast<TypedefType*>(Type::get(_decl->getTypeForDecl()));
+        }
         virtual Type* getType() const override
         {
-            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+            return getTypedefType();
         }
 
         virtual void visit(DeclarationVisitor& visitor) override
@@ -468,7 +475,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitTypedef(*this);
         }*/
 
-        virtual Type* getTargetType() const
+        Type* getTargetType() const
         {
             return Type::get(_decl->getUnderlyingType());
         }
@@ -494,9 +501,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
+        EnumType* getEnumType() const
+        {
+            return dynamic_cast<EnumType*>(Type::get(_decl->getTypeForDecl()));
+        }
         virtual Type* getType() const override
         {
-            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+            return getEnumType();
         }
 
         virtual Type* getMemberType() const
@@ -543,7 +554,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        virtual Type* getType() const override
+        virtual Type* getType() const
         {
             return Type::get(_decl->getType());
         }
@@ -632,6 +643,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual Type* getType() const override
         {
+            // TODO in principle, this should probably return a function type
             throw NotTypeDecl();
         }
 
@@ -1012,9 +1024,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
+        RecordType* getRecordType() const
+        {
+            return dynamic_cast<RecordType*>(Type::get(_decl->getTypeForDecl()));
+        }
         virtual Type* getType() const override
         {
-            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+            return getRecordType();
         }
 
         virtual void visit(DeclarationVisitor& visitor) override
@@ -1141,9 +1157,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
+        UnionType* getUnionType() const
+        {
+            return dynamic_cast<UnionType*>(Type::get(_decl->getTypeForDecl()));
+        }
         virtual Type* getType() const override
         {
-            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+            return getUnionType();
         }
 
         virtual void visit(DeclarationVisitor& visitor) override
@@ -1282,9 +1302,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
+        TemplateArgumentType* getTemplateArgumentType() const
+        {
+            return dynamic_cast<TemplateArgumentType*>(Type::get(_decl->getTypeForDecl()));
+        }
         virtual Type* getType() const override
         {
-            return Type::get(clang::QualType(_decl->getTypeForDecl(), 0));
+            return getTemplateArgumentType();
         }
 
         virtual void visit(DeclarationVisitor& visitor) override

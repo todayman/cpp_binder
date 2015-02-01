@@ -32,14 +32,14 @@ static import unknown;
 
 import dlang_decls : concat, makeIdentifierOrTemplateChain;
 
-private std.d.ast.Type[unknown.Type*] translated_types;
+private std.d.ast.Type[unknown.Type] translated_types;
 private std.d.ast.Type[string] types_by_name;
 package std.d.ast.Symbol[void*] symbolForType;
 package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
 package string [const std.d.ast.Symbol] symbolModules;
 package DeferredTemplateInstantiation[const std.d.ast.Symbol] deferredTemplates;
 
-package void determineStrategy(unknown.Type* cppType)
+package void determineStrategy(unknown.Type cppType)
 {
     import translate.decls : determineRecordStrategy;
 
@@ -48,42 +48,68 @@ package void determineStrategy(unknown.Type* cppType)
         return;
     }
 
-    final switch (cppType.getKind())
+    class StrategyChoiceVisitor : unknown.TypeVisitor
     {
-        case unknown.Type.Kind.Invalid:
+        public:
+        override extern(C++) void visit(unknown.InvalidType cppType)
+        {
             cppType.dump();
             throw new Exception("Attempting to determine strategy for invalid type.");
-        case unknown.Type.Kind.Builtin:
+        }
+
+        override extern(C++) void visit(unknown.BuiltinType cppType)
+        {
             stderr.write("I don't know how to translate the builtin C++ type:\n");
             cppType.dump();
             stderr.write("\n");
             throw new Exception("Cannot translate builtin.");
-        case unknown.Type.Kind.Pointer:
-        case unknown.Type.Kind.Reference:
-        case unknown.Type.Kind.Typedef:
-        case unknown.Type.Kind.Enum:
-        case unknown.Type.Kind.Function:
-        case unknown.Type.Kind.TemplateArgument:
-            // FIXME empty string means resolve to an actual AST type, not a string
-            cppType.chooseReplaceStrategy(binder.toBinderString(""));
-            break;
+        }
 
-        case unknown.Type.Kind.Record:
+        mixin template Replace(T) {
+            // TODO turn this into a template?
+            override extern(C++) void visit(T cppType)
+            {
+                // FIXME empty string means resolve to an actual AST type, not a string
+                cppType.chooseReplaceStrategy(binder.toBinderString(""));
+            }
+        }
+        mixin Replace!(unknown.PointerType);
+        mixin Replace!(unknown.ReferenceType);
+        mixin Replace!(unknown.TypedefType);
+        mixin Replace!(unknown.EnumType);
+        mixin Replace!(unknown.FunctionType);
+        mixin Replace!(unknown.TemplateArgumentType);
+        mixin Replace!(unknown.UnionType);
+
+        override extern(C++) void visit(unknown.NonTemplateRecordType cppType)
+        {
             determineRecordStrategy(cppType);
-            break;
-        case unknown.Type.Kind.Union:
-            cppType.chooseReplaceStrategy(binder.toBinderString("")); // FIXME see note for Function
-            break;
-        case unknown.Type.Kind.Array:
-            break;
-        case unknown.Type.Kind.Vector:
+        }
+        override extern(C++) void visit(unknown.TemplateRecordType cppType)
+        {
+            determineRecordStrategy(cppType);
+        }
+
+        override extern(C++) void visit(unknown.ArrayType cppType)
+        {
+            // TODO not implemented yet
+            throw new Error("Don't know how to choose a strategy for Array types. Implement me!");
+        }
+
+        override extern(C++) void visit(unknown.VectorType cppType)
+        {
             throw new Error("Cannot translate vector (e.g. SSE, AVX) types.");
-        case unknown.Type.Kind.Qualified:
+        }
+
+        override extern(C++) void visit(unknown.QualifiedType cppType)
+        {
             determineStrategy(cppType.unqualifiedType());
             cppType.chooseReplaceStrategy(binder.toBinderString(""));
-            break;
-        case unknown.Type.Kind.TemplateSpecialization:
-            unknown.Type* generic_type = cppType.getTemplateDeclaration().getType();
+        }
+
+        override extern(C++) void visit(unknown.TemplateSpecializationType cppType)
+        {
+            unknown.Type generic_type = cppType.getTemplateDeclaration().getType();
             determineStrategy(generic_type);
             if (generic_type.getStrategy() == unknown.Strategy.REPLACE)
             {
@@ -93,8 +119,11 @@ package void determineStrategy(unknown.Type* cppType)
             {
                 cppType.setStrategy(generic_type.getStrategy());
             }
-            break;
+        }
     }
+
+    auto visitor = new StrategyChoiceVisitor();
+    cppType.visit(visitor);
 }
 
 struct QualifierSet
@@ -102,7 +131,7 @@ struct QualifierSet
     bool const_ = false;
 }
 
-private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifiers)
+private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers)
 {
     std.d.ast.Type result;
     string replacement_name = binder.toDString(cppType.getReplacement());
@@ -143,53 +172,73 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
         }
         catch (RangeError e)
         {
-            final switch (cppType.getKind())
+            class TranslateTypeClass : unknown.TypeVisitor
             {
-                case unknown.Type.Kind.Invalid:
+                public std.d.ast.Type result;
+                extern(C++) void visit(unknown.InvalidType)
+                {
                     throw new Error("Attempting to translate an Invalid type");
-                case unknown.Type.Kind.Builtin:
+                }
+
+                extern(C++) void visit(unknown.BuiltinType type)
+                {
                     // TODO figure out (again) why this is an error and add
                     // a comment explaining that
                     throw new Error("Called replaceType on a Builtin");
-                case unknown.Type.Kind.Pointer:
-                    result = translatePointer(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.Reference:
-                    result = translateReference(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.Typedef:
-                    result = translate!"Typedef"(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.Enum:
-                    result = translate!"Enum"(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.Function:
-                    result = replaceFunction(cppType, qualifiers);
-                    break;
+                }
 
-                case unknown.Type.Kind.Record:
-                    // TODO figure out (again) why this is an error and add
-                    // a comment explaining that
-                    throw new Error("Called replaceType on a Record");
-                case unknown.Type.Kind.Union:
-                    result = translate!"Union"(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.Array:
+                extern(C++) void visit(unknown.PointerType cppType)
+                {
+                    result = translatePointer(cppType, qualifiers);
+                }
+
+                extern(C++) void visit(unknown.ReferenceType cppType)
+                {
+                    result = translateReference(cppType, qualifiers);
+                }
+
+                mixin template Translate(T) {
+                    override extern(C++) void visit(T cppType)
+                    {
+                        result = translate(cppType, qualifiers);
+                    }
+                }
+                mixin Translate!(unknown.TypedefType);
+                mixin Translate!(unknown.EnumType);
+                mixin Translate!(unknown.UnionType);
+                mixin Translate!(unknown.QualifiedType);
+                mixin Translate!(unknown.TemplateArgumentType);
+
+                extern(C++) void visit(unknown.FunctionType cppType)
+                {
+                    result = replaceFunction(cppType);
+                }
+
+                mixin Translate!(unknown.NonTemplateRecordType);
+                mixin Translate!(unknown.TemplateRecordType);
+
+                extern(C++) void visit(unknown.ArrayType cppType)
+                {
                     // TODO
                     throw new Error("replaceType on Arrays is not implemented yet.");
-                case unknown.Type.Kind.Vector:
+                }
+
+                extern(C++) void visit(unknown.VectorType cppType)
+                {
                     throw new Error("replaceType on Vector types is not implemented yet.");
-                case unknown.Type.Kind.Qualified:
-                    result = translate!"Qualified"(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.TemplateArgument:
-                    result = translate!"TemplateArgument"(cppType, qualifiers);
-                    break;
-                case unknown.Type.Kind.TemplateSpecialization:
-                    // TODO should change depending on strategy
-                    result = translate!"Struct"(cppType, qualifiers);
-                    break;
+                }
+
+                extern(C++) void visit(unknown.TemplateSpecializationType cppType)
+                {
+                    // TODO should change depending on strategy and type of the actual thing
+                    // TODO redo this in the new visitor / typesafe context
+                    // Before, it was always a struct
+                    // result = translate!(unknown.RecordType)(cppType, qualifiers);
+                }
             }
+            auto visitor = new TranslateTypeClass();
+            cppType.visit(visitor);
+            result = visitor.result;
             translated_types[cppType] = result;
         }
     }
@@ -199,8 +248,8 @@ private std.d.ast.Type replaceType(unknown.Type* cppType, QualifierSet qualifier
 class RefTypeException : Exception
 {
     public:
-    unknown.Type * type;
-    this(unknown.Type * t)
+    unknown.Type type;
+    this(unknown.Type t)
     {
         super("Trying to translate into a ref");
         type = t;
@@ -209,9 +258,9 @@ class RefTypeException : Exception
 
 private std.d.ast.Type translatePointerOrReference
     (Flag!"ref" ref_)
-    (unknown.Type* cppType, QualifierSet qualifiers)
+    (unknown.PointerOrReferenceType cppType, QualifierSet qualifiers)
 {
-    unknown.Type* target_type = cppType.getPointeeType();
+    unknown.Type target_type = cppType.getPointeeType();
     // If a strategy is already picked, then this returns immediately
     determineStrategy(target_type);
 
@@ -261,11 +310,12 @@ private std.d.ast.Type translatePointerOrReference
     return result;
 }
 
-private std.d.ast.Type translatePointer(unknown.Type* cppType, QualifierSet qualifiers)
+// TODO Fold these into the strategy visitor
+private std.d.ast.Type translatePointer(unknown.PointerOrReferenceType cppType, QualifierSet qualifiers)
 {
     return translatePointerOrReference!(Flag!"ref".no)(cppType, qualifiers);
 }
-private std.d.ast.Type translateReference(unknown.Type* cppType, QualifierSet qualifiers)
+private std.d.ast.Type translateReference(unknown.ReferenceType cppType, QualifierSet qualifiers)
 {
     return translatePointerOrReference!(Flag!"ref".yes)(cppType, qualifiers);
 }
@@ -274,7 +324,7 @@ private std.d.ast.Type translateReference(unknown.Type* cppType, QualifierSet qu
 // so this template can turn into a normal function
 private string replaceMixin(string SourceType, string TargetType)() {
     return "
-private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cppType)
+private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "TypeSymbol(unknown." ~ SourceType ~ "Type cppType)
 {
     try {
         return symbolForType[cast(void*)cppType];
@@ -302,61 +352,77 @@ private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cp
 mixin (replaceMixin!("Typedef", "Typedef"));
 mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
+mixin (replaceMixin!("Record", "Record"));
+mixin (replaceMixin!("Record", "Struct"));
+//mixin (replaceMixin!("Record", "Interface"));
 
-private string resolveTemplatesMixin(string SourceType, string TargetType)() {
-    return "
-private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "Symbol(unknown.Type* cppType)
+private std.d.ast.Symbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTemplateRecordType cppType)
 {
     try {
         return symbolForType[cast(void*)cppType];
     }
     catch (RangeError e)
     {
+        unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
         std.d.ast.Symbol result = null;
-        if (cppType.getKind() != unknown.Type.Kind.TemplateSpecialization)
+        if (cppDecl !is null)
         {
-            unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
-            if (cppDecl !is null)
-            {
-                result = new std.d.ast.Symbol();
-                // This symbol will be filled in when the declaration is traversed
-                symbolForType[cast(void*)cppType] = result;
-                unresolvedSymbols[result] = cppDecl;
-            }
-            // cppDecl can be null if the type is a builtin type,
-            // i.e., when it is not declared in the C++ anywhere
+            result = new std.d.ast.Symbol();
+            // This symbol will be filled in when the declaration is traversed
+            symbolForType[cast(void*)cppType] = result;
+            unresolvedSymbols[result] = cppDecl;
         }
-        else
-        {
-            auto deferred = new DeferredTemplateInstantiation();
-            deferredTemplates[deferred.answer] = deferred;
-            // This is dangerously close to recursion
-            // but it isn't because this is the generic template type, not us
-            // (the instantiation)
-            deferred.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
-            assert(deferred.templateName !is null);
-            deferred.arguments.length = cppType.getTemplateArgumentCount();
-            uint idx = 0;
-            for (auto iter = cppType.getTemplateArgumentBegin(),
-                    finish = cppType.getTemplateArgumentEnd();
-                    !iter.equals(finish);
-                    iter.advance(), ++idx )
-            {
-                deferred.arguments[idx] = translateType(iter.get(), QualifierSet.init);
-            }
-            symbolForType[cast(void*)cppType] = deferred.answer;
-            result = deferred.answer;
-        }
-
+        // cppDecl can be null if the type is a builtin type,
+        // i.e., when it is not declared in the C++ anywhere
         return result;
     }
-}";
 }
-mixin (resolveTemplatesMixin!("Record", "Struct"));
-mixin (resolveTemplatesMixin!("Record", "Interface"));
+private std.d.ast.Symbol resolveOrDeferTemplateRecordTypeSymbol(unknown.TemplateRecordType cppType)
+{
+    try {
+        return symbolForType[cast(void*)cppType];
+    }
+    catch (RangeError e)
+    {
+        unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+        std.d.ast.Symbol result = null;
+        if (cppDecl !is null)
+        {
+            result = new std.d.ast.Symbol();
+            // This symbol will be filled in when the declaration is traversed
+            symbolForType[cast(void*)cppType] = result;
+            unresolvedSymbols[result] = cppDecl;
+        }
+        // cppDecl can be null if the type is a builtin type,
+        // i.e., when it is not declared in the C++ anywhere
+        return result;
+    }
+}
+
+private std.d.ast.Symbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
+{
+    auto deferred = new DeferredTemplateInstantiation();
+    deferredTemplates[deferred.answer] = deferred;
+    // This is dangerously close to recursion
+    // but it isn't because this is the generic template type, not us
+    // (the instantiation)
+    deferred.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
+    assert(deferred.templateName !is null);
+    deferred.arguments.length = cppType.getTemplateArgumentCount();
+    uint idx = 0;
+    for (auto iter = cppType.getTemplateArgumentBegin(),
+            finish = cppType.getTemplateArgumentEnd();
+            !iter.equals(finish);
+            iter.advance(), ++idx )
+    {
+        deferred.arguments[idx] = translateType(iter.get(), QualifierSet.init);
+    }
+    symbolForType[cast(void*)cppType] = deferred.answer;
+    return deferred.answer;
+}
 
 // TODO merge this in to the mixin
-private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppType)
+private std.d.ast.Symbol resolveOrDeferTemplateArgumentTypeSymbol(unknown.TemplateArgumentType cppType)
 {
     try {
         return symbolForType[cast(void*)cppType];
@@ -381,7 +447,18 @@ private std.d.ast.Symbol resolveOrDeferTemplateArgumentSymbol(unknown.Type* cppT
     }
 }
 
-private std.d.ast.Type translate(string kind)(unknown.Type* cppType, QualifierSet qualifiers)
+private std.d.ast.Type translate(Type)(Type cppType, QualifierSet qualifiers)
+{
+    auto result = new std.d.ast.Type();
+    auto type2 = new std.d.ast.Type2();
+    result.type2 = type2;
+    enum kind = Type.stringof;
+    type2.symbol = mixin("resolveOrDefer"~kind~"Symbol(cppType)");
+    return result;
+}
+// Need this for struct vs. interface
+// FIXME unify this with above
+private std.d.ast.Type translate(string kind)(unknown.RecordType cppType, QualifierSet qualifiers)
 {
     auto result = new std.d.ast.Type();
     auto type2 = new std.d.ast.Type2();
@@ -400,8 +477,8 @@ std.d.ast.Type clone(std.d.ast.Type t)
     return result;
 }
 
-private std.d.ast.Type translate(string kind : "Qualified")
-    (unknown.Type* cppType, QualifierSet qualifiersAlreadApplied)
+private std.d.ast.Type translate
+    (unknown.QualifiedType cppType, QualifierSet qualifiersAlreadApplied)
 {
     QualifierSet innerQualifiers;
     if (cppType.isConst() || qualifiersAlreadApplied.const_)
@@ -419,7 +496,7 @@ private std.d.ast.Type translate(string kind : "Qualified")
     return result;
 }
 
-private std.d.ast.Type replaceFunction(unknown.Type*, QualifierSet)
+private std.d.ast.Type replaceFunction(unknown.FunctionType)
 {
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
@@ -429,7 +506,7 @@ private std.d.ast.Type replaceFunction(unknown.Type*, QualifierSet)
 // Qualifiers are the qualifiers that have already been applied to the type.
 // e.g. when const(int*) does the const * part then calls translateType(int, const)
 // So that const is not applied transitively all the way down
-public std.d.ast.Type translateType(unknown.Type* cppType, QualifierSet qualifiers)
+public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifiers)
 {
     if (cppType in translated_types)
     {
@@ -448,14 +525,23 @@ public std.d.ast.Type translateType(unknown.Type* cppType, QualifierSet qualifie
                 result = replaceType(cppType, qualifiers);
                 break;
             case unknown.Strategy.STRUCT:
-                result = translate!"Struct"(cppType, qualifiers);
+                // FIXME In principle, this cast should never fail...
+                // This used to read translate!"Struct"
+                // but that called the same thing as translate!"Interface"
+                // So converting this into a "replace," since thats what we do to
+                // translate usages of types.
+                // The strategy really only matters on the decl side
+                // TODO maybe this whole function should change?
+                // In principle, the Struct strategy should only be used on record types
+                result = translate!(unknown.RecordType)(cast(unknown.RecordType)cppType, qualifiers);
                 break;
             case unknown.Strategy.INTERFACE:
                 // TODO I should check what the code paths into here are,
                 // because you shouldn't translate to interfaces directly,
                 // you should translate a pointer or ref to an interface into
                 // an interface
-                result = translate!"Interface"(cppType, qualifiers);
+                // See Struct case
+                result = replaceType(cppType, qualifiers);
                 break;
             case unknown.Strategy.CLASS:
                 break;

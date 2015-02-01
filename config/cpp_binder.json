@@ -99,7 +99,7 @@
         , "DeclVisitor": {
             "bound": 0
         }
-        , "TypeVisitor": {
+        , "ClangTypeVisitor": {
             "bound": 0
         }
         , "ConstDeclarationVisitor": {
@@ -112,6 +112,12 @@
             "bound": 0
         }
         , "Type::getByName": {
+            "bound": 0
+        }
+        , "Type::type_map": {
+            "bound": 0
+        }
+        , "Type::type_by_name": {
             "bound": 0
         }
     }

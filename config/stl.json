@@ -1,0 +1,18 @@
+{
+    "binding_attributes": {
+        "std::unordered_map": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "std.unordered_map"
+            }
+          , "target_module": "."
+        }
+      , "std::unordered_multimap": {
+            "strategy": {
+                  "name": "replace"
+                , "d_decl": "std.unordered_multimap"
+            }
+          , "target_module": "."
+        }
+    }
+}

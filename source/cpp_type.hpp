@@ -74,6 +74,7 @@ class TemplateArgumentInstanceIterator;
     class QualifiedType;
     class TemplateArgumentType;
     class TemplateSpecializationType;
+    class TypeVisitor;
     // This is a place for all of the different pieces of
     // knowledge we need about each C++ type.  They all
     // get landed here, and we basically use this as the value
@@ -189,27 +190,28 @@ class TemplateArgumentInstanceIterator;
             assert(0);
         }
 
+        virtual void visit(TypeVisitor& visitor) = 0;
         virtual void dump() const = 0;
     };
 
     class TypeVisitor
     {
         public:
-        virtual void visit(const InvalidType& type) = 0;
-        virtual void visit(const BuiltinType& type) = 0;
-        virtual void visit(const PointerType& type) = 0;
-        virtual void visit(const ReferenceType& type) = 0;
-        virtual void visit(const NonTemplateRecordType& type) = 0;
-        virtual void visit(const TemplateRecordType& type) = 0;
-        virtual void visit(const UnionType& type) = 0;
-        virtual void visit(const ArrayType& type) = 0;
-        virtual void visit(const FunctionType& type) = 0;
-        virtual void visit(const TypedefType& type) = 0;
-        virtual void visit(const VectorType& type) = 0;
-        virtual void visit(const EnumType& type) = 0;
-        virtual void visit(const QualifiedType& type) = 0;
-        virtual void visit(const TemplateArgumentType& type) = 0;
-        virtual void visit(const TemplateSpecializationType& type) = 0;
+        virtual void visit(InvalidType& type) = 0;
+        virtual void visit(BuiltinType& type) = 0;
+        virtual void visit(PointerType& type) = 0;
+        virtual void visit(ReferenceType& type) = 0;
+        virtual void visit(NonTemplateRecordType& type) = 0;
+        virtual void visit(TemplateRecordType& type) = 0;
+        virtual void visit(UnionType& type) = 0;
+        virtual void visit(ArrayType& type) = 0;
+        virtual void visit(FunctionType& type) = 0;
+        virtual void visit(TypedefType& type) = 0;
+        virtual void visit(VectorType& type) = 0;
+        virtual void visit(EnumType& type) = 0;
+        virtual void visit(QualifiedType& type) = 0;
+        virtual void visit(TemplateArgumentType& type) = 0;
+        virtual void visit(TemplateSpecializationType& type) = 0;
     };
 
     class InvalidType : public Type
@@ -227,6 +229,10 @@ class TemplateArgumentInstanceIterator;
             throw std::logic_error("Asked if an invalid type has reference semantics.");
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -245,6 +251,10 @@ class TemplateArgumentInstanceIterator;
             return false;
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -271,6 +281,10 @@ class TemplateArgumentInstanceIterator;
 
         virtual RecordDeclaration * getRecordDeclaration() const override;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -285,6 +299,10 @@ class TemplateArgumentInstanceIterator;
 
         virtual RecordDeclaration * getRecordDeclaration() const override;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -316,6 +334,10 @@ class TemplateArgumentInstanceIterator;
             return false;
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
     class ReferenceType : public PointerOrReferenceType
@@ -329,6 +351,10 @@ class TemplateArgumentInstanceIterator;
         virtual bool isReferenceType() const override;
         virtual Type * getPointeeType() const override;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -345,6 +371,10 @@ class TemplateArgumentInstanceIterator;
         virtual Declaration * getDeclaration() const override;
         TypedefDeclaration * getTypedefDeclaration() const;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -366,6 +396,10 @@ class TemplateArgumentInstanceIterator;
         virtual Declaration* getDeclaration() const override;
         EnumDeclaration * getEnumDeclaration() const;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -386,6 +420,10 @@ class TemplateArgumentInstanceIterator;
         virtual Declaration* getDeclaration() const override;
         UnionDeclaration * getUnionDeclaration() const;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -404,6 +442,10 @@ class TemplateArgumentInstanceIterator;
             return false;
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -422,6 +464,10 @@ class TemplateArgumentInstanceIterator;
             return false;
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -440,6 +486,10 @@ class TemplateArgumentInstanceIterator;
 
         virtual bool isReferenceType() const override;
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -458,6 +508,10 @@ class TemplateArgumentInstanceIterator;
             return false;
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -483,6 +537,10 @@ class TemplateArgumentInstanceIterator;
             template_list = tl;
         }
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 
@@ -502,6 +560,10 @@ class TemplateArgumentInstanceIterator;
         TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
         TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
 
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
         virtual void dump() const override;
     };
 

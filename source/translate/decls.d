@@ -604,7 +604,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         if (cppDecl.getDefinition() !is cppDecl && cppDecl.getDefinition() !is null)
             return;
-        determineRecordStrategy(cppDecl.getType());
+        determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
@@ -656,7 +656,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.name = nameFromDecl(cppDecl);
         makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path, namespace_path);
 
-        unknown.Type * cppType = cppDecl.getMemberType();
+        unknown.Type cppType = cppDecl.getMemberType();
         result.type = translateType(cppType, QualifierSet.init);
 
         package_internal_path.append(result.name);
@@ -886,7 +886,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto arg = new std.d.ast.Parameter();
         arg.name = nameFromDecl(cppDecl);
 
-        unknown.Type * cppType = cppDecl.getType();
+        unknown.Type cppType = cppDecl.getType();
 
         try {
             arg.type = translateType(cppType, QualifierSet.init);
@@ -900,7 +900,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 throw e;
             }
 
-            unknown.Type * targetType = cppType.getPointeeType();
+            unknown.Type targetType = (cast(unknown.ReferenceType)cppType).getPointeeType();
             arg.type = translateType(targetType, QualifierSet.init).clone;
             arg.type.typeConstructors ~= [tok!"ref"];
         }
@@ -1091,7 +1091,7 @@ void populateDAST()
     }
 }
 
-void determineRecordStrategy(unknown.Type* cppType)
+void determineRecordStrategy(unknown.RecordType cppType)
 {
     // There are some paths that don't come through determineStrategy,
     // so filter those out.
