@@ -264,6 +264,11 @@ bool QualifiedType::isReferenceType() const
     return unqualifiedType()->isReferenceType();
 }
 
+Declaration* TemplateArgumentType::getDeclaration() const
+{
+    return getTemplateTypeArgumentDeclaration();
+}
+
 TemplateTypeArgumentDeclaration * TemplateArgumentType::getTemplateTypeArgumentDeclaration() const
 {
     assert(template_list != nullptr);
@@ -362,6 +367,12 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
     }
 
     return result;
+}
+
+void ClangTypeVisitor::allocateInvalidType(const clang::QualType& t)
+{
+    type_in_progress = new InvalidType(t);
+    Type::type_map.insert(std::make_pair(t, type_in_progress));
 }
 
 void ClangTypeVisitor::allocateQualType(const clang::QualType t)
