@@ -353,8 +353,6 @@ mixin (replaceMixin!("Typedef", "Typedef"));
 mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
 mixin (replaceMixin!("Record", "Record"));
-mixin (replaceMixin!("Record", "Struct"));
-mixin (replaceMixin!("Record", "Interface"));
 
 private std.d.ast.Symbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTemplateRecordType cppType)
 {
@@ -457,6 +455,74 @@ private std.d.ast.Type translate(Type)(Type cppType, QualifierSet qualifiers)
     return result;
 }
 
+class RecordTranslationVisitor(string kind) : unknown.TypeVisitor
+{
+    public std.d.ast.Symbol result;
+
+    static private string Translate(string T) {
+        return "override extern(C++) void visit(unknown."~T~"Type cppType)
+        {
+            throw new Error(\"Attempting to translate a "~T~" type as a(n) " ~ kind ~ ".\");
+        }";
+    }
+    mixin(Translate("Invalid"));
+    mixin(Translate("Builtin"));
+    mixin(Translate("Pointer"));
+    mixin(Translate("Reference"));
+    mixin(Translate("Typedef"));
+    mixin(Translate("Enum"));
+    mixin(Translate("Union"));
+    mixin(Translate("Function"));
+    mixin(Translate("Qualified"));
+    mixin(Translate("TemplateArgument"));
+    mixin(Translate("TemplateRecord"));
+    mixin(Translate("Array"));
+    mixin(Translate("Vector"));
+    mixin(Translate("TemplateSpecialization"));
+
+    override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
+    {
+        try {
+            result = symbolForType[cast(void*)cppType];
+        }
+        catch (RangeError e)
+        {
+            unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+            std.d.ast.Symbol result = null;
+            if (cppDecl !is null)
+            {
+                result = new std.d.ast.Symbol();
+                // This symbol will be filled in when the declaration is traversed
+                symbolForType[cast(void*)cppType] = result;
+                unresolvedSymbols[result] = cppDecl;
+            }
+        }
+    }
+
+    override public extern(C++) void visit(unknown.TemplateRecordType cppType)
+    {
+        // FIXME this impl is wrong!
+        cppType.dump();
+        /*auto deferred = new DeferredTemplateInstantiation();
+        deferredTemplates[deferred.answer] = deferred;
+        // This is dangerously close to recursion
+        // but it isn't because this is the generic template type, not us
+        // (the instantiation)
+        deferred.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
+        assert(deferred.templateName !is null);
+        deferred.arguments.length = cppType.getTemplateArgumentCount();
+        uint idx = 0;
+        for (auto iter = cppType.getTemplateArgumentBegin(),
+                finish = cppType.getTemplateArgumentEnd();
+                !iter.equals(finish);
+                iter.advance(), ++idx )
+        {
+            deferred.arguments[idx] = translateType(iter.get(), QualifierSet.init);
+        }
+        symbolForType[cast(void*)cppType] = deferred.answer;
+        result = deferred.answer;*/
+    }
+}
 // Need this to determine whether to do templates or not
 // There might be a better way to do this.
 // This was translateInterface(string kind)(args), but that caused
@@ -476,7 +542,7 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
         static private string Translate(string T) {
             return "override extern(C++) void visit(unknown."~T~"Type cppType)
             {
-                throw new Error(\"Attempting to translate a "~T~" type as an Interface.\");
+                throw new Error(\"Attempting to translate a "~T~" type as an interface.\");
             }";
         }
         mixin(Translate("Invalid"));
@@ -489,22 +555,71 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
         mixin(Translate("Function"));
         mixin(Translate("Qualified"));
         mixin(Translate("TemplateArgument"));
-        mixin(Translate("TemplateRecord"));
         mixin(Translate("Array"));
         mixin(Translate("Vector"));
-        mixin(Translate("TemplateSpecialization"));
 
-        mixin template Resolve(T) {
-            override extern(C++) void visit(T cppType)
+        override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
+        {
+            try {
+                result = symbolForType[cast(void*)cppType];
+            }
+            catch (RangeError e)
             {
-                // FIXME
-                result = resolveOrDeferInterfaceTypeSymbol(cppType);
+                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+                std.d.ast.Symbol result = null;
+                if (cppDecl !is null)
+                {
+                    result = new std.d.ast.Symbol();
+                    // This symbol will be filled in when the declaration is traversed
+                    symbolForType[cast(void*)cppType] = result;
+                    unresolvedSymbols[result] = cppDecl;
+                }
             }
         }
-        mixin Resolve!(unknown.NonTemplateRecordType);
-        mixin Resolve!(unknown.TemplateRecordType);
-    }
 
+        // This needs to come up with a symbol that describes the template generally,
+        // e.g. std::unordered_map, without template args
+        override public extern(C++) void visit(unknown.TemplateRecordType cppType)
+        {
+            try {
+                result = symbolForType[cast(void*)cppType];
+            }
+            catch (RangeError e)
+            {
+                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+                std.d.ast.Symbol result = null;
+                if (cppDecl !is null)
+                {
+                    result = new std.d.ast.Symbol();
+                    // This symbol will be filled in when the declaration is traversed
+                    symbolForType[cast(void*)cppType] = result;
+                    unresolvedSymbols[result] = cppDecl;
+                }
+            }
+        }
+
+        override public extern(C++) void visit(unknown.TemplateSpecializationType cppType)
+        {
+            auto deferred = new DeferredTemplateInstantiation();
+            deferredTemplates[deferred.answer] = deferred;
+            // This is dangerously close to recursion
+            // but it isn't because this is the generic template type, not us
+            // (the instantiation)
+            deferred.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
+            assert(deferred.templateName !is null);
+            deferred.arguments.length = cppType.getTemplateArgumentCount();
+            uint idx = 0;
+            for (auto iter = cppType.getTemplateArgumentBegin(),
+                    finish = cppType.getTemplateArgumentEnd();
+                    !iter.equals(finish);
+                    iter.advance(), ++idx )
+            {
+                deferred.arguments[idx] = translateType(iter.get(), QualifierSet.init);
+            }
+            symbolForType[cast(void*)cppType] = deferred.answer;
+            result = deferred.answer;
+        }
+    }
     auto visitor = new RecordTranslationVisitor();
     cppType.visit(visitor);
     type2.symbol = visitor.result;
@@ -523,7 +638,7 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
         static private string Translate(string T) {
             return "override extern(C++) void visit(unknown."~T~"Type cppType)
             {
-                throw new Error(\"Attempting to translate a "~T~" type as an Interface.\");
+                throw new Error(\"Attempting to translate a "~T~" type as a struct.\");
             }";
         }
         mixin(Translate("Invalid"));
@@ -536,22 +651,69 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
         mixin(Translate("Function"));
         mixin(Translate("Qualified"));
         mixin(Translate("TemplateArgument"));
-        mixin(Translate("TemplateRecord"));
         mixin(Translate("Array"));
         mixin(Translate("Vector"));
-        mixin(Translate("TemplateSpecialization"));
 
-        mixin template Resolve(T) {
-            override extern(C++) void visit(T cppType)
+        override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
+        {
+            try {
+                result = symbolForType[cast(void*)cppType];
+            }
+            catch (RangeError e)
             {
-                // FIXME
-                result = resolveOrDeferStructTypeSymbol(cppType);
+                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+                std.d.ast.Symbol result = null;
+                if (cppDecl !is null)
+                {
+                    result = new std.d.ast.Symbol();
+                    // This symbol will be filled in when the declaration is traversed
+                    symbolForType[cast(void*)cppType] = result;
+                    unresolvedSymbols[result] = cppDecl;
+                }
             }
         }
-        mixin Resolve!(unknown.NonTemplateRecordType);
-        mixin Resolve!(unknown.TemplateRecordType);
-    }
 
+        override public extern(C++) void visit(unknown.TemplateRecordType cppType)
+        {
+            try {
+                result = symbolForType[cast(void*)cppType];
+            }
+            catch (RangeError e)
+            {
+                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
+                std.d.ast.Symbol result = null;
+                if (cppDecl !is null)
+                {
+                    result = new std.d.ast.Symbol();
+                    // This symbol will be filled in when the declaration is traversed
+                    symbolForType[cast(void*)cppType] = result;
+                    unresolvedSymbols[result] = cppDecl;
+                }
+            }
+        }
+
+        override public extern(C++) void visit(unknown.TemplateSpecializationType cppType)
+        {
+            auto deferred = new DeferredTemplateInstantiation();
+            deferredTemplates[deferred.answer] = deferred;
+            // This is dangerously close to recursion
+            // but it isn't because this is the generic template type, not us
+            // (the instantiation)
+            deferred.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
+            assert(deferred.templateName !is null);
+            deferred.arguments.length = cppType.getTemplateArgumentCount();
+            uint idx = 0;
+            for (auto iter = cppType.getTemplateArgumentBegin(),
+                    finish = cppType.getTemplateArgumentEnd();
+                    !iter.equals(finish);
+                    iter.advance(), ++idx )
+            {
+                deferred.arguments[idx] = translateType(iter.get(), QualifierSet.init);
+            }
+            symbolForType[cast(void*)cppType] = deferred.answer;
+            result = deferred.answer;
+        }
+    }
     auto visitor = new RecordTranslationVisitor();
     cppType.visit(visitor);
     type2.symbol = visitor.result;
