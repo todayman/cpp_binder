@@ -50,6 +50,12 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as)
     }
 }
 
+// These are here so that they won't be inlined
+RecordType* RecordDeclaration::getRecordType() const
+{
+    return dynamic_cast<RecordType*>(Type::get(_decl->getTypeForDecl()));
+}
+
 long long EnumConstantDeclaration::getLLValue() const
 {
     long long result;
@@ -135,6 +141,16 @@ const RecordDeclaration* RecordDeclaration::getDefinition() const
     }
     Declaration* decl = search_result->second;
     return dynamic_cast<const RecordDeclaration*>(decl);
+}
+
+TypedefType* TypedefDeclaration::getTypedefType() const
+{
+    return dynamic_cast<TypedefType*>(Type::get(_decl->getTypeForDecl()));
+}
+
+Type* TypedefDeclaration::getTargetType() const
+{
+    return Type::get(_decl->getUnderlyingType());
 }
 
 /*template<typename ClangType, typename TranslatorType>

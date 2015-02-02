@@ -457,10 +457,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        TypedefType* getTypedefType() const
-        {
-            return dynamic_cast<TypedefType*>(Type::get(_decl->getTypeForDecl()));
-        }
+        TypedefType* getTypedefType() const;
         virtual Type* getType() const override
         {
             return getTypedefType();
@@ -475,10 +472,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitTypedef(*this);
         }*/
 
-        Type* getTargetType() const
-        {
-            return Type::get(_decl->getUnderlyingType());
-        }
+        Type* getTargetType() const;
 
         virtual void dump() override
         {
@@ -1024,10 +1018,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        RecordType* getRecordType() const
-        {
-            return dynamic_cast<RecordType*>(Type::get(_decl->getTypeForDecl()));
-        }
+        RecordType* getRecordType() const;
         virtual Type* getType() const override
         {
             return getRecordType();
