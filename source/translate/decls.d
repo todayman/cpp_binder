@@ -629,8 +629,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl);
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl, outerDeclaration);
         auto initializer = new std.d.ast.AliasInitializer();
+        addCppLinkageAttribute(outerDeclaration);
         initializer.name = nameFromDecl(cppDecl);
         initializer.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
         result.initializers ~= [initializer];
@@ -1084,7 +1086,7 @@ void populateDAST()
     {
         temp.resolve();
     }
-    
+
     foreach (path, mod; rootPackage.children)
     {
         computeImports(mod);
