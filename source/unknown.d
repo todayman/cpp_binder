@@ -282,13 +282,13 @@ extern (C++) interface TemplateArgumentType : unknown.Type
 
 extern (C++) interface TemplateSpecializationType : unknown.Type
 {
-    public unknown.Declaration getTemplateDeclaration() const;
+    final public unknown.Declaration getTemplateDeclaration() const;
 
-    public uint getTemplateArgumentCount() const;
+    final public uint getTemplateArgumentCount() const;
 
-    public TemplateArgumentInstanceIterator getTemplateArgumentBegin();
+    final public TemplateArgumentInstanceIterator getTemplateArgumentBegin();
 
-    public TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+    final public TemplateArgumentInstanceIterator getTemplateArgumentEnd();
 }
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
