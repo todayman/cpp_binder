@@ -111,6 +111,7 @@ string* Type::getReplacement() const
     string * result = new string(target_name);
     return result;
 }
+
 string* Type::getReplacementModule() const
 {
     if( strategy != REPLACE )
@@ -168,8 +169,14 @@ bool RecordType::isReferenceType() const
             return true;
         case STRUCT:
             return false;
-        case UNKNOWN:
         case REPLACE:
+            // If we were explicitly given a name for the replacement type,
+            // then we use that text without modification.
+            if (target_name.size() > 0)
+            {
+                return false;
+            }
+        case UNKNOWN:
         default:
             dump();
             throw std::logic_error("Haven't decided strategy for Record yet, so it is not known whether it is a reference type.");
