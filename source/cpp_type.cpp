@@ -213,7 +213,7 @@ bool ReferenceType::isReferenceType() const
 
 bool TypedefType::isReferenceType() const
 {
-    return get(type)->isReferenceType();
+    return getTypedefDeclaration()->getTargetType()->isReferenceType();
 }
 
 Declaration* TypedefType::getDeclaration() const
