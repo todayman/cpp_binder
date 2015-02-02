@@ -187,6 +187,7 @@ class TemplateArgumentInstanceIterator;
 
         virtual Declaration * getDeclaration() const
         {
+            dump();
             assert(0);
         }
 
@@ -245,6 +246,11 @@ class TemplateArgumentInstanceIterator;
         explicit BuiltinType(const clang::BuiltinType* t)
             : Type(Type::Builtin), type(t)
         { }
+
+        virtual Declaration* getDeclaration() const override
+        {
+            return nullptr;
+        }
 
         virtual bool isReferenceType() const override
         {
