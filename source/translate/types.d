@@ -354,7 +354,7 @@ mixin (replaceMixin!("Enum", "Enum"));
 mixin (replaceMixin!("Union", "Union"));
 mixin (replaceMixin!("Record", "Record"));
 mixin (replaceMixin!("Record", "Struct"));
-//mixin (replaceMixin!("Record", "Interface"));
+mixin (replaceMixin!("Record", "Interface"));
 
 private std.d.ast.Symbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTemplateRecordType cppType)
 {
@@ -456,14 +456,105 @@ private std.d.ast.Type translate(Type)(Type cppType, QualifierSet qualifiers)
     type2.symbol = mixin("resolveOrDefer"~kind~"Symbol(cppType)");
     return result;
 }
-// Need this for struct vs. interface
-// FIXME unify this with above
-private std.d.ast.Type translate(string kind)(unknown.RecordType cppType, QualifierSet qualifiers)
+
+// Need this to determine whether to do templates or not
+// There might be a better way to do this.
+// This was translateInterface(string kind)(args), but that caused
+// and ICE in dmd 2.066.1.  It does not ICE in dmd master
+// (37e6395849fd762bcc1ec1ac036fff79db2d2693)
+// FIXME collapse into template
+private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qualifiers)
 {
     auto result = new std.d.ast.Type();
     auto type2 = new std.d.ast.Type2();
     result.type2 = type2;
-    type2.symbol = mixin("resolveOrDefer"~kind~"Symbol(cppType)");
+
+    class RecordTranslationVisitor : unknown.TypeVisitor
+    {
+        public std.d.ast.Symbol result;
+
+        static private string Translate(string T) {
+            return "override extern(C++) void visit(unknown."~T~"Type cppType)
+            {
+                throw new Error(\"Attempting to translate a "~T~" type as an Interface.\");
+            }";
+        }
+        mixin(Translate("Invalid"));
+        mixin(Translate("Builtin"));
+        mixin(Translate("Pointer"));
+        mixin(Translate("Reference"));
+        mixin(Translate("Typedef"));
+        mixin(Translate("Enum"));
+        mixin(Translate("Union"));
+        mixin(Translate("Function"));
+        mixin(Translate("Qualified"));
+        mixin(Translate("TemplateArgument"));
+        mixin(Translate("TemplateRecord"));
+        mixin(Translate("Array"));
+        mixin(Translate("Vector"));
+        mixin(Translate("TemplateSpecialization"));
+
+        mixin template Resolve(T) {
+            override extern(C++) void visit(T cppType)
+            {
+                // FIXME
+                result = resolveOrDeferInterfaceTypeSymbol(cppType);
+            }
+        }
+        mixin Resolve!(unknown.NonTemplateRecordType);
+        mixin Resolve!(unknown.TemplateRecordType);
+    }
+
+    auto visitor = new RecordTranslationVisitor();
+    cppType.visit(visitor);
+    type2.symbol = visitor.result;
+    return result;
+}
+private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualifiers)
+{
+    auto result = new std.d.ast.Type();
+    auto type2 = new std.d.ast.Type2();
+    result.type2 = type2;
+
+    class RecordTranslationVisitor : unknown.TypeVisitor
+    {
+        public std.d.ast.Symbol result;
+
+        static private string Translate(string T) {
+            return "override extern(C++) void visit(unknown."~T~"Type cppType)
+            {
+                throw new Error(\"Attempting to translate a "~T~" type as an Interface.\");
+            }";
+        }
+        mixin(Translate("Invalid"));
+        mixin(Translate("Builtin"));
+        mixin(Translate("Pointer"));
+        mixin(Translate("Reference"));
+        mixin(Translate("Typedef"));
+        mixin(Translate("Enum"));
+        mixin(Translate("Union"));
+        mixin(Translate("Function"));
+        mixin(Translate("Qualified"));
+        mixin(Translate("TemplateArgument"));
+        mixin(Translate("TemplateRecord"));
+        mixin(Translate("Array"));
+        mixin(Translate("Vector"));
+        mixin(Translate("TemplateSpecialization"));
+
+        mixin template Resolve(T) {
+            override extern(C++) void visit(T cppType)
+            {
+                // FIXME
+                result = resolveOrDeferStructTypeSymbol(cppType);
+            }
+        }
+        mixin Resolve!(unknown.NonTemplateRecordType);
+        mixin Resolve!(unknown.TemplateRecordType);
+    }
+
+    auto visitor = new RecordTranslationVisitor();
+    cppType.visit(visitor);
+    type2.symbol = visitor.result;
     return result;
 }
 
@@ -525,15 +616,9 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
                 result = replaceType(cppType, qualifiers);
                 break;
             case unknown.Strategy.STRUCT:
-                // FIXME In principle, this cast should never fail...
-                // This used to read translate!"Struct"
-                // but that called the same thing as translate!"Interface"
-                // So converting this into a "replace," since thats what we do to
-                // translate usages of types.
-                // The strategy really only matters on the decl side
                 // TODO maybe this whole function should change?
                 // In principle, the Struct strategy should only be used on record types
-                result = translate!(unknown.RecordType)(cast(unknown.RecordType)cppType, qualifiers);
+                result = translateStruct(cppType, qualifiers);
                 break;
             case unknown.Strategy.INTERFACE:
                 // TODO I should check what the code paths into here are,
@@ -541,7 +626,7 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
                 // you should translate a pointer or ref to an interface into
                 // an interface
                 // See Struct case
-                result = replaceType(cppType, qualifiers);
+                result = translateInterface(cppType, qualifiers);
                 break;
             case unknown.Strategy.CLASS:
                 break;
