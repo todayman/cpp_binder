@@ -61,7 +61,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     final protected const(clang.RecordDecl)* definitionOrThis();
 
-    final public unknown.RecordType getRecordType();
+    final public unknown.RecordType getRecordType() const;
 
     public unknown.FieldIterator getFieldBegin();
 
@@ -83,7 +83,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public bool hasDefinition() const;
 
-    public const unknown.RecordDeclaration getDefinition() const;
+    public const(unknown.RecordDeclaration) getDefinition() const;
 
     public bool isDynamicClass() const;
 
@@ -95,7 +95,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 extern (C++) interface TypedefDeclaration : unknown.Declaration
 {
 
-    public unknown.Type getTargetType() const;
+    final public unknown.Type getTargetType() const;
 }
 
 extern (C++) interface EnumDeclaration : unknown.Declaration
@@ -151,11 +151,11 @@ extern (C++) interface Type
 
     public bool isReferenceType() const;
 
-    public binder.binder.string getReplacement() const;
+    final public binder.binder.string getReplacement() const;
 
-    public binder.binder.string getReplacementModule() const;
+    final public binder.binder.string getReplacementModule() const;
 
-    public void setReplacementModule(binder.binder.string mod);
+    final public void setReplacementModule(binder.binder.string mod);
 
     public unknown.Declaration getDeclaration() const;
 
