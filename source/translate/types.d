@@ -32,7 +32,7 @@ static import unknown;
 
 import dlang_decls : concat, makeIdentifierOrTemplateChain;
 
-private std.d.ast.Type[unknown.Type] translated_types;
+private std.d.ast.Type[void*] translated_types;
 private std.d.ast.Type[string] types_by_name;
 package std.d.ast.Symbol[void*] symbolForType;
 package unknown.Declaration[std.d.ast.Symbol] unresolvedSymbols;
@@ -168,7 +168,7 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
     else
     {
         try {
-            return translated_types[cppType];
+            return translated_types[cast(void*)cppType];
         }
         catch (RangeError e)
         {
@@ -239,7 +239,7 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
             auto visitor = new TranslateTypeClass();
             cppType.visit(visitor);
             result = visitor.result;
-            translated_types[cppType] = result;
+            translated_types[cast(void*)cppType] = result;
         }
     }
     return result;
@@ -487,7 +487,7 @@ private std.d.ast.Type translate
     }
     std.d.ast.Type result = translateType(cppType.unqualifiedType(), innerQualifiers).clone;
 
-    // Apply qualifiers that 
+    // Apply qualifiers that ...?
     if (cppType.isConst() && !qualifiersAlreadApplied.const_)
     {
         result.typeConstructors ~= [tok!"const"];
@@ -508,9 +508,9 @@ private std.d.ast.Type replaceFunction(unknown.FunctionType)
 // So that const is not applied transitively all the way down
 public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifiers)
 {
-    if (cppType in translated_types)
+    if (cast(void*)cppType in translated_types)
     {
-        return translated_types[cppType];
+        return translated_types[cast(void*)cppType];
     }
     else
     {
@@ -551,7 +551,7 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
 
         if (result !is null)
         {
-            translated_types[cppType] = result;
+            translated_types[cast(void*)cppType] = result;
         }
         else
         {
