@@ -31,6 +31,14 @@ bool parse_args(string[] argv, out CLIArguments args)
 {
     bool setOutput = false;
 
+    if (argv.length == 2 && argv[1][0] == '@')
+    {
+        import std.algorithm : map, splitter;
+        import std.array : array;
+        import std.file : read;
+        argv = [""] ~ (cast(const char[])read(argv[1][1 .. $])).splitter.map!idup.array;
+    }
+
     for (int cur_arg_idx = 1; cur_arg_idx < argv.length; ++cur_arg_idx)
     {
         string arg_str = argv[cur_arg_idx];

@@ -1,0 +1,1 @@
+-c config/builtin_types.json -c config/stl.json -c config/cpp_binder.json source/cpp_type.hpp source/cpp_decl.hpp source/cpp_exception.hpp source/string.hpp source/clang_wrapper.hpp
