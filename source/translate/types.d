@@ -566,7 +566,6 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
             catch (RangeError e)
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                std.d.ast.Symbol result = null;
                 if (cppDecl !is null)
                 {
                     result = new std.d.ast.Symbol();
@@ -587,7 +586,6 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
             catch (RangeError e)
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                std.d.ast.Symbol result = null;
                 if (cppDecl !is null)
                 {
                     result = new std.d.ast.Symbol();
@@ -662,7 +660,6 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
             catch (RangeError e)
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                std.d.ast.Symbol result = null;
                 if (cppDecl !is null)
                 {
                     result = new std.d.ast.Symbol();
@@ -681,7 +678,6 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
             catch (RangeError e)
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                std.d.ast.Symbol result = null;
                 if (cppDecl !is null)
                 {
                     result = new std.d.ast.Symbol();
