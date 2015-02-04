@@ -477,3 +477,35 @@ void parseAndApplyConfiguration(size_t config_count, const char** config_files, 
 
     parseAndApplyConfiguration(config_file_vec, astunit);
 }
+
+/* TODO bring this back in
+void applyAttributesToDeclByName(clang::ASTContext& ast, const DeclarationAttributes* attribs, const string* name)
+{
+    std::string name_str = name->c_str();
+    clang::DeclContextLookupResult lookup_result = lookupDeclName(name_str, ast, ast.getTranslationUnitDecl());
+
+    if( lookup_result.size() > 0 )
+    {
+        // TODO finding more than one match should probably
+        // be handled more gracefully.
+        for( clang::NamedDecl* cppDecl : lookup_result )
+        {
+            Declaration* decl;
+            try {
+                decl = getDeclaration(cppDecl);
+            }
+            catch (std::out_of_range& exc)
+            {
+                std::cerr << "Could not find declaration for " << name << "\n";
+                continue;
+            }
+            if (decl == nullptr)
+            {
+                std::cerr << "Could not find declaration for " << name << "\n";
+                continue;
+            }
+
+            decl->applyAttributes(attribs);
+        }
+    }
+}*/

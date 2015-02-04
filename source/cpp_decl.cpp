@@ -31,6 +31,28 @@
 
 #include "clang/AST/Decl.h"
 
+void DeclarationAttributes::setBound(bool value)
+{
+    isBoundSet = true;
+    bound = value;
+}
+
+void DeclarationAttributes::setTargetModule(binder::string* value)
+{
+    isTargetModuleSet = true;
+    target_module = *value;
+}
+
+void DeclarationAttributes::setVisibility(Visibility value)
+{
+    visibility = value;
+}
+
+void DeclarationAttributes::setRemovePrefix(binder::string* value)
+{
+    remove_prefix = *value;
+}
+
 Visibility accessSpecToVisibility(clang::AccessSpecifier as)
 {
     switch( as )

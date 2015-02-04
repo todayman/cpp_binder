@@ -55,6 +55,34 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
     bool isCXXRecord(const clang::Decl* decl);
     bool isTemplateTypeParmDecl(const clang::Decl* decl);
 
+    class DeclarationAttributes
+    {
+        // TODO pack this efficiently
+        bool isBoundSet;
+        bool bound;
+        bool isTargetModuleSet;
+        string target_module;
+        // Visibility has an unset state
+        Visibility visibility;
+        // Empty string means no remove prefix
+        string remove_prefix;
+
+        public:
+        DeclarationAttributes()
+            : isBoundSet(false), bound(true), isTargetModuleSet(false),
+            target_module(), visibility(UNSET), remove_prefix()
+        { }
+
+        static DeclarationAttributes* make();
+
+        void setBound(bool value);
+        void setTargetModule(string* value);
+        void setVisibility(Visibility value);
+        void setRemovePrefix(string* value);
+
+        friend class Declaration;
+    };
+
     // Same thing as Type, but for declarations of functions,
     // classes, etc.
     class Declaration
@@ -159,7 +187,11 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         //virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
 
         virtual void dump() = 0;
+
+        void applyAttributes(const DeclarationAttributes* attribs);
     };
+
+    void applyAttributesToDeclByName(const DeclarationAttributes* attribs, const string* declName);
 
     struct NotTypeDecl : public std::runtime_error
     {
