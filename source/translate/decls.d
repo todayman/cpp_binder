@@ -450,7 +450,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return visitor.result;
     }
 
-    private void translateStructBody(TargetDeclaration)(unknown.RecordDeclaration cppDecl, TargetDeclaration result)
+    private void translateStructBody
+        (SubdeclarationVisitor, TargetDeclaration)
+        (unknown.RecordDeclaration cppDecl, TargetDeclaration result)
     {
         for (unknown.DeclarationIterator iter = cppDecl.getChildBegin(),
                 finish = cppDecl.getChildEnd();
@@ -468,7 +470,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 {
                     continue;
                 }
-                auto visitor = new TranslatorVisitor(parent_package_name, namespace_path, package_internal_path);
+                auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path);
                 unknown.Declaration decl = iter.get();
                 decl.visit(visitor);
                 if (visitor.last_result)
@@ -553,7 +555,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         translateAllFields(cppDecl, result);
         translateAllMethods!(VirtualBehavior.FORBIDDEN)(cppDecl, result);
-        translateStructBody(cppDecl, result);
+        translateStructBody!TranslatorVisitor(cppDecl, result);
 
         return result;
     }
@@ -589,6 +591,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         result.structBody = new StructBody();
         translateAllMethods!(VirtualBehavior.ALLOWED)(cppDecl, result);
+        translateStructBody!InterfaceBodyTranslator(cppDecl, result);
 
         // TODO static methods and other things
         return result;
@@ -979,7 +982,40 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         return result;
     }
-};
+}
+
+// FIXME this is a kludge to deal with the fact that interfaces cannot have
+// fields.  I've thought about adding a subclass of DeclarationVisitor for
+// each different kind of context and mixing in the methods that it supports.
+// But for now, the cost of moving to that is too high.
+class InterfaceBodyTranslator : TranslatorVisitor
+{
+    this(IdentifierChain parent, string nsp, IdentifierOrTemplateChain pip)
+    {
+        super(parent, nsp, pip);
+    }
+
+    extern(C++) override void visitField(unknown.FieldDeclaration)
+    {
+        last_result = null;
+    }
+
+    extern(C++) override void visitMethod(unknown.MethodDeclaration cppDecl)
+    {
+        // We need to skip methods that won't be wrapped, because otherwise
+        // the superclass will complain that we are trying to emit a method
+        // from an invalid context.  Not that visitMethod is not called for
+        // methods that have already been translated.
+        if (cppDecl.isOverloadedOperator())
+        {
+            return;
+        }
+        else
+        {
+            super.visitMethod(cppDecl);
+        }
+    }
+}
 
 private std.d.ast.Module findTargetModule(unknown.Declaration declaration)
 {
