@@ -1159,7 +1159,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->isCanonicalDecl();
         }
 
-        virtual unsigned getTemplateArgumentCount()
+        virtual unsigned getTemplateArgumentCount() const
         {
             return 0;
         }
@@ -1219,6 +1219,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             _decl->dump();
         }
+
+        virtual unsigned getTemplateArgumentCount() const
+        {
+            return 0;
+        }
     };
 
     class TemplateArgumentIterator
@@ -1265,7 +1270,15 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
-    class RecordTemplateDeclaration : public RecordDeclaration
+    class TemplateDeclaration /* : virtual public Declaration?*/
+    {
+        public:
+        virtual unsigned getTemplateArgumentCount() const = 0;
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin() = 0;
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd() = 0;
+    };
+
+    class RecordTemplateDeclaration : public RecordDeclaration//, public TemplateDeclaration
     {
         protected:
         const clang::ClassTemplateDecl* outer_decl;
@@ -1291,7 +1304,41 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return this;
         }
 
-        virtual unsigned getTemplateArgumentCount() override
+        virtual unsigned getTemplateArgumentCount() const override
+        {
+            return outer_decl->getTemplateParameters()->size();
+        }
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin()
+        {
+            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
+        }
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd()
+        {
+            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
+        }
+
+        virtual void dump() override
+        {
+            outer_decl->dump();
+        }
+    };
+
+    class UnionTemplateDeclaration : public UnionDeclaration//, public TemplateDeclaration
+    {
+        protected:
+        const clang::ClassTemplateDecl* outer_decl;
+
+        public:
+        UnionTemplateDeclaration(const clang::ClassTemplateDecl* d)
+            : UnionDeclaration(d->getTemplatedDecl()), outer_decl(d)
+        { }
+
+        virtual clang::SourceLocation getSourceLocation() const override
+        {
+            return outer_decl->getLocation();
+        }
+
+        virtual unsigned getTemplateArgumentCount() const override
         {
             return outer_decl->getTemplateParameters()->size();
         }

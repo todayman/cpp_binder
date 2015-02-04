@@ -621,9 +621,7 @@ bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     clang::CXXRecordDecl * templatedDecl = cppDecl->getTemplatedDecl();
     if (templatedDecl->isUnion())
     {
-        // Skip unions for now
-        std::cerr << "WARNING: Skipping templated union\n";
-        allocateDeclaration<clang::ClassTemplateDecl, UnwrappableDeclaration>(cppDecl);
+        allocateDeclaration<clang::ClassTemplateDecl, UnionTemplateDeclaration>(cppDecl);
     }
     else if (templatedDecl->isStruct() || templatedDecl->isClass())
     {

@@ -756,7 +756,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.UnionDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        auto result = registerDeclaration!(std.d.ast.UnionDeclaration)(cppDecl);
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.UnionDeclaration)(cppDecl, outerDeclaration);
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
 
@@ -764,6 +765,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         package_internal_path.append(result.name);
         scope(exit) package_internal_path.identifiersOrTemplateInstances = package_internal_path.identifiersOrTemplateInstances[0 .. $-1];
+
+        addCppLinkageAttribute(outerDeclaration);
+
+        if (cppDecl.getTemplateArgumentCount() > 0)
+        {
+            // This cast always succeeds because we know there are template
+            // arguments.
+            auto templateDecl = cast(unknown.UnionTemplateDeclaration)cppDecl;
+            result.templateParameters = translateTemplateParameters(templateDecl);
+        }
 
         for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
                   finish = cppDecl.getFieldEnd();
@@ -964,7 +975,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Exception("Attempting to translate a template type argument not via the template itself.");
     }
 
-    std.d.ast.TemplateParameters translateTemplateParameters(unknown.RecordTemplateDeclaration cppDecl)
+    std.d.ast.TemplateParameters translateTemplateParameters(Declaration)(Declaration cppDecl)
     {
         auto result = new std.d.ast.TemplateParameters();
         result.templateParameterList = new std.d.ast.TemplateParameterList();

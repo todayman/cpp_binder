@@ -54,6 +54,8 @@ extern (C++) interface Declaration
     public void visit(unknown.DeclarationVisitor visitor);
 
     public void dump();
+
+    final public void applyAttributes(const(unknown.DeclarationAttributes)* attribs);
 }
 
 extern (C++) interface RecordDeclaration : unknown.Declaration
@@ -89,7 +91,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public bool isCanonical() const;
 
-    public uint getTemplateArgumentCount();
+    public uint getTemplateArgumentCount() const;
 }
 
 extern (C++) interface TypedefDeclaration : unknown.Declaration
@@ -124,6 +126,8 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
     public unknown.DeclarationIterator getChildBegin();
 
     public unknown.DeclarationIterator getChildEnd();
+
+    public uint getTemplateArgumentCount() const;
 }
 
 extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration
@@ -358,6 +362,34 @@ extern (C++) bool isCXXRecord(const(clang.Decl)* decl);
 
 extern (C++) bool isTemplateTypeParmDecl(const(clang.Decl)* decl);
 
+extern (C++) struct DeclarationAttributes
+{
+
+    private bool isBoundSet;
+
+    private bool bound;
+
+    private bool isTargetModuleSet;
+
+    private binder.binder.string target_module;
+
+    private unknown.Visibility visibility;
+
+    private binder.binder.string remove_prefix;
+
+    static public unknown.DeclarationAttributes* make();
+
+    final public void setBound(bool value);
+
+    final public void setTargetModule(binder.binder.string value);
+
+    final public void setVisibility(unknown.Visibility value);
+
+    final public void setRemovePrefix(binder.binder.string value);
+}
+
+extern (C++) void applyAttributesToDeclByName(const(unknown.DeclarationAttributes)* attribs, const binder.binder.string declName);
+
 extern (C++) interface NotTypeDecl : std.runtime_error {}
 
 extern (C++) interface DeclarationIterator
@@ -538,7 +570,25 @@ extern (C++) interface TemplateArgumentIterator
     public bool equals(unknown.TemplateArgumentIterator other);
 }
 
+extern (C++) interface TemplateDeclaration
+{
+
+    public uint getTemplateArgumentCount() const;
+
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
+
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
+}
+
 extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
+{
+
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
+
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
+}
+
+extern (C++) interface UnionTemplateDeclaration : unknown.UnionDeclaration
 {
 
     public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
