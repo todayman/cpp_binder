@@ -142,115 +142,13 @@ extern (C++) interface TemplateArgumentInstanceIterator
     public bool equals(unknown.TemplateArgumentInstanceIterator other);
 }
 
-extern (C++) interface Type
-{
-
-    static public void printTypeNames();
-
-    static public unknown.Type get(const(clang.Type)* type, const(clang.PrintingPolicy)* pp);
-
-    static public unknown.Type get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
-
-    final public unknown.Type.Kind getKind() const;
-
-    final public void chooseReplaceStrategy(binder.binder.string replacement);
-
-    final public void setStrategy(unknown.Strategy s);
-
-    final public unknown.Strategy getStrategy() const;
-
-    public bool isReferenceType() const;
-
-    final public binder.binder.string getReplacement() const;
-
-    final public binder.binder.string getReplacementModule() const;
-
-    final public void setReplacementModule(binder.binder.string mod);
-
-    public unknown.Declaration getDeclaration() const;
-
-    public void visit(unknown.TypeVisitor visitor);
-
-    public void dump() const;
-
-    enum Kind : uint
-
-    {
-Invalid =   0,
-Builtin =   1,
-Pointer =   2,
-Reference =   3,
-Record =   4,
-Union =   5,
-Array =   6,
-Function =   7,
-Typedef =   8,
-Vector =   9,
-Enum =   10,
-Qualified =   11,
-TemplateArgument =   12,
-TemplateSpecialization =   13
-    }
-
-    extern (C++) interface DontSetUnknown : std.runtime_error {}
-
-    extern (C++) interface UseReplaceMethod : std.runtime_error {}
-
-    extern (C++) interface WrongStrategy : std.runtime_error {}
-}
-
-extern (C++) interface TypeVisitor
-{
-    public void visit(unknown.InvalidType type);
-
-    public void visit(unknown.BuiltinType type);
-
-    public void visit(unknown.PointerType type);
-
-    public void visit(unknown.ReferenceType type);
-
-    public void visit(unknown.NonTemplateRecordType type);
-
-    public void visit(unknown.TemplateRecordType type);
-
-    public void visit(unknown.UnionType type);
-
-    public void visit(unknown.ArrayType type);
-
-    public void visit(unknown.FunctionType type);
-
-    public void visit(unknown.TypedefType type);
-
-    public void visit(unknown.VectorType type);
-
-    public void visit(unknown.EnumType type);
-
-    public void visit(unknown.QualifiedType type);
-
-    public void visit(unknown.TemplateArgumentType type);
-
-    public void visit(unknown.TemplateSpecializationType type);
-}
-
 extern (C++) interface InvalidType : unknown.Type {}
 
 extern (C++) interface BuiltinType : unknown.Type {}
 
-extern (C++) interface PointerOrReferenceType : unknown.Type
-{
-
-    public unknown.Type getPointeeType() const;
-}
-
 extern (C++) interface PointerType : unknown.PointerOrReferenceType {}
 
 extern (C++) interface ReferenceType : unknown.PointerOrReferenceType {}
-
-extern (C++) interface RecordType : unknown.Type
-{
-
-    public unknown.RecordDeclaration getRecordDeclaration() const;
-}
 
 extern (C++) interface NonTemplateRecordType : unknown.RecordType {}
 
@@ -308,6 +206,109 @@ extern (C++) interface TemplateSpecializationType : unknown.Type
     final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
 
     final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+}
+
+extern (C++) interface TypeVisitor
+{
+
+    public void visit(unknown.InvalidType type);
+
+    public void visit(unknown.BuiltinType type);
+
+    public void visit(unknown.PointerType type);
+
+    public void visit(unknown.ReferenceType type);
+
+    public void visit(unknown.NonTemplateRecordType type);
+
+    public void visit(unknown.TemplateRecordType type);
+
+    public void visit(unknown.UnionType type);
+
+    public void visit(unknown.ArrayType type);
+
+    public void visit(unknown.FunctionType type);
+
+    public void visit(unknown.TypedefType type);
+
+    public void visit(unknown.VectorType type);
+
+    public void visit(unknown.EnumType type);
+
+    public void visit(unknown.QualifiedType type);
+
+    public void visit(unknown.TemplateArgumentType type);
+
+    public void visit(unknown.TemplateSpecializationType type);
+}
+
+extern (C++) interface Type
+{
+
+    static public void printTypeNames();
+
+    static public unknown.Type get(const(clang.Type)* type, const(clang.PrintingPolicy)* pp);
+
+    static public unknown.Type get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
+
+    final public unknown.Type.Kind getKind() const;
+
+    final public void chooseReplaceStrategy(binder.binder.string replacement);
+
+    final public void setStrategy(unknown.Strategy s);
+
+    final public unknown.Strategy getStrategy() const;
+
+    public bool isReferenceType() const;
+
+    final public binder.binder.string getReplacement() const;
+
+    final public binder.binder.string getReplacementModule() const;
+
+    final public void setReplacementModule(binder.binder.string mod);
+
+    public unknown.Declaration getDeclaration() const;
+
+    public void visit(unknown.TypeVisitor visitor);
+
+    public void dump() const;
+
+    enum Kind : uint 
+
+    {
+Invalid =   0,
+Builtin =   1,
+Pointer =   2,
+Reference =   3,
+Record =   4,
+Union =   5,
+Array =   6,
+Function =   7,
+Typedef =   8,
+Vector =   9,
+Enum =   10,
+Qualified =   11,
+TemplateArgument =   12,
+TemplateSpecialization =   13
+    }
+
+    extern (C++) interface DontSetUnknown : std.runtime_error {}
+
+    extern (C++) interface UseReplaceMethod : std.runtime_error {}
+
+    extern (C++) interface WrongStrategy : std.runtime_error {}
+}
+
+extern (C++) interface RecordType : unknown.Type
+{
+
+    public unknown.RecordDeclaration getRecordDeclaration() const;
+}
+
+extern (C++) interface PointerOrReferenceType : unknown.Type
+{
+
+    public unknown.Type getPointeeType() const;
 }
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
