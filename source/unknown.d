@@ -290,8 +290,6 @@ extern (C++) interface QualifiedType : unknown.Type
     final public bool isConst() const;
 }
 
-extern (C++) interface VectorType : unknown.Type {}
-
 extern (C++) interface TemplateArgumentType : unknown.Type
 {
 
