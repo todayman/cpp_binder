@@ -665,6 +665,7 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromDecayedType(clang::DecayedType* cppType);
         bool WalkUpFromParenType(clang::ParenType* cppType);
         bool WalkUpFromDecltypeType(clang::DecltypeType* cppType);
+        bool WalkUpFromAutoType(clang::AutoType* type);
 
         // Types we can't handle yet
         bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type);
@@ -675,7 +676,6 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type);
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
         bool WalkUpFromPackExpansionType(clang::PackExpansionType* type);
-        bool WalkUpFromAutoType(clang::AutoType* type);
         bool WalkUpFromRValueReferenceType(clang::RValueReferenceType* type);
 
         // Template types we can handle

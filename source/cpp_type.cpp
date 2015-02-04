@@ -635,6 +635,7 @@ bool ClangTypeVisitor::WalkUpFromPackExpansionType(clang::PackExpansionType* typ
 
 bool ClangTypeVisitor::WalkUpFromAutoType(clang::AutoType* type)
 {
-    allocateInvalidType(clang::QualType(type, 0));
-    return false;
+    Type * deduced = Type::get(type->getDeducedType(), printPolicy);
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), deduced));
+    return true;
 }
