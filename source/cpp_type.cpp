@@ -613,12 +613,7 @@ bool ClangTypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameT
 
 bool ClangTypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* type)
 {
-    //allocateInvalidType(clang::QualType(type, 0));
-    //type->dump();
-    //Type * desugared = Type::get(type->desugar(), printPolicy);
-    //Type::type_map.insert(std::make_pair(clang::QualType(type, 0), desugared));
     allocateType<DelayedType>(type);
-    type->dump();
     return Super::WalkUpFromDependentNameType(type);
 }
 

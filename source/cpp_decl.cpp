@@ -419,8 +419,6 @@ TRAVERSE_PART(Ctor, clang::CXXRecordDecl, ctor)
 
 bool DeclVisitor::VisitCXXRecordDecl(clang::CXXRecordDecl* cppDecl)
 {
-    std::cerr << "Visiting a CXXDecl!\n";
-    cppDecl->dump();
     if( !TraverseDeclContext(cppDecl, false) ) return false;
     if( !TraverseFieldHelper(cppDecl, false) ) return false;
     if( !TraverseMethodHelper(cppDecl, false) ) return false;
@@ -496,7 +494,6 @@ bool DeclVisitor::TraverseFunctionDecl(clang::FunctionDecl * cppDecl)
 
 bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl)
 {
-    cppDecl->dump();
     top_level_decls = true;
     bool result = TraverseDeclContext(cppDecl, true);
     top_level_decls = false;
@@ -578,8 +575,6 @@ bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
 
 bool DeclVisitor::VisitVarDecl(clang::VarDecl* cppDecl)
 {
-    const clang::Type* type = cppDecl->getType().getTypePtrOrNull();
-    std::cerr << "Found var with type " << type << " of kind " << type->getTypeClassName() << "\n";
     return TraverseType(cppDecl->getType());
 }
 
@@ -733,7 +728,6 @@ bool DeclVisitor::VisitFunctionDecl(clang::FunctionDecl* cppDecl)
 bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)
 {
     clang::QualType undertype = cppDecl->getUnderlyingType();
-    std::cerr << "Typedef decl at " << cppDecl << "\n";
     return TraverseType(undertype);
 }
 
