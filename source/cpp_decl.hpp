@@ -286,6 +286,7 @@ func(Enum)                  \
 func(Field)                 \
 func(EnumConstant)          \
 func(Union)                 \
+func(SpecializedRecord)     \
 func(Method)                \
 func(Constructor)           \
 func(Destructor)            \
@@ -1277,6 +1278,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         SpecializedRecordDeclaration(const clang::ClassTemplateSpecializationDecl* d)
             : RecordDeclaration(d)
         { }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitSpecializedRecord(*this);
+        }
     };
 
     class SpecializedRecordIterator

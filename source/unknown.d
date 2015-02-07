@@ -431,6 +431,8 @@ extern (C++) interface DeclarationVisitor
 
     public void visitUnion(unknown.UnionDeclaration node);
 
+    public void visitSpecializedRecord(unknown.SpecializedRecordDeclaration node);
+
     public void visitMethod(unknown.MethodDeclaration node);
 
     public void visitConstructor(unknown.ConstructorDeclaration node);
@@ -597,6 +599,8 @@ extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
 
     public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
 }
+
+extern (C++) interface SpecializedRecordDeclaration : unknown.RecordDeclaration {}
 
 extern (C++) interface UnionTemplateDeclaration : unknown.UnionDeclaration
 {

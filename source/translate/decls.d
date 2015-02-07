@@ -289,7 +289,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              children_iter.advance())
         {
             try {
-                auto emptyInternalChain = new IdentifierOrTemplateChain();
+                auto emptyInternalChain = new std.d.ast.IdentifierOrTemplateChain();
                 TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, emptyInternalChain);
                 children_iter.get().visit(subpackage_visitor);
 
@@ -439,7 +439,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
         override
-        extern(C++) void visitSpecializedRecordTemplate(unknown.SpecializedRecordTemplate inner)
+        extern(C++) void visitSpecializedRecord(unknown.SpecializedRecordDeclaration inner)
+        {
+            visitRecord(inner);
+        }
+
+        override
+        extern(C++) void visitRecordTemplate(unknown.RecordTemplateDeclaration inner)
         {
             visitRecord(inner);
         }
@@ -640,6 +646,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         visitRecord(cppDecl);
 
         // Make symbols for all of the specializations
+    }
+
+    extern(C++) override
+    void visitSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
+    {
+        // TODO fill in here
+        throw new Exception("Attempting to translate a specialized record declaration!  I'm not ready for this yet!");
     }
 
     std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
@@ -914,6 +927,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Parameter)(cppDecl);
         if (short_circuit !is null) return short_circuit;
+
         auto arg = new std.d.ast.Parameter();
         arg.name = nameFromDecl(cppDecl);
 
