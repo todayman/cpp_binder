@@ -120,6 +120,11 @@ package void determineStrategy(unknown.Type cppType)
                 cppType.setStrategy(generic_type.getStrategy());
             }
         }
+
+        override extern(C++) void visit(unknown.DelayedType cppType)
+        {
+            cppType.resolveType();
+        }
     }
 
     auto visitor = new StrategyChoiceVisitor();
@@ -234,6 +239,11 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                     // TODO redo this in the new visitor / typesafe context
                     // Before, it was always a struct
                     // result = translate!(unknown.RecordType)(cppType, qualifiers);
+                    throw new Error("Attempting to translate a template specialization type");
+                }
+
+                extern(C++) void visit(unknown.DelayedType type)
+                {
                 }
             }
             auto visitor = new TranslateTypeClass();
@@ -549,6 +559,11 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
             symbolForType[cast(void*)cppType] = deferred.answer;
             result = deferred.answer;
         }
+
+        override public extern(C++) void visit(unknown.DelayedType cppType)
+        {
+            // TODO fill in!
+        }
     }
     auto visitor = new RecordTranslationVisitor();
     cppType.visit(visitor);
@@ -640,6 +655,11 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
             }
             symbolForType[cast(void*)cppType] = deferred.answer;
             result = deferred.answer;
+        }
+
+        override public extern(C++) void visit(unknown.DelayedType cppType)
+        {
+            // TODO fill in!
         }
     }
     auto visitor = new RecordTranslationVisitor();

@@ -175,6 +175,16 @@ Type* TypedefDeclaration::getTargetType() const
     return Type::get(_decl->getUnderlyingType());
 }
 
+
+SpecializedRecordIterator* RecordTemplateDeclaration::getSpecializationBegin()
+{
+    return new SpecializedRecordIterator(outer_decl->spec_begin());
+}
+
+SpecializedRecordIterator* RecordTemplateDeclaration::getSpecializationEnd()
+{
+    return new SpecializedRecordIterator(outer_decl->spec_end());
+}
 /*template<typename ClangType, typename TranslatorType>
 TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
 {
@@ -273,6 +283,18 @@ Declaration* TemplateArgumentIterator::operator*()
     }
     Declaration* decl = search_result->second;
     return decl;
+}
+SpecializedRecordDeclaration* SpecializedRecordIterator::operator*()
+{
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    SpecializedRecordDeclaration* result = dynamic_cast<SpecializedRecordDeclaration*>(decl);
+    return result;
 }
 
 bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
@@ -385,20 +407,20 @@ bool DeclVisitor::TraverseClassTemplatePartialSpecializationDecl(clang::ClassTem
     return true;
 }
 
-bool DeclVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
+/*bool DeclVisitor::TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration)
 {
     allocateDeclaration<clang::Decl, UnwrappableDeclaration>(declaration);
     return true;
-}
+}*/
 
 TRAVERSE_PART(Field, clang::CXXRecordDecl, field)
 TRAVERSE_PART(Method, clang::CXXRecordDecl, method)
 TRAVERSE_PART(Ctor, clang::CXXRecordDecl, ctor)
 
-bool DeclVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl)
+bool DeclVisitor::VisitCXXRecordDecl(clang::CXXRecordDecl* cppDecl)
 {
-    if( !WalkUpFromCXXRecordDecl(cppDecl) ) return false;
-
+    std::cerr << "Visiting a CXXDecl!\n";
+    cppDecl->dump();
     if( !TraverseDeclContext(cppDecl, false) ) return false;
     if( !TraverseFieldHelper(cppDecl, false) ) return false;
     if( !TraverseMethodHelper(cppDecl, false) ) return false;
@@ -474,6 +496,7 @@ bool DeclVisitor::TraverseFunctionDecl(clang::FunctionDecl * cppDecl)
 
 bool DeclVisitor::TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl)
 {
+    cppDecl->dump();
     top_level_decls = true;
     bool result = TraverseDeclContext(cppDecl, true);
     top_level_decls = false;
@@ -555,6 +578,8 @@ bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
 
 bool DeclVisitor::VisitVarDecl(clang::VarDecl* cppDecl)
 {
+    const clang::Type* type = cppDecl->getType().getTypePtrOrNull();
+    std::cerr << "Found var with type " << type << " of kind " << type->getTypeClassName() << "\n";
     return TraverseType(cppDecl->getType());
 }
 
@@ -598,10 +623,8 @@ bool DeclVisitor::WalkUpFromRecordDecl(clang::RecordDecl* cppDecl)
     return Super::WalkUpFromRecordDecl(cppDecl);
 }
 
-bool DeclVisitor::TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
+bool DeclVisitor::VisitClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
 {
-    if (!WalkUpFromClassTemplateDecl(cppDecl)) return false;
-
     for (clang::NamedDecl* param : *(cppDecl->getTemplateParameters()))
     {
         if (!registerDeclaration(param, false, cppDecl->getTemplateParameters())) return false;
@@ -611,6 +634,14 @@ bool DeclVisitor::TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     top_level_decls = false;
     bool result = TraverseDecl(cppDecl->getTemplatedDecl());
     top_level_decls = old_top_level;
+
+    for (auto iter = cppDecl->spec_begin(),
+            finish = cppDecl->spec_end();
+         iter != finish;
+         ++iter)
+    {
+        registerDeclaration(*iter, false, nullptr);
+    }
 
     return result;
 }
@@ -630,6 +661,7 @@ bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     else {
         throw SkipUnwrappableDeclaration(cppDecl);
     }
+
     if (!Super::WalkUpFromClassTemplateDecl(cppDecl)) return false;
 
     return true;
@@ -655,6 +687,12 @@ bool DeclVisitor::WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDe
 {
     allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
     return false;
+}
+
+bool DeclVisitor::WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl)
+{
+    allocateDeclaration<clang::ClassTemplateSpecializationDecl, SpecializedRecordDeclaration>(cppDecl);
+    return Super::WalkUpFromClassTemplateSpecializationDecl(cppDecl);
 }
 
 UNWRAPPABLE_TRAVERSE(FunctionTemplate)
@@ -695,6 +733,7 @@ bool DeclVisitor::VisitFunctionDecl(clang::FunctionDecl* cppDecl)
 bool DeclVisitor::VisitTypedefDecl(clang::TypedefDecl* cppDecl)
 {
     clang::QualType undertype = cppDecl->getUnderlyingType();
+    std::cerr << "Typedef decl at " << cppDecl << "\n";
     return TraverseType(undertype);
 }
 

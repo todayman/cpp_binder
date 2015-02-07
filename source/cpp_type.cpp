@@ -235,6 +235,8 @@ TypedefDeclaration * TypedefType::getTypedefDeclaration() const
     Declaration* this_declaration = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     if( !this_declaration )
     {
+        std::cerr << clang_decl->isImplicit() << "\n";
+        std::cerr << "type kind = " << type->getTypeClassName() << "\n";
         clang_decl->dump();
         throw std::runtime_error("Found a declaration that I'm not wrapping.");
     }
@@ -329,6 +331,12 @@ void QualifiedType::dump() const
 DUMP_METHOD(Vector)
 DUMP_METHOD(TemplateArgument)
 DUMP_METHOD(TemplateSpecialization)
+DUMP_METHOD(Delayed)
+
+Type* DelayedType::resolveType() const
+{
+    return nullptr;
+}
 
 Type* TemplateArgumentInstanceIterator::operator*()
 {
@@ -360,6 +368,13 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
         result = TraverseType(unqual);
 
         return result;
+    }
+    else if (type.getTypePtrOrNull() == nullptr)
+    {
+        std::cerr << "ERROR: Found a NULL type!\n";
+        type.dump();
+        allocateInvalidType(type);
+        result = true;
     }
     else if (!type.getQualifiers().empty())
     {
@@ -522,13 +537,13 @@ bool ClangTypeVisitor::VisitTypedefType(clang::TypedefType* cppType)
 
 bool ClangTypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
-    bool result = TraverseType(type->getNamedType());
+    //bool result = TraverseType(type->getNamedType());
     // TODO nullptr
-    Type* t = Type::type_map.find(type->getNamedType())->second;
+    Type* t = Type::get(type->getNamedType());
     // FIXME does this really need to go into the map here?  Does that happen during TraverseType?
-    Type::type_map.insert(std::make_pair(type->getNamedType(), t));
     Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
-    return result;
+    type_in_progress = t;
+    return Super::WalkUpFromElaboratedType(type);
 }
 
 bool ClangTypeVisitor::WalkUpFromDecayedType(clang::DecayedType* type)
@@ -598,14 +613,20 @@ bool ClangTypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameT
 
 bool ClangTypeVisitor::WalkUpFromDependentNameType(clang::DependentNameType* type)
 {
-    allocateInvalidType(clang::QualType(type, 0));
-    return false;
+    //allocateInvalidType(clang::QualType(type, 0));
+    //type->dump();
+    //Type * desugared = Type::get(type->desugar(), printPolicy);
+    //Type::type_map.insert(std::make_pair(clang::QualType(type, 0), desugared));
+    allocateType<DelayedType>(type);
+    type->dump();
+    return Super::WalkUpFromDependentNameType(type);
 }
 
 bool ClangTypeVisitor::WalkUpFromTypeOfExprType(clang::TypeOfExprType* type)
 {
-    allocateInvalidType(clang::QualType(type, 0));
-    return false;
+    Type * deduced = Type::get(type->getUnderlyingExpr()->getType(), printPolicy);
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), deduced));
+    return true;
 }
 
 bool ClangTypeVisitor::WalkUpFromUnaryTransformType(clang::UnaryTransformType* type)

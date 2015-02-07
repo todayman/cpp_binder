@@ -437,6 +437,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             if (inner.getChildBegin().equals(inner.getChildEnd()))
                 result = true;
         }
+
+        override
+        extern(C++) void visitSpecializedRecordTemplate(unknown.SpecializedRecordTemplate inner)
+        {
+            visitRecord(inner);
+        }
     }
     // The clang AST has an extra record inside of each struct that appears spurious
     // struct A {
@@ -625,6 +631,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
                 throw new Exception("I don't know how to translate records using strategies other than REPLACE, STRUCT, and INTERFACE yet.");
         }
+
+    }
+
+    extern(C++) override
+    void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
+    {
+        visitRecord(cppDecl);
+
+        // Make symbols for all of the specializations
     }
 
     std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)

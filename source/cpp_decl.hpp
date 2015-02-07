@@ -277,20 +277,21 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
     //typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
 
 #define FORALL_DECLARATIONS(func) \
-func(Function)      \
-func(Namespace)     \
-func(Record)        \
-func(Typedef)       \
-func(Enum)          \
-func(Field)         \
-func(EnumConstant)  \
-func(Union)         \
-func(Method)        \
-func(Constructor)   \
-func(Destructor)    \
-func(Argument)      \
-func(Variable)      \
-func(TemplateTypeArgument) \
+func(Function)              \
+func(Namespace)             \
+func(Record)                \
+func(RecordTemplate)        \
+func(Typedef)               \
+func(Enum)                  \
+func(Field)                 \
+func(EnumConstant)          \
+func(Union)                 \
+func(Method)                \
+func(Constructor)           \
+func(Destructor)            \
+func(Argument)              \
+func(Variable)              \
+func(TemplateTypeArgument)  \
 func(Unwrappable)
 
 #define FORWARD_DECL(x) class x##Declaration;
@@ -301,14 +302,6 @@ func(Unwrappable)
     {
         public:
 #define VISITOR_METHOD(X) virtual void visit##X(X##Declaration& node) = 0;
-        FORALL_DECLARATIONS(VISITOR_METHOD)
-#undef VISITOR_METHOD
-    };
-
-    class ConstDeclarationVisitor
-    {
-        public:
-#define VISITOR_METHOD(X) virtual void visit##X(const X##Declaration& node) = 0;
         FORALL_DECLARATIONS(VISITOR_METHOD)
 #undef VISITOR_METHOD
     };
@@ -1278,6 +1271,58 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual TemplateArgumentIterator * getTemplateArgumentEnd() = 0;
     };
 
+    class SpecializedRecordDeclaration : public RecordDeclaration//, public SpecializedDeclaration
+    {
+        public:
+        SpecializedRecordDeclaration(const clang::ClassTemplateSpecializationDecl* d)
+            : RecordDeclaration(d)
+        { }
+    };
+
+    class SpecializedRecordIterator
+    {
+        private:
+        clang::ClassTemplateDecl::spec_iterator cpp_iter;
+
+        public:
+        explicit SpecializedRecordIterator(clang::ClassTemplateDecl::spec_iterator i)
+            : cpp_iter(i)
+        { }
+
+        void operator++() {
+            cpp_iter++;
+        }
+
+        bool operator==(const SpecializedRecordIterator& other) {
+            return cpp_iter == other.cpp_iter;
+        }
+
+        bool operator!=(const SpecializedRecordIterator& other) {
+            return cpp_iter != other.cpp_iter;
+        }
+
+        SpecializedRecordDeclaration* operator*();
+        SpecializedRecordDeclaration* operator->()
+        {
+            return operator*();
+        }
+
+        virtual SpecializedRecordDeclaration* get()
+        {
+            return operator*();
+        }
+
+        virtual void advance()
+        {
+            cpp_iter++;
+        }
+
+        virtual bool equals(SpecializedRecordIterator* other)
+        {
+            return (*this) == (*other);
+        }
+    };
+
     class RecordTemplateDeclaration : public RecordDeclaration//, public TemplateDeclaration
     {
         protected:
@@ -1291,6 +1336,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual clang::SourceLocation getSourceLocation() const override
         {
             return outer_decl->getLocation();
+        }
+
+        virtual void visit(DeclarationVisitor& visitor)
+        {
+            visitor.visitRecordTemplate(*this);
         }
 
         virtual bool hasDefinition() const override
@@ -1321,6 +1371,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             outer_decl->dump();
         }
+
+        virtual SpecializedRecordIterator* getSpecializationBegin();
+        virtual SpecializedRecordIterator* getSpecializationEnd();
     };
 
     class UnionTemplateDeclaration : public UnionDeclaration//, public TemplateDeclaration
@@ -1499,10 +1552,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
         bool TraverseNamespaceDecl(clang::NamespaceDecl* cppDecl);
         bool TraverseFunctionDecl(clang::FunctionDecl* cppDecl);
-        bool TraverseClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
-        bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
-        bool TraverseCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
+        //bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
         bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration);
         bool TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl);
         bool TraverseEnumDecl(clang::EnumDecl* cppDecl);
@@ -1535,6 +1586,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
         bool WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
         bool WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl);
+        bool WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl);
 
         // Template stuff I can't handle yet
         bool TraverseFunctionTemplateDecl(clang::FunctionTemplateDecl* cppDecl);
@@ -1552,6 +1604,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool VisitFieldDecl(clang::FieldDecl* cppDecl);
         bool VisitVarDecl(clang::VarDecl* cppDecl);
         bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
+        bool VisitCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
+        bool VisitClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
 
         private:
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);
@@ -1575,6 +1629,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class MethodIterator;
         friend class OverriddenMethodIterator;
         friend class TemplateArgumentIterator;
+        friend class SpecializedRecordIterator;
     };
 
 namespace clang

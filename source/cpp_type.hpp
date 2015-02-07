@@ -74,6 +74,7 @@ class TemplateArgumentInstanceIterator;
     class QualifiedType;
     class TemplateArgumentType;
     class TemplateSpecializationType;
+    class DelayedType;
     class TypeVisitor;
     // This is a place for all of the different pieces of
     // knowledge we need about each C++ type.  They all
@@ -99,6 +100,7 @@ class TemplateArgumentInstanceIterator;
             Qualified,
             TemplateArgument,
             TemplateSpecialization,
+            Delayed
         };
 
         protected:
@@ -213,6 +215,7 @@ class TemplateArgumentInstanceIterator;
         virtual void visit(QualifiedType& type) = 0;
         virtual void visit(TemplateArgumentType& type) = 0;
         virtual void visit(TemplateSpecializationType& type) = 0;
+        virtual void visit(DelayedType& type) = 0;
     };
 
     class InvalidType : public Type
@@ -573,6 +576,25 @@ class TemplateArgumentInstanceIterator;
         virtual void dump() const override;
     };
 
+    class DelayedType : public Type
+    {
+        protected:
+        const clang::DependentNameType * type;
+
+        public:
+        explicit DelayedType(const clang::DependentNameType* t)
+            : Type(Type::Delayed), type(t)
+        { }
+
+        virtual void visit(TypeVisitor& visitor) override
+        {
+            visitor.visit(*this);
+        }
+        virtual void dump() const override;
+
+        Type* resolveType() const;
+    };
+
     class TemplateArgumentInstanceIterator
     {
         private:
@@ -666,12 +688,12 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromParenType(clang::ParenType* cppType);
         bool WalkUpFromDecltypeType(clang::DecltypeType* cppType);
         bool WalkUpFromAutoType(clang::AutoType* type);
+        bool WalkUpFromTypeOfExprType(clang::TypeOfExprType* type);
+        bool WalkUpFromDependentNameType(clang::DependentNameType* type);
 
         // Types we can't handle yet
         bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type);
         bool WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type);
-        bool WalkUpFromDependentNameType(clang::DependentNameType* type);
-        bool WalkUpFromTypeOfExprType(clang::TypeOfExprType* type);
         bool WalkUpFromUnaryTransformType(clang::UnaryTransformType* type);
         bool WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type);
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);

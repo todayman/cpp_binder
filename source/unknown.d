@@ -212,6 +212,12 @@ extern (C++) interface TemplateSpecializationType : unknown.Type
     final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
 }
 
+extern(C++) interface DelayedType : unknown.Type
+{
+
+    final public unknown.Type resolveType() const;
+}
+
 extern (C++) interface TypeVisitor
 {
 
@@ -244,6 +250,8 @@ extern (C++) interface TypeVisitor
     public void visit(unknown.TemplateArgumentType type);
 
     public void visit(unknown.TemplateSpecializationType type);
+
+    public void visit(unknown.DelayedType type);
 }
 
 extern (C++) interface Type
@@ -410,6 +418,8 @@ extern (C++) interface DeclarationVisitor
     public void visitNamespace(unknown.NamespaceDeclaration node);
 
     public void visitRecord(unknown.RecordDeclaration node);
+
+    public void visitRecordTemplate(unknown.RecordTemplateDeclaration node);
 
     public void visitTypedef(unknown.TypedefDeclaration node);
 
