@@ -756,7 +756,9 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     }
 }
 
-package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
+package std.d.ast.Symbol makeSymbolForDecl
+    (SourceDeclaration)
+    (SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
 {
     import std.array : join;
     import std.algorithm : map;
@@ -787,6 +789,8 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     {
         symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
     }
+
+    return symbol;
 }
 
 // We need this because we cannot compute the beginning of template
