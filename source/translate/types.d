@@ -407,7 +407,7 @@ private std.d.ast.Symbol resolveOrDeferTemplateRecordTypeSymbol(unknown.Template
     }
 }
 
-private std.d.ast.Symbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
+package std.d.ast.Symbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
     auto deferred = new DeferredTemplateInstantiation();
     deferredTemplates[deferred.answer] = deferred;
@@ -418,6 +418,7 @@ private std.d.ast.Symbol resolveTemplateSpecializationTypeSymbol(unknown.Templat
     assert(deferred.templateName !is null);
     deferred.arguments.length = cppType.getTemplateArgumentCount();
     uint idx = 0;
+    // FIXME only deals with type arguments
     for (auto iter = cppType.getTemplateArgumentBegin(),
             finish = cppType.getTemplateArgumentEnd();
             !iter.equals(finish);
@@ -756,11 +757,10 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     }
 }
 
-package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
+package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
 {
     import std.array : join;
     import std.algorithm : map;
-    import dlang_decls : append;
 
     std.d.ast.Symbol symbol;
     if (auto s_ptr = (cast(void*)cppDecl.getType()) in symbolForType)
@@ -780,13 +780,39 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
     IdentifierOrTemplateChain chain = concat(package_name, internal_path);
     auto namespace_chain = makeIdentifierOrTemplateChain!"::"(namespace_path);
     chain = chain.concat(namespace_chain);
-    chain.append(targetName);
+    chain.identifiersOrTemplateInstances ~= [targetName];
     symbol.identifierOrTemplateChain = chain;
 
     if (package_name.identifiers.length > 0)
     {
         symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
     }
+}
+
+package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
+{
+    auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+    inst.identifier = targetName;
+    makeSymbolForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+}
+
+// These won't be neccesary when I have a proper AST
+class DeferredSymbol
+{
+    public:
+    std.d.ast.Symbol answer;
+
+    this()
+    {
+        answer = new std.d.ast.Symbol();
+    }
+
+    abstract void resolve();
+}
+
+// Bad idea
+class ActuallyNotDeferredSymbol : DeferredSymbol
+{
 }
 
 // We need this because we cannot compute the beginning of template
@@ -796,7 +822,7 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Tok
 // produce a symbol that has (std, container, RedBlackTree!Node), since (std, container)
 // is not a symbol; we don't have a good way to resolve parts of symbols later.
 // This provides that resolution facility.
-class DeferredTemplateInstantiation
+class DeferredTemplateInstantiation : DeferredSymbol
 {
     public:
     std.d.ast.Symbol templateName;
@@ -804,14 +830,12 @@ class DeferredTemplateInstantiation
     // Check out std.d.ast.TemplateArgument
     std.d.ast.Type[] arguments;
 
-    std.d.ast.Symbol answer;
-
     this()
     {
-        answer = new std.d.ast.Symbol();
+        super();
     }
 
-    void resolve()
+    override void resolve()
     {
         auto chain = new std.d.ast.IdentifierOrTemplateChain();
         answer.identifierOrTemplateChain = chain;
@@ -837,6 +861,31 @@ class DeferredTemplateInstantiation
             auto arg = new std.d.ast.TemplateArgument();
             arg.type = sym;
             temp_arg_list.items[idx] = arg;
+        }
+    }
+}
+
+class DeferredSymbolConcatenation : DeferredSymbol
+{
+    public:
+    DeferredSymbol[] components;
+
+    this()
+    {
+        super();
+    }
+
+    override void resolve()
+    {
+        auto chain = new std.d.ast.IdentifierOrTemplateChain();
+        answer.identifierOrTemplateChain = chain;
+
+        assert(components.length > 0);
+        // TODO make sure all the components are resolved
+        foreach (DeferredSymbol dependency; components)
+        {
+            dependency.resolve();
+            chain.identifiersOrTemplateInstances ~= dependency.answer.identifierOrTemplateChain.identifiersOrTemplateInstances;
         }
     }
 }

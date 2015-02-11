@@ -646,13 +646,21 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         visitRecord(cppDecl);
 
         // Make symbols for all of the specializations
+        for (auto iter = cppDecl.getSpecializationBegin(), end = cppDecl.getSpecializationEnd();
+             !iter.equals(end);
+             iter.advance())
+        {
+            unknown.SpecializedRecordDeclaration special = iter.get();
+        }
+
     }
 
     extern(C++) override
     void visitSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
     {
         // TODO fill in here
-        throw new Exception("Attempting to translate a specialized record declaration!  I'm not ready for this yet!");
+        //throw new Exception("Attempting to translate a specialized record declaration!  I'm not ready for this yet!");
+        visitRecord(cppDecl);
     }
 
     std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
