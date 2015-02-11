@@ -757,7 +757,9 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     }
 }
 
-package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
+package std.d.ast.Symbol makeSymbolForDecl
+    (SourceDeclaration)
+    (SourceDeclaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
 {
     import std.array : join;
     import std.algorithm : map;
@@ -787,6 +789,8 @@ package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Ide
     {
         symbolModules[symbol] = join(package_name.identifiers.map!(a => a.text), ".");
     }
+
+    return symbol;
 }
 
 package void makeSymbolForDecl(SourceDeclaration)(SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, IdentifierOrTemplateChain internal_path, string namespace_path)
