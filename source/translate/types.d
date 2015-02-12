@@ -330,11 +330,10 @@ private std.d.ast.Type translateReference(unknown.ReferenceType cppType, Qualifi
     return translatePointerOrReference!(Flag!"ref".yes)(cppType, qualifiers);
 }
 
-// FIXME add a method on the Type struct that just gets the declaration,
-// so this template can turn into a normal function
-private string replaceMixin(string SourceType, string TargetType)() {
-    return "
-private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "TypeSymbol(unknown." ~ SourceType ~ "Type cppType)
+// TODO Before I made this into a mixin, these checked the kinds of the types
+// passed in to make sure that the correct function was being called.  I.e.
+// check that cppType was a union, enum, etc.
+private std.d.ast.Symbol resolveOrDefer(Type)(Type cppType)
 {
     if (auto deferred_ptr = cast(void*)cppType in symbolForType)
     {
@@ -342,7 +341,7 @@ private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "TypeSymbol(unknown." ~ 
     }
     else
     {
-        unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
+        unknown.Declaration cppDecl = cppType.getDeclaration();
         std.d.ast.Symbol result = null;
         if (cppDecl !is null)
         {
@@ -355,15 +354,7 @@ private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "TypeSymbol(unknown." ~ 
         // i.e., when it is not declared in the C++ anywhere
         return result;
     }
-}";
 }
-// TODO Before I made this into a mixin, these checked the kinds of the types
-// passed in to make sure that the correct function was being called.  I.e.
-// check that cppType was a union, enum, etc.
-mixin (replaceMixin!("Typedef", "Typedef"));
-mixin (replaceMixin!("Enum", "Enum"));
-mixin (replaceMixin!("Union", "Union"));
-mixin (replaceMixin!("Record", "Record"));
 
 private std.d.ast.Symbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTemplateRecordType cppType)
 {
@@ -466,7 +457,7 @@ private std.d.ast.Type translate(Type)(Type cppType, QualifierSet qualifiers)
     auto type2 = new std.d.ast.Type2();
     result.type2 = type2;
     enum kind = Type.stringof;
-    type2.symbol = mixin("resolveOrDefer"~kind~"Symbol(cppType)");
+    type2.symbol = resolveOrDefer(cppType).answer;
     return result;
 }
 
