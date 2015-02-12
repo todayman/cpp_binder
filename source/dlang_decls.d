@@ -75,6 +75,20 @@ IdentifierOrTemplateInstance makeInstance(Token t)
     return result;
 }
 
+IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierOrTemplateInstance inst)
+{
+    auto result = new IdentifierOrTemplateChain();
+    result.identifiersOrTemplateInstances = [inst];
+    return result;
+}
+
+IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierChain idChain)
+{
+    auto result = new IdentifierOrTemplateChain();
+    result.identifiersOrTemplateInstances = idChain.identifiers.map!(makeInstance).array;
+    return result;
+}
+
 // FIXME combine this with makeIdentifierChain
 IdentifierOrTemplateChain makeIdentifierOrTemplateChain(string separator)(string path)
 {
