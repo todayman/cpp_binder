@@ -18,8 +18,6 @@
 
 module translate.types;
 
-import core.exception : RangeError;
-
 import std.conv : to;
 import std.stdio : stderr;
 import std.typecons : Flag;
@@ -142,10 +140,11 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
     string replacement_name = binder.toDString(cppType.getReplacement());
     if (replacement_name.length > 0)
     {
-        try {
-            result = types_by_name[replacement_name];
+        if (auto type_ptr = replacement_name in types_by_name)
+        {
+            return *type_ptr;
         }
-        catch (RangeError e)
+        else
         {
             result = new std.d.ast.Type();
             types_by_name[replacement_name] = result;
@@ -172,10 +171,11 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
     }
     else
     {
-        try {
+        if (auto type_ptr = cast(void*)cppType in translated_types)
+        {
             return translated_types[cast(void*)cppType];
         }
-        catch (RangeError e)
+        else
         {
             class TranslateTypeClass : unknown.TypeVisitor
             {
@@ -336,10 +336,11 @@ private string replaceMixin(string SourceType, string TargetType)() {
     return "
 private std.d.ast.Symbol resolveOrDefer" ~ TargetType ~ "TypeSymbol(unknown." ~ SourceType ~ "Type cppType)
 {
-    try {
-        return symbolForType[cast(void*)cppType];
+    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
+    {
+        return (*deferred_ptr);
     }
-    catch (RangeError e)
+    else
     {
         unknown." ~ SourceType ~ "Declaration cppDecl = cppType.get" ~ SourceType ~ "Declaration();
         std.d.ast.Symbol result = null;
@@ -366,10 +367,11 @@ mixin (replaceMixin!("Record", "Record"));
 
 private std.d.ast.Symbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTemplateRecordType cppType)
 {
-    try {
-        return symbolForType[cast(void*)cppType];
+    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
+    {
+        return (*deferred_ptr);
     }
-    catch (RangeError e)
+    else
     {
         unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
         std.d.ast.Symbol result = null;
@@ -387,10 +389,11 @@ private std.d.ast.Symbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTe
 }
 private std.d.ast.Symbol resolveOrDeferTemplateRecordTypeSymbol(unknown.TemplateRecordType cppType)
 {
-    try {
-        return symbolForType[cast(void*)cppType];
+    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
+    {
+        return (*deferred_ptr);
     }
-    catch (RangeError e)
+    else
     {
         unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
         std.d.ast.Symbol result = null;
@@ -433,10 +436,11 @@ package std.d.ast.Symbol resolveTemplateSpecializationTypeSymbol(unknown.Templat
 // TODO merge this in to the mixin
 private std.d.ast.Symbol resolveOrDeferTemplateArgumentTypeSymbol(unknown.TemplateArgumentType cppType)
 {
-    try {
-        return symbolForType[cast(void*)cppType];
+    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
+    {
+        return (*deferred_ptr);
     }
-    catch (RangeError e)
+    else
     {
         unknown.TemplateTypeArgumentDeclaration cppDecl = cppType.getTemplateTypeArgumentDeclaration();
         std.d.ast.Symbol result = null;
@@ -503,10 +507,11 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
 
         override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
         {
-            try {
-                result = symbolForType[cast(void*)cppType];
+            if (auto sym_ptr = cast(void*)cppType in symbolForType)
+            {
+                result = *sym_ptr;
             }
-            catch (RangeError e)
+            else
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
                 if (cppDecl !is null)
@@ -523,10 +528,11 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
         // e.g. std::unordered_map, without template args
         override public extern(C++) void visit(unknown.TemplateRecordType cppType)
         {
-            try {
-                result = symbolForType[cast(void*)cppType];
+            if (auto sym_ptr = cast(void*)cppType in symbolForType)
+            {
+                result = *sym_ptr;
             }
-            catch (RangeError e)
+            else
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
                 if (cppDecl !is null)
@@ -602,10 +608,11 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
 
         override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
         {
-            try {
-                result = symbolForType[cast(void*)cppType];
+            if (auto sym_ptr = cast(void*)cppType in symbolForType)
+            {
+                result = *sym_ptr;
             }
-            catch (RangeError e)
+            else
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
                 if (cppDecl !is null)
@@ -620,10 +627,11 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
 
         override public extern(C++) void visit(unknown.TemplateRecordType cppType)
         {
-            try {
-                result = symbolForType[cast(void*)cppType];
+            if (auto sym_ptr = cast(void*)cppType in symbolForType)
+            {
+                result = *sym_ptr;
             }
-            catch (RangeError e)
+            else
             {
                 unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
                 if (cppDecl !is null)
