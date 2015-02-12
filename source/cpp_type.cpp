@@ -596,12 +596,6 @@ bool ClangTypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmTyp
     return Super::WalkUpFromTemplateTypeParmType(type);
 }
 
-bool ClangTypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
-{
-    allocateInvalidType(clang::QualType(type, 0));
-    return false;
-}
-
 // A non-instantiated class template
 bool ClangTypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type)
 {
@@ -621,6 +615,13 @@ bool ClangTypeVisitor::WalkUpFromTypeOfExprType(clang::TypeOfExprType* type)
 {
     Type * deduced = Type::get(type->getUnderlyingExpr()->getType(), printPolicy);
     Type::type_map.insert(std::make_pair(clang::QualType(type, 0), deduced));
+    return true;
+}
+
+bool ClangTypeVisitor::WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type)
+{
+    Type* underneath = Type::get(type->desugar(), printPolicy);
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), underneath));
     return true;
 }
 

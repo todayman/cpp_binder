@@ -689,11 +689,11 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromDecltypeType(clang::DecltypeType* cppType);
         bool WalkUpFromAutoType(clang::AutoType* type);
         bool WalkUpFromTypeOfExprType(clang::TypeOfExprType* type);
+        bool WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type);
         bool WalkUpFromDependentNameType(clang::DependentNameType* type);
 
         // Types we can't handle yet
         bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type);
-        bool WalkUpFromSubstTemplateTypeParmType(clang::SubstTemplateTypeParmType* type);
         bool WalkUpFromUnaryTransformType(clang::UnaryTransformType* type);
         bool WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType* type);
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
