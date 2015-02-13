@@ -249,6 +249,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
     assert(YAJL_IS_OBJECT(&obj));
     // Find the thing to add attributes
     clang::DeclContextLookupResult lookup_result = lookupDeclName(name, ast, ast.getTranslationUnitDecl());
+    DeclarationAttributes attributes;
 
     if( lookup_result.size() > 0 )
     {
@@ -285,7 +286,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     {
                         throw ExpectedInteger(sub_obj);
                     }
-                    decl->shouldBind(sub_obj->u.number.i);
+                    attributes.setBound(sub_obj->u.number.i);
                 }
                 else if( attrib_name == "target_module" )
                 {
@@ -294,7 +295,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                         throw ExpectedString(sub_obj);
                     }
                     string str(sub_obj->u.string);
-                    decl->setTargetModule(&str);
+                    attributes.setTargetModule(&str);
                 }
                 else if( attrib_name == "visibility" )
                 {
@@ -309,23 +310,23 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                                 });
                     if( vis_str == "private" )
                     {
-                        decl->setVisibility(PRIVATE);
+                        attributes.setVisibility(PRIVATE);
                     }
                     else if( vis_str == "package" )
                     {
-                        decl->setVisibility(PACKAGE);
+                        attributes.setVisibility(PACKAGE);
                     }
                     else if( vis_str == "protected" )
                     {
-                        decl->setVisibility(PROTECTED);
+                        attributes.setVisibility(PROTECTED);
                     }
                     else if( vis_str == "public" )
                     {
-                        decl->setVisibility(PUBLIC);
+                        attributes.setVisibility(PUBLIC);
                     }
                     else if( vis_str == "export" )
                     {
-                        decl->setVisibility(EXPORT);
+                        attributes.setVisibility(EXPORT);
                     }
                     else {
                         throw UnknownVisibility(vis_str);
@@ -338,7 +339,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                         throw ExpectedString(sub_obj);
                     }
                     string str(sub_obj->u.string);
-                    decl->removePrefix(&str);
+                    attributes.setRemovePrefix(&str);
                 }
                 else if( attrib_name == "strategy" )
                 {
@@ -357,6 +358,8 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     throw UnrecognizedAttribute(attrib_name);
                 }
             }
+
+            decl->applyAttributes(&attributes);
         }
     }
     else {

@@ -53,6 +53,23 @@ void DeclarationAttributes::setRemovePrefix(binder::string* value)
     remove_prefix = *value;
 }
 
+void Declaration::applyAttributes(const DeclarationAttributes* attribs)
+{
+    if (attribs->isBoundSet)
+    {
+        shouldBind(attribs->bound);
+    }
+
+    if (attribs->isTargetModuleSet)
+    {
+        target_module = attribs->target_module;
+    }
+
+    setVisibility(attribs->visibility);
+    remove_prefix = attribs->remove_prefix;
+}
+
+
 Visibility accessSpecToVisibility(clang::AccessSpecifier as)
 {
     switch( as )
