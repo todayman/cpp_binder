@@ -518,7 +518,7 @@ bool ClangTypeVisitor::VisitFunctionType(clang::FunctionType* cppType)
     ClangTypeVisitor arg_visitor(printPolicy); // Also visits return type
     continue_traversal = arg_visitor.TraverseType(cppType->getReturnType());
 
-    // TODO get all the arguments
+    // TODO get all the arguments? or does that happen in traverse?
 
     return continue_traversal;
 }

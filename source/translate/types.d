@@ -357,51 +357,6 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
     }
 }
 
-private DeferredSymbol resolveOrDeferNonTemplateRecordTypeSymbol(unknown.NonTemplateRecordType cppType)
-{
-    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
-    {
-        return (*deferred_ptr);
-    }
-    else
-    {
-        unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-        DeferredSymbolConcatenation result = null;
-        if (cppDecl !is null)
-        {
-            result = new DeferredSymbolConcatenation();
-            // This symbol will be filled in when the declaration is traversed
-            symbolForType[cast(void*)cppType] = result;
-            unresolvedSymbols[result] = cppDecl;
-        }
-        // cppDecl can be null if the type is a builtin type,
-        // i.e., when it is not declared in the C++ anywhere
-        return result;
-    }
-}
-private DeferredSymbol resolveOrDeferTemplateRecordTypeSymbol(unknown.TemplateRecordType cppType)
-{
-    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
-    {
-        return (*deferred_ptr);
-    }
-    else
-    {
-        unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-        DeferredSymbolConcatenation result = null;
-        if (cppDecl !is null)
-        {
-            result = new DeferredSymbolConcatenation();
-            // This symbol will be filled in when the declaration is traversed
-            symbolForType[cast(void*)cppType] = result;
-            unresolvedSymbols[result] = cppDecl;
-        }
-        // cppDecl can be null if the type is a builtin type,
-        // i.e., when it is not declared in the C++ anywhere
-        return result;
-    }
-}
-
 package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
     //deferredTemplates[deferred.answer] = deferred;
@@ -480,7 +435,7 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
 
     class RecordTranslationVisitor : unknown.TypeVisitor
     {
-        public DeferredSymbolConcatenation result;
+        public DeferredSymbol result;
 
         static private string Translate(string T) {
             return "override extern(C++) void visit(unknown."~T~"Type cppType)
@@ -503,66 +458,19 @@ private std.d.ast.Type translateInterface(unknown.Type cppType, QualifierSet qua
 
         override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
         {
-            if (auto sym_ptr = cast(void*)cppType in symbolForType)
-            {
-                result = *sym_ptr;
-            }
-            else
-            {
-                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                if (cppDecl !is null)
-                {
-                    result = new DeferredSymbolConcatenation();
-                    // This symbol will be filled in when the declaration is traversed
-                    symbolForType[cast(void*)cppType] = result;
-                    unresolvedSymbols[result] = cppDecl;
-                }
-            }
+            result = resolveOrDefer(cppType);
         }
 
         // This needs to come up with a symbol that describes the template generally,
         // e.g. std::unordered_map, without template args
         override public extern(C++) void visit(unknown.TemplateRecordType cppType)
         {
-            if (auto sym_ptr = cast(void*)cppType in symbolForType)
-            {
-                result = *sym_ptr;
-            }
-            else
-            {
-                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                if (cppDecl !is null)
-                {
-                    result = new DeferredSymbolConcatenation();
-                    // This symbol will be filled in when the declaration is traversed
-                    symbolForType[cast(void*)cppType] = result;
-                    unresolvedSymbols[result] = cppDecl;
-                }
-            }
+            result = resolveOrDefer(cppType);
         }
 
         override public extern(C++) void visit(unknown.TemplateSpecializationType cppType)
         {
-            auto template_symbol = new DeferredTemplateInstantiation();
-            deferredTemplates[template_symbol.answer] = template_symbol;
-            // This is dangerously close to recursion
-            // but it isn't because this is the generic template type, not us
-            // (the instantiation)
-            template_symbol.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
-            assert(template_symbol.templateName !is null);
-            template_symbol.arguments.length = cppType.getTemplateArgumentCount();
-            uint idx = 0;
-            for (auto iter = cppType.getTemplateArgumentBegin(),
-                    finish = cppType.getTemplateArgumentEnd();
-                    !iter.equals(finish);
-                    iter.advance(), ++idx )
-            {
-                template_symbol.arguments[idx] = translateType(iter.get(), QualifierSet.init);
-            }
-            auto deferred = new DeferredSymbolConcatenation(template_symbol);
-            symbolForType[cast(void*)cppType] = deferred;
-            unresolvedSymbols[deferred] = null;
-            result = deferred;
+            result = resolveTemplateSpecializationTypeSymbol(cppType);
         }
 
         override public extern(C++) void visit(unknown.DelayedType cppType)
@@ -583,7 +491,7 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
 
     class RecordTranslationVisitor : unknown.TypeVisitor
     {
-        public DeferredSymbolConcatenation result;
+        public DeferredSymbol result;
 
         static private string Translate(string T) {
             return "override extern(C++) void visit(unknown."~T~"Type cppType)
@@ -606,64 +514,17 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
 
         override public extern(C++) void visit(unknown.NonTemplateRecordType cppType)
         {
-            if (auto sym_ptr = cast(void*)cppType in symbolForType)
-            {
-                result = *sym_ptr;
-            }
-            else
-            {
-                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                if (cppDecl !is null)
-                {
-                    result = new DeferredSymbolConcatenation();
-                    // This symbol will be filled in when the declaration is traversed
-                    symbolForType[cast(void*)cppType] = result;
-                    unresolvedSymbols[result] = cppDecl;
-                }
-            }
+            result = resolveOrDefer(cppType);
         }
 
         override public extern(C++) void visit(unknown.TemplateRecordType cppType)
         {
-            if (auto sym_ptr = cast(void*)cppType in symbolForType)
-            {
-                result = *sym_ptr;
-            }
-            else
-            {
-                unknown.RecordDeclaration cppDecl = cppType.getRecordDeclaration();
-                if (cppDecl !is null)
-                {
-                    result = new DeferredSymbolConcatenation();
-                    // This symbol will be filled in when the declaration is traversed
-                    symbolForType[cast(void*)cppType] = result;
-                    unresolvedSymbols[result] = cppDecl;
-                }
-            }
+            result = resolveOrDefer(cppType);
         }
 
         override public extern(C++) void visit(unknown.TemplateSpecializationType cppType)
         {
-            auto template_symbol = new DeferredTemplateInstantiation();
-            deferredTemplates[template_symbol.answer] = template_symbol;
-            // This is dangerously close to recursion
-            // but it isn't because this is the generic template type, not us
-            // (the instantiation)
-            template_symbol.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
-            assert(template_symbol.templateName !is null);
-            template_symbol.arguments.length = cppType.getTemplateArgumentCount();
-            uint idx = 0;
-            for (auto iter = cppType.getTemplateArgumentBegin(),
-                    finish = cppType.getTemplateArgumentEnd();
-                    !iter.equals(finish);
-                    iter.advance(), ++idx )
-            {
-                template_symbol.arguments[idx] = translateType(iter.get(), QualifierSet.init);
-            }
-            auto deferred = new DeferredSymbolConcatenation(template_symbol);
-            symbolForType[cast(void*)cppType] = deferred;
-            unresolvedSymbols[deferred] = null;
-            result = deferred;
+            result = resolveTemplateSpecializationTypeSymbol(cppType);
         }
 
         override public extern(C++) void visit(unknown.DelayedType cppType)
@@ -776,11 +637,6 @@ package DeferredSymbolConcatenation makeSymbolForDecl
     if (auto s_ptr = (cast(void*)cppDecl.getType()) in symbolForType)
     {
         symbol = *s_ptr;
-        // Since the symbol is already in the table, this means
-        // that it was used unresolved in a type somewhere.
-        // We're resolving it right here, right now.
-        // TODO come back to this
-        //unresolvedSymbols.remove(symbol);
     }
     else
     {
@@ -791,17 +647,13 @@ package DeferredSymbolConcatenation makeSymbolForDecl
 
     DeferredSymbol[] original_components = symbol.components;
 
-    if (original_components.length > 0)
-    {
-        //symbol.append(original_components);
-    }
-    else
+    if (original_components.length == 0)
     {
         symbol.components = [];
         if (internal_path is null && package_name !is null)
             // Internal path is now a fully qualifed deferred symbol, so
             // it obseletes the package name.
-            // FIXME the name, since it's not internal anymore
+            // FIXME the name "internal_path", since it's not internal anymore
             // Package can be null for things like template arguments
         {
             symbol.components ~= [new ActuallyNotDeferredSymbol(package_name)];
@@ -868,12 +720,6 @@ class DeferredSymbol
 // Bad idea
 class ActuallyNotDeferredSymbol : DeferredSymbol
 {
-    /*this() pure
-    {
-        super();
-        answer.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
-    }*/
-
     this(IdentifierChain chain)
     {
         super();
@@ -891,12 +737,6 @@ class ActuallyNotDeferredSymbol : DeferredSymbol
         super();
         answer.identifierOrTemplateChain = chain;
     }
-
-    //this(IdentifierChain chain)
-    //{
-    //    super();
-    //    answer.identifiersOrTemplateInstances = makeChain(chain);
-    //}
 
     override void resolve() { }
 }
