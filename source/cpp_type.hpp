@@ -598,10 +598,10 @@ class TemplateArgumentInstanceIterator;
     class TemplateArgumentInstanceIterator
     {
         private:
-        clang::TemplateSpecializationType::iterator cpp_iter;
+        const clang::TemplateArgument* cpp_iter;
 
         public:
-        explicit TemplateArgumentInstanceIterator(clang::TemplateSpecializationType::iterator i)
+        explicit TemplateArgumentInstanceIterator(const clang::TemplateArgument* i)
             : cpp_iter(i)
         { }
 

@@ -1274,15 +1274,22 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
     class SpecializedRecordDeclaration : public RecordDeclaration//, public SpecializedDeclaration
     {
+        protected:
+        const clang::ClassTemplateSpecializationDecl* template_decl;
+        // FIXME redundant with superclass...
         public:
         SpecializedRecordDeclaration(const clang::ClassTemplateSpecializationDecl* d)
-            : RecordDeclaration(d)
+            : RecordDeclaration(d), template_decl(d)
         { }
 
         virtual void visit(DeclarationVisitor& visitor) override
         {
             visitor.visitSpecializedRecord(*this);
         }
+
+        virtual unsigned getTemplateArgumentCount() const;
+        virtual TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
+        virtual TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
     };
 
     class SpecializedRecordIterator

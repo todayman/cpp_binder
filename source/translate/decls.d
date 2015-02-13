@@ -18,7 +18,6 @@
 
 module translate.decls;
 
-import core.exception : RangeError;
 import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
@@ -168,7 +167,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 {
     IdentifierChain parent_package_name;
     string namespace_path;
-    std.d.ast.IdentifierOrTemplateChain[] package_internal_path;
+    DeferredSymbol[] package_internal_path;
 
     public:
     std.d.ast.Declaration last_result;
@@ -182,7 +181,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    this(IdentifierChain parent, string nsp, IdentifierOrTemplateChain pip)
+    this(IdentifierChain parent, string nsp, DeferredSymbol pip)
     {
         parent_package_name = parent;
         namespace_path = nsp;
@@ -290,8 +289,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              children_iter.advance())
         {
             try {
-                auto emptyInternalChain = new std.d.ast.IdentifierOrTemplateChain();
-                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, emptyInternalChain);
+                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, null);
                 children_iter.get().visit(subpackage_visitor);
 
                 placeIntoTargetModule(children_iter.get(), subpackage_visitor.last_result);
@@ -538,31 +536,21 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    std.d.ast.StructDeclaration buildStruct(unknown.RecordDeclaration cppDecl)
+    std.d.ast.StructDeclaration buildStruct(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
-        result.name = nameFromDecl(cppDecl);
-        std.d.ast.Symbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
-
-        package_internal_path ~= [symbol.identifierOrTemplateChain];
-        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+        result.name = name;
+        result.templateParameters = template_params;
 
         // Set the linkage attributes for this struct
         // This only matters for methods
         // FIXME should decide on C linkage sometimes, right?
         addCppLinkageAttribute(outerDeclaration);
 
-        if (cppDecl.getTemplateArgumentCount() > 0)
-        {
-            // This cast always succeeds because we know there are template
-            // arguments.
-            auto templateDecl = cast(unknown.RecordTemplateDeclaration)cppDecl;
-            result.templateParameters = translateTemplateParameters(templateDecl);
-        }
 
         result.structBody = new StructBody();
 
@@ -573,7 +561,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
-    std.d.ast.InterfaceDeclaration buildInterface(unknown.RecordDeclaration cppDecl)
+    std.d.ast.InterfaceDeclaration buildInterface(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.InterfaceDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
@@ -581,11 +569,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl, outerDeclaration);
 
-        result.name = nameFromDecl(cppDecl);
-        std.d.ast.Symbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
-
-        package_internal_path ~= [symbol.identifierOrTemplateChain];
-        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+        result.name = name;
+        result.templateParameters = template_params;
 
         // Set the linkage attributes for this interface
         // This only matters for methods
@@ -612,11 +597,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     void buildStringType(unknown.RecordDeclaration cppDecl)
     {
-        makeSymbolForDecl(cppDecl, nameFromDecl(cppDecl), parent_package_name, package_internal_path[$-1], namespace_path);
+        //makeSymbolForDecl(cppDecl, nameFromDecl(cppDecl), parent_package_name, package_internal_path[$-1], namespace_path);
     }
 
-    extern(C++) override
-    void visitRecord(unknown.RecordDeclaration cppDecl)
+    void buildRecord(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
         if (cppDecl.getDefinition() !is cppDecl && cppDecl.getDefinition() !is null)
             return;
@@ -624,12 +608,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
-                buildStruct(cppDecl);
-                last_result = translated[cast(void*)cppDecl];
+                buildStruct(cppDecl, name, template_params);
                 break;
             case unknown.Strategy.INTERFACE:
-                buildInterface(cppDecl);
-                last_result = translated[cast(void*)cppDecl];
+                buildInterface(cppDecl, name, template_params);
                 break;
             case unknown.Strategy.REPLACE:
                 buildStringType(cppDecl);
@@ -640,18 +622,42 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
     }
+    extern(C++) override
+    void visitRecord(unknown.RecordDeclaration cppDecl)
+    {
+        Token name = nameFromDecl(cppDecl);
+        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
+        package_internal_path ~= [symbol];
+        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+
+        buildRecord(cppDecl, name, null);
+        last_result = translated[cast(void*)cppDecl];
+    }
 
     extern(C++) override
     void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
     {
-        visitRecord(cppDecl);
+        Token name = nameFromDecl(cppDecl);
+        std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
+
+        {
+            DeferredSymbol symbol = makeSymbolForDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
+            package_internal_path ~= [symbol];
+            scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+
+            buildRecord(cppDecl, name, templateParameters);
+            last_result = translated[cast(void*)cppDecl];
+        }
 
         // Make symbols for all of the specializations
+        // This is done so that the symbols inside the specialization have
+        // proper paths; the declarations themselves shoudl not be emitted.
         for (auto iter = cppDecl.getSpecializationBegin(), end = cppDecl.getSpecializationEnd();
              !iter.equals(end);
              iter.advance())
         {
             unknown.SpecializedRecordDeclaration special = iter.get();
+            visitSpecializedRecord(special);
         }
 
     }
@@ -659,9 +665,17 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
     {
-        // TODO fill in here
-        //throw new Exception("Attempting to translate a specialized record declaration!  I'm not ready for this yet!");
-        visitRecord(cppDecl);
+        // See note in visitRecordTemplate about why these are not emitted
+        // via last_result
+        auto template_inst = new std.d.ast.TemplateInstance();
+        template_inst.identifier = nameFromDecl(cppDecl);
+        template_inst.templateArguments = translateTemplateArguments(cppDecl);
+
+        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, template_inst, parent_package_name, package_internal_path[$-1], namespace_path);
+        package_internal_path ~= [symbol];
+        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+
+        buildRecord(cppDecl, template_inst.identifier, null);
     }
 
     std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
@@ -696,13 +710,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.enumBody = new EnumBody();
 
         result.name = nameFromDecl(cppDecl);
-        std.d.ast.Symbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+
+        package_internal_path ~= [symbol];
+        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
         unknown.Type cppType = cppDecl.getMemberType();
         result.type = translateType(cppType, QualifierSet.init);
-
-        package_internal_path ~= [symbol.identifierOrTemplateChain];
-        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
         // TODO bring this block back in
         //try {
@@ -798,9 +812,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
 
-        std.d.ast.Symbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
 
-        package_internal_path ~= [symbol.identifierOrTemplateChain];
+        package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
         addCppLinkageAttribute(outerDeclaration);
@@ -975,7 +989,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         var.storageClasses ~= [makeStorageClass(translateLinkage(cppDecl, namespace_path))];
 
         // TODO is this the best way to see if this is a top level, global variable?
-        if (package_internal_path.length == 0)
+        if (package_internal_path.length == 0 || package_internal_path[$-1] is null)
         {
             auto sc = new std.d.ast.StorageClass();
             sc.token = Token(tok!"identifier", "extern", 0, 0, 0);
@@ -1005,6 +1019,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto result = new std.d.ast.TemplateTypeParameter();
         result.identifier = nameFromDecl(cppDecl);
+        makeSymbolForDecl(cppDecl, result.identifier, null, null, "");
         return result;
     }
 
@@ -1031,6 +1046,26 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         return result;
     }
+
+    std.d.ast.TemplateArguments translateTemplateArguments(Declaration)(Declaration cppDecl)
+    {
+        auto result = new std.d.ast.TemplateArguments();
+        result.templateArgumentList = new std.d.ast.TemplateArgumentList();
+
+        // TODO use the single argument syntax when appropriate
+        for (unknown.TemplateArgumentInstanceIterator iter = cppDecl.getTemplateArgumentBegin(),
+                end = cppDecl.getTemplateArgumentEnd();
+             !iter.equals(end);
+             iter.advance() )
+        {
+            // TODO only translating types for now
+            auto current = new std.d.ast.TemplateArgument();
+            current.type = translateType(iter.get(), QualifierSet.init);
+            result.templateArgumentList.items ~= [current];
+        }
+
+        return result;
+    }
 }
 
 // FIXME this is a kludge to deal with the fact that interfaces cannot have
@@ -1039,7 +1074,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 // But for now, the cost of moving to that is too high.
 class InterfaceBodyTranslator : TranslatorVisitor
 {
-    this(IdentifierChain parent, string nsp, IdentifierOrTemplateChain pip)
+    this(IdentifierChain parent, string nsp, DeferredSymbol pip)
     {
         super(parent, nsp, pip);
     }
@@ -1119,7 +1154,7 @@ void populateDAST()
         }
 
         std.d.ast.Module mod = findTargetModule(declaration);
-        auto visitor = new TranslatorVisitor(mod.moduleDeclaration.moduleName, "", new IdentifierOrTemplateChain());
+        auto visitor = new TranslatorVisitor(mod.moduleDeclaration.moduleName, "", null);
         try {
             std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
@@ -1149,17 +1184,19 @@ void populateDAST()
 
     if (unresolvedSymbols.length > 0)
     {
-        stderr.writeln("WARNING: there are references to types whose declarations are not generated by this instance of translation.  Making my best guess at these:");
+        //stderr.writeln("WARNING: there are references to types whose declarations are not generated by this instance of translation.  Making my best guess at these:");
         // We're going to remove types from unresolvedTypes as we
         // resolve them, so take a copy before iterating
         auto local_copy = unresolvedSymbols.dup;
         foreach (symbol, decl; local_copy)
         {
-            if (decl !is null)
-            {
-                stderr.writeln("\t", binder.toDString(decl.getSourceName()));
-                resolveSymbol(decl);
-            }
+            //if (decl !is null)
+            //{
+            //    stderr.writeln("\t", binder.toDString(decl.getSourceName()));
+            //    resolveSymbol(decl);
+            //}
+            resolveSymbol(symbol, decl);
+            symbol.resolve();
         }
         if (unresolvedSymbols.length > 0)
         {
@@ -1228,17 +1265,22 @@ class NoDefinitionException : Exception
 
 // Creates type information for decls that are not to be bound, but are
 // referenced by the declarations being bound.
-package void resolveSymbol(unknown.Declaration cppDecl)
+package void resolveSymbol(DeferredSymbol symbol, unknown.Declaration cppDecl)
 {
-    determineStrategy(cppDecl.getType());
-    Module mod = findTargetModule(cppDecl);
-    Token name = nameFromDecl(cppDecl);
+    if (cppDecl !is null && cppDecl.getType() !is null)
+    {
+        determineStrategy(cppDecl.getType());
+    }
+    //Module mod = findTargetModule(cppDecl);
+    //Token name = nameFromDecl(cppDecl);
     // TODO I cannot place this in the right position inside of a module
     // If this declaration is nested inside of a class, then this process does
     // not know that the decl is inside the class
     //
     // I'm not sure how to fix this just yet.
-    makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, new IdentifierOrTemplateChain(), "");
+    //DeferredSymbol symbol = makeSymbolForDecl(cppDecl, name, mod.moduleDeclaration.moduleName, null, "");
+    symbol.resolve();
+    unresolvedSymbols.remove(symbol);
 }
 
 string makeString(IdentifierChain chain)
@@ -1247,7 +1289,7 @@ string makeString(IdentifierChain chain)
     format(delegate(const char[] t) { dest.put(t); }, chain);
     return dest.data.idup;
 }
-string makeString(const Symbol sym)
+string makeString(const std.d.ast.Symbol sym)
 {
     auto dest = appender!string();
     format(delegate(const char[] t) { dest.put(t); }, sym);
@@ -1266,7 +1308,7 @@ private class SymbolFinder : std.d.ast.ASTVisitor
         if (auto pmod = sym in symbolModules)
         {
             string mod = *pmod;
-            if (mod == ".")
+            if (mod == "." || mod == "")
             {
                 // indicates global scope, no import necessary
                 return;

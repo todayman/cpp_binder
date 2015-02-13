@@ -175,6 +175,20 @@ Type* TypedefDeclaration::getTargetType() const
     return Type::get(_decl->getUnderlyingType());
 }
 
+unsigned SpecializedRecordDeclaration::getTemplateArgumentCount() const
+{
+    return template_decl->getTemplateArgs().size();
+}
+
+TemplateArgumentInstanceIterator* SpecializedRecordDeclaration::getTemplateArgumentBegin()
+{
+    return new TemplateArgumentInstanceIterator(template_decl->getTemplateArgs().data());
+}
+
+TemplateArgumentInstanceIterator* SpecializedRecordDeclaration::getTemplateArgumentEnd()
+{
+    return new TemplateArgumentInstanceIterator(template_decl->getTemplateArgs().data() + getTemplateArgumentCount());
+}
 
 SpecializedRecordIterator* RecordTemplateDeclaration::getSpecializationBegin()
 {
@@ -672,7 +686,7 @@ bool DeclVisitor::WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cp
 bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
 {
     assert(template_list != nullptr);
-    TemplateArgumentType * t = dynamic_cast<TemplateArgumentType*>(Type::get(clang::QualType(cppDecl->getTypeForDecl(), 0)));
+    TemplateArgumentType * t = dynamic_cast<TemplateArgumentType*>(Type::get(clang::QualType(cppDecl->getTypeForDecl(), 0), print_policy));
     t->setTemplateList(template_list);
 
     return true;

@@ -587,7 +587,13 @@ extern (C++) interface TemplateDeclaration
     public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
 }
 
-extern (C++) interface SpecializedRecordDeclaration : unknown.RecordDeclaration {}
+extern (C++) interface SpecializedRecordDeclaration : unknown.RecordDeclaration
+{
+
+    public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
+
+    public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+}
 
 extern (C++) interface SpecializedRecordIterator
 {

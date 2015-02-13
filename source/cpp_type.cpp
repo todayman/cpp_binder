@@ -539,7 +539,7 @@ bool ClangTypeVisitor::WalkUpFromElaboratedType(clang::ElaboratedType* type)
 {
     //bool result = TraverseType(type->getNamedType());
     // TODO nullptr
-    Type* t = Type::get(type->getNamedType());
+    Type* t = Type::get(type->getNamedType(), printPolicy);
     // FIXME does this really need to go into the map here?  Does that happen during TraverseType?
     Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
     type_in_progress = t;
@@ -587,7 +587,7 @@ bool ClangTypeVisitor::WalkUpFromTemplateSpecializationType(clang::TemplateSpeci
     // TODO Make sure I'm not making too many of these!
     string binder_name(name.c_str(), name.size());
     Type::type_by_name.insert(std::make_pair(binder_name, type_in_progress));
-    return true;
+    return Super::WalkUpFromTemplateSpecializationType(type);
 }
 
 bool ClangTypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType* type)
