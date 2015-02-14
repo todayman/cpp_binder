@@ -133,7 +133,7 @@ void Type::applyAttributes(const TypeAttributes* attribs)
     {
         chooseReplaceStrategy(&attribs->target_name);
     }
-    else
+    else if (attribs->strategy != UNKNOWN)
     {
         setStrategy(attribs->strategy);
     }
