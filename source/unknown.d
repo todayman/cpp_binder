@@ -29,7 +29,7 @@ extern (C++) interface Type
 
     final public unknown.Type.Kind getKind() const;
 
-    final public void chooseReplaceStrategy(binder.binder.string replacement);
+    final public void chooseReplaceStrategy(const(binder.binder.string) replacement);
 
     final public void setStrategy(unknown.Strategy s);
 

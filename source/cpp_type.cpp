@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -125,6 +125,20 @@ string* Type::getReplacementModule() const
 void Type::setReplacementModule(string new_mod)
 {
     target_module = new_mod;
+}
+
+void Type::applyAttributes(const TypeAttributes* attribs)
+{
+    if (attribs->strategy == REPLACE)
+    {
+        chooseReplaceStrategy(&attribs->target_name);
+    }
+    else
+    {
+        setStrategy(attribs->strategy);
+    }
+
+    setReplacementModule(attribs->target_module);
 }
 
 Type * QualifiedType::unqualifiedType()

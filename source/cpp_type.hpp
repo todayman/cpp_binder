@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,6 +59,19 @@ class TemplateArgumentInstanceIterator;
 
 //namespace cpp
 //{
+
+    class TypeAttributes
+    {
+        public:
+        Strategy strategy;
+        string target_name;
+        string target_module;
+
+        TypeAttributes()
+            : strategy(UNKNOWN), target_name(""), target_module("")
+        { }
+    };
+
     class InvalidType;
     class BuiltinType;
     class PointerType;
@@ -80,8 +93,6 @@ class TemplateArgumentInstanceIterator;
     // knowledge we need about each C++ type.  They all
     // get landed here, and we basically use this as the value
     // in a dictionary, where the C++ type is the key.
-    // TODO given the number of kind specific methods at the end of this,
-    // break this up and use inheritance
     class Type
     {
         public:
@@ -139,7 +150,7 @@ class TemplateArgumentInstanceIterator;
 
         friend class ClangTypeVisitor;
 
-        void chooseReplaceStrategy(string* replacement)
+        void chooseReplaceStrategy(const string* replacement)
         {
             strategy = REPLACE;
             target_name = *replacement;
@@ -195,6 +206,8 @@ class TemplateArgumentInstanceIterator;
 
         virtual void visit(TypeVisitor& visitor) = 0;
         virtual void dump() const = 0;
+
+        void applyAttributes(const TypeAttributes* attribs);
     };
 
     class TypeVisitor

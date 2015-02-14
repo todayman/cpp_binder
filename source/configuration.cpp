@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -130,7 +130,7 @@ std::string readFile(const std::string& filename)
 static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast);
-static void readStrategyConfiguration(const yajl_val_s& container, Type* type);
+static void readStrategyConfiguration(const yajl_val_s& container, TypeAttributes* type);
 
 static std::shared_ptr<yajl_val_s> parseJSON(const std::string& filename)
 {
@@ -250,6 +250,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
     // Find the thing to add attributes
     clang::DeclContextLookupResult lookup_result = lookupDeclName(name, ast, ast.getTranslationUnitDecl());
     DeclarationAttributes attributes;
+    TypeAttributes type_attributes;
 
     if( lookup_result.size() > 0 )
     {
@@ -296,6 +297,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     }
                     string str(sub_obj->u.string);
                     attributes.setTargetModule(&str);
+                    type_attributes.target_module = str;
                 }
                 else if( attrib_name == "visibility" )
                 {
@@ -349,7 +351,8 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     }
                     if( decl->isWrappable() ) // FIXME apply this higher up?
                     {
-                        readStrategyConfiguration(*sub_obj, decl->getType());
+                        readStrategyConfiguration(*sub_obj, &type_attributes);
+                        decl->getType()->applyAttributes(&type_attributes);
                     }
                 }
                 else {
@@ -388,7 +391,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     {
                         throw ExpectedObject(sub_obj);
                     }
-                    readStrategyConfiguration(*sub_obj, type);
+                    readStrategyConfiguration(*sub_obj, &type_attributes);
                 }
                 else if (attrib_name == "target_module")
                 {
@@ -396,7 +399,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     {
                         throw ExpectedString(sub_obj);
                     }
-                    type->setReplacementModule(sub_obj->u.string);
+                    type_attributes.target_module = sub_obj->u.string;
                 }
                 else {
                     // throw UnrecognizedAttribute(attrib_name);
@@ -404,12 +407,14 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                     throw UnrecognizedAttribute(attrib_name);
                 }
             }
+
+            type->applyAttributes(&type_attributes);
         }
     }
 
 }
 
-static void readStrategyConfiguration(const yajl_val_s& container, Type* type)
+static void readStrategyConfiguration(const yajl_val_s& container, TypeAttributes* type_attributes)
 {
     for( size_t idx = 0; idx < container.u.object.len; ++idx )
     {
@@ -421,6 +426,7 @@ static void readStrategyConfiguration(const yajl_val_s& container, Type* type)
                 throw ExpectedString(name_obj);
             }
 
+            // TODO lower the string
             std::string name_str(name_obj->u.string);
             if( name_str == "replace" )
             {
@@ -439,23 +445,24 @@ static void readStrategyConfiguration(const yajl_val_s& container, Type* type)
                     throw ExpectedString(target_obj);
                 }
                 string str(target_obj->u.string);
-                type->chooseReplaceStrategy(&str);
+                type_attributes->strategy = REPLACE;
+                type_attributes->target_name = str;
             }
             else if( name_str == "struct" )
             {
-                type->setStrategy(STRUCT);
+                type_attributes->strategy = STRUCT;
             }
             else if( name_str == "interface" )
             {
-                type->setStrategy(INTERFACE);
+                type_attributes->strategy = INTERFACE;
             }
             else if( name_str == "class" )
             {
-                type->setStrategy(CLASS);
+                type_attributes->strategy = CLASS;
             }
             else if( name_str == "opaque_class" )
             {
-                type->setStrategy(OPAQUE_CLASS);
+                type_attributes->strategy = OPAQUE_CLASS;
             }
         }
     }
@@ -480,35 +487,3 @@ void parseAndApplyConfiguration(size_t config_count, const char** config_files, 
 
     parseAndApplyConfiguration(config_file_vec, astunit);
 }
-
-/* TODO bring this back in
-void applyAttributesToDeclByName(clang::ASTContext& ast, const DeclarationAttributes* attribs, const string* name)
-{
-    std::string name_str = name->c_str();
-    clang::DeclContextLookupResult lookup_result = lookupDeclName(name_str, ast, ast.getTranslationUnitDecl());
-
-    if( lookup_result.size() > 0 )
-    {
-        // TODO finding more than one match should probably
-        // be handled more gracefully.
-        for( clang::NamedDecl* cppDecl : lookup_result )
-        {
-            Declaration* decl;
-            try {
-                decl = getDeclaration(cppDecl);
-            }
-            catch (std::out_of_range& exc)
-            {
-                std::cerr << "Could not find declaration for " << name << "\n";
-                continue;
-            }
-            if (decl == nullptr)
-            {
-                std::cerr << "Could not find declaration for " << name << "\n";
-                continue;
-            }
-
-            decl->applyAttributes(attribs);
-        }
-    }
-}*/
