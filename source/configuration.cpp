@@ -129,7 +129,8 @@ std::string readFile(const std::string& filename)
 
 static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
-static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast);
+static void applyConfigToObject(const std::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes);
+static void parseAttributes(const yajl_val_s& obj, DeclarationAttributes* decl_attributes, TypeAttributes* type_attributes);
 static void readStrategyConfiguration(const yajl_val_s& container, TypeAttributes* type);
 
 static std::shared_ptr<yajl_val_s> parseJSON(const std::string& filename)
@@ -204,7 +205,13 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
             throw ExpectedObject(sub_obj);
         }
 
-        applyConfigToObject(name, *sub_obj, ast);
+
+        DeclarationAttributes decl_attributes;
+        TypeAttributes type_attributes;
+
+        parseAttributes(*sub_obj, &decl_attributes, &type_attributes);
+
+        applyConfigToObject(name, ast, &decl_attributes, &type_attributes);
     }
 }
 
@@ -246,6 +253,7 @@ clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::AS
 
 static void parseAttributes(const yajl_val_s& obj, DeclarationAttributes* decl_attributes, TypeAttributes* type_attributes)
 {
+    assert(YAJL_IS_OBJECT(&obj));
     for( size_t idx = 0; idx < obj.u.object.len; ++idx )
     {
         std::string attrib_name = obj.u.object.keys[idx];
@@ -332,15 +340,10 @@ static void parseAttributes(const yajl_val_s& obj, DeclarationAttributes* decl_a
     }
 }
 
-static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast)
+static void applyConfigToObject(const std::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes)
 {
-    assert(YAJL_IS_OBJECT(&obj));
     // Find the thing to add decl_attributes
     clang::DeclContextLookupResult lookup_result = lookupDeclName(name, ast, ast.getTranslationUnitDecl());
-    DeclarationAttributes decl_attributes;
-    TypeAttributes type_attributes;
-
-    parseAttributes(obj, &decl_attributes, &type_attributes);
     if( lookup_result.size() > 0 )
     {
         // TODO finding more than one match should probably
@@ -362,11 +365,11 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                 continue;
             }
 
-            decl->applyAttributes(&decl_attributes);
+            decl->applyAttributes(decl_attributes);
             try {
                 if (decl->isWrappable() && decl->getType() != nullptr)
                 {
-                    decl->getType()->applyAttributes(&type_attributes);
+                    decl->getType()->applyAttributes(type_attributes);
                 }
             }
             catch (NotTypeDecl&)
@@ -391,7 +394,7 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                 search_result.first != search_result.second;
                 type = (++search_result.first)->second)
         {
-            type->applyAttributes(&type_attributes);
+            type->applyAttributes(type_attributes);
         }
     }
 
