@@ -42,7 +42,7 @@ int main(string[] argv)
     try {
         clang_args = parseClangArgs(args.config_files);
     }
-    catch (ConfigurationException exc)
+    catch (configuration.ConfigurationException exc)
     {
         stderr.writeln("ERROR: ", exc.msg);
         return -1;
@@ -82,7 +82,7 @@ int main(string[] argv)
     try {
         parseAndApplyConfiguration(raw_config_files.length, raw_config_files.ptr, ast);
     }
-    catch (ConfigurationException exc)
+    catch (configuration.ConfigurationException exc)
     {
         stderr.writeln("ERROR: ", exc.msg);
         return -1;

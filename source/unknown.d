@@ -5,6 +5,12 @@ import
     manual_types, 
     binder;
 
+extern (C++) interface ConfigurationException : std.runtime_error {}
+
+extern (C++) void applyConfigToObject(const binder.binder.string name, ref clang.ASTContext ast, const(unknown.DeclarationAttributes)* decl_attributes, const(unknown.TypeAttributes)* type_attributes);
+
+extern (C++) void parseAndApplyConfiguration(size_t config_count, const(char)** config_files, clang.ASTUnit* astunit);
+
 extern (C++) interface NotWrappableException : std.runtime_error {}
 
 enum Strategy : uint 
@@ -18,6 +24,16 @@ CLASS =   4,
 OPAQUE_CLASS =   5
 }
 
+extern (C++) struct TypeAttributes
+{
+
+    public unknown.Strategy strategy;
+
+    public binder.binder.string target_name;
+
+    public binder.binder.string target_module;
+}
+
 extern (C++) interface Type
 {
 
@@ -29,7 +45,7 @@ extern (C++) interface Type
 
     final public unknown.Type.Kind getKind() const;
 
-    final public void chooseReplaceStrategy(const(binder.binder.string) replacement);
+    final public void chooseReplaceStrategy(const binder.binder.string replacement);
 
     final public void setStrategy(unknown.Strategy s);
 
@@ -48,6 +64,8 @@ extern (C++) interface Type
     public void visit(unknown.TypeVisitor visitor);
 
     public void dump() const;
+
+    final public void applyAttributes(const(unknown.TypeAttributes)* attribs);
 
     enum Kind : uint 
 

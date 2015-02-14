@@ -172,5 +172,3 @@ string[] parseClangArgs(string[] config_files)
 
     return clang_args;
 }
-
-extern(C++) void parseAndApplyConfiguration(size_t config_count, const(char)**config_files, clang.ASTUnit* astunit);

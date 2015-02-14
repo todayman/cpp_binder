@@ -45,6 +45,6 @@ class ConfigurationException : public std::runtime_error
 std::string readFile(const std::string& filename);
 std::vector<std::string> parseClangArgs(const std::vector<std::string>& config_files);
 void applyConfigToObject(const binder::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes);
-void parseAndApplyConfiguration(const std::vector<std::string>& config_files, clang::ASTUnit* ast);
+void parseAndApplyConfiguration(size_t config_count, const char** config_files, clang::ASTUnit* astunit);
 
 #endif // __CONFIGURATION_HPP__
