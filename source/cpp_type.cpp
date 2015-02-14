@@ -33,6 +33,26 @@
 std::unordered_map<const clang::QualType, Type*> Type::type_map;
 std::unordered_multimap<string, Type*> Type::type_by_name;
 
+TypeAttributes* TypeAttributes::make()
+{
+    return new TypeAttributes();
+}
+
+void TypeAttributes::setStrategy(Strategy s)
+{
+    strategy = s;
+}
+
+void TypeAttributes::setTargetName(string* new_target)
+{
+    target_name = *new_target;
+}
+
+void TypeAttributes::setTargetModule(string* new_module)
+{
+    target_module = *new_module;
+}
+
 void Type::printTypeNames()
 {
     for( auto p : type_by_name )

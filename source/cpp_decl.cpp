@@ -31,6 +31,11 @@
 
 #include "clang/AST/Decl.h"
 
+DeclarationAttributes* DeclarationAttributes::make()
+{
+    return new DeclarationAttributes();
+}
+
 void DeclarationAttributes::setBound(bool value)
 {
     isBoundSet = true;

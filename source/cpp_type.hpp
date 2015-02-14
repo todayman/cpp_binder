@@ -62,14 +62,24 @@ class TemplateArgumentInstanceIterator;
 
     class TypeAttributes
     {
-        public:
         Strategy strategy;
         string target_name;
         string target_module;
 
+        public:
         TypeAttributes()
             : strategy(UNKNOWN), target_name(""), target_module("")
         { }
+
+        static TypeAttributes * make();
+        // To force this to an interface.
+        // The fact that I'm doing this means that there are bugs
+        // in my translator :(
+        virtual void setStrategy(Strategy s);
+        virtual void setTargetName(string* new_target);
+        virtual void setTargetModule(string* new_module);
+
+        friend class Type;
     };
 
     class InvalidType;

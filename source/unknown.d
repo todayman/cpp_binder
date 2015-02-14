@@ -7,7 +7,7 @@ import
 
 extern (C++) interface ConfigurationException : std.runtime_error {}
 
-extern (C++) void applyConfigToObject(const binder.binder.string name, ref clang.ASTContext ast, const(unknown.DeclarationAttributes)* decl_attributes, const(unknown.TypeAttributes)* type_attributes);
+extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* ast, const(unknown.DeclarationAttributes) decl_attributes, const(unknown.TypeAttributes) type_attributes);
 
 extern (C++) void parseAndApplyConfiguration(size_t config_count, const(char)** config_files, clang.ASTUnit* astunit);
 
@@ -24,14 +24,16 @@ CLASS =   4,
 OPAQUE_CLASS =   5
 }
 
-extern (C++) struct TypeAttributes
+extern (C++) interface TypeAttributes
 {
 
-    public unknown.Strategy strategy;
+    static public TypeAttributes make();
 
-    public binder.binder.string target_name;
+    public void setStrategy(unknown.Strategy s);
 
-    public binder.binder.string target_module;
+    public void setTargetName(binder.binder.string new_target);
+
+    public void setTargetModule(binder.binder.string new_module);
 }
 
 extern (C++) interface Type
@@ -271,22 +273,10 @@ extern (C++) bool isCXXRecord(const(clang.Decl)* decl);
 
 extern (C++) bool isTemplateTypeParmDecl(const(clang.Decl)* decl);
 
-extern (C++) struct DeclarationAttributes
+extern (C++) interface DeclarationAttributes
 {
 
-    private bool isBoundSet;
-
-    private bool bound;
-
-    private bool isTargetModuleSet;
-
-    private binder.binder.string target_module;
-
-    private unknown.Visibility visibility;
-
-    private binder.binder.string remove_prefix;
-
-    static public unknown.DeclarationAttributes* make();
+    static public unknown.DeclarationAttributes make();
 
     final public void setBound(bool value);
 

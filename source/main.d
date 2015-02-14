@@ -74,13 +74,8 @@ int main(string[] argv)
     }
     enableDeclarationsInFiles(raw_files.length, raw_files.ptr);
 
-    const(char)*[] raw_config_files = new char*[args.config_files.length];
-    foreach (ulong idx, string str; args.config_files)
-    {
-        raw_config_files[idx] = toStringz(str);
-    }
     try {
-        parseAndApplyConfiguration(raw_config_files.length, raw_config_files.ptr, ast);
+        parseAndApplyConfiguration(args.config_files, ast);
     }
     catch (configuration.ConfigurationException exc)
     {
