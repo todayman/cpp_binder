@@ -244,14 +244,103 @@ clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::AS
     }
 }
 
+static void parseAttributes(const yajl_val_s& obj, DeclarationAttributes* decl_attributes, TypeAttributes* type_attributes)
+{
+    for( size_t idx = 0; idx < obj.u.object.len; ++idx )
+    {
+        std::string attrib_name = obj.u.object.keys[idx];
+        const yajl_val_s* sub_obj = obj.u.object.values[idx];
+
+        // TODO get these string constants out of here
+        // TODO change to a hash table of std::function??
+        if( attrib_name == "bound" )
+        {
+            // FIXME bools might come through as strings
+            if( !YAJL_IS_INTEGER(sub_obj) )
+            {
+                throw ExpectedInteger(sub_obj);
+            }
+            decl_attributes->setBound(sub_obj->u.number.i);
+        }
+        else if( attrib_name == "target_module" )
+        {
+            if( !YAJL_IS_STRING(sub_obj) )
+            {
+                throw ExpectedString(sub_obj);
+            }
+            string str(sub_obj->u.string);
+            decl_attributes->setTargetModule(&str);
+            type_attributes->target_module = str;
+        }
+        else if( attrib_name == "visibility" )
+        {
+            if( !YAJL_IS_STRING(sub_obj) )
+            {
+                throw ExpectedString(sub_obj);
+            }
+            std::string vis_str = sub_obj->u.string;
+            std::for_each(vis_str.begin(), vis_str.end(),
+                    [](char& ch) {
+                        ch = std::tolower(ch); // FIXME? depends on locale
+                        });
+            if( vis_str == "private" )
+            {
+                decl_attributes->setVisibility(PRIVATE);
+            }
+            else if( vis_str == "package" )
+            {
+                decl_attributes->setVisibility(PACKAGE);
+            }
+            else if( vis_str == "protected" )
+            {
+                decl_attributes->setVisibility(PROTECTED);
+            }
+            else if( vis_str == "public" )
+            {
+                decl_attributes->setVisibility(PUBLIC);
+            }
+            else if( vis_str == "export" )
+            {
+                decl_attributes->setVisibility(EXPORT);
+            }
+            else {
+                throw UnknownVisibility(vis_str);
+            }
+        }
+        else if( attrib_name == "remove_prefix")
+        {
+            if( !YAJL_IS_STRING(sub_obj) )
+            {
+                throw ExpectedString(sub_obj);
+            }
+            string str(sub_obj->u.string);
+            decl_attributes->setRemovePrefix(&str);
+        }
+        else if( attrib_name == "strategy" )
+        {
+            if( !YAJL_IS_OBJECT(sub_obj) )
+            {
+                throw ExpectedObject(sub_obj);
+            }
+            readStrategyConfiguration(*sub_obj, type_attributes);
+        }
+        else {
+            // throw UnrecognizedAttribute(attrib_name);
+            // TODO I think I should just log this instead
+            throw UnrecognizedAttribute(attrib_name);
+        }
+    }
+}
+
 static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, clang::ASTContext& ast)
 {
     assert(YAJL_IS_OBJECT(&obj));
-    // Find the thing to add attributes
+    // Find the thing to add decl_attributes
     clang::DeclContextLookupResult lookup_result = lookupDeclName(name, ast, ast.getTranslationUnitDecl());
-    DeclarationAttributes attributes;
+    DeclarationAttributes decl_attributes;
     TypeAttributes type_attributes;
 
+    parseAttributes(obj, &decl_attributes, &type_attributes);
     if( lookup_result.size() > 0 )
     {
         // TODO finding more than one match should probably
@@ -273,96 +362,18 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                 continue;
             }
 
-            for( size_t idx = 0; idx < obj.u.object.len; ++idx )
-            {
-                std::string attrib_name = obj.u.object.keys[idx];
-                const yajl_val_s* sub_obj = obj.u.object.values[idx];
-
-                // TODO get these string constants out of here
-                // TODO change to a hash table of std::function??
-                if( attrib_name == "bound" )
+            decl->applyAttributes(&decl_attributes);
+            try {
+                if (decl->isWrappable() && decl->getType() != nullptr)
                 {
-                    // FIXME bools might come through as strings
-                    if( !YAJL_IS_INTEGER(sub_obj) )
-                    {
-                        throw ExpectedInteger(sub_obj);
-                    }
-                    attributes.setBound(sub_obj->u.number.i);
-                }
-                else if( attrib_name == "target_module" )
-                {
-                    if( !YAJL_IS_STRING(sub_obj) )
-                    {
-                        throw ExpectedString(sub_obj);
-                    }
-                    string str(sub_obj->u.string);
-                    attributes.setTargetModule(&str);
-                    type_attributes.target_module = str;
-                }
-                else if( attrib_name == "visibility" )
-                {
-                    if( !YAJL_IS_STRING(sub_obj) )
-                    {
-                        throw ExpectedString(sub_obj);
-                    }
-                    std::string vis_str = sub_obj->u.string;
-                    std::for_each(vis_str.begin(), vis_str.end(),
-                            [](char& ch) {
-                                ch = std::tolower(ch); // FIXME? depends on locale
-                                });
-                    if( vis_str == "private" )
-                    {
-                        attributes.setVisibility(PRIVATE);
-                    }
-                    else if( vis_str == "package" )
-                    {
-                        attributes.setVisibility(PACKAGE);
-                    }
-                    else if( vis_str == "protected" )
-                    {
-                        attributes.setVisibility(PROTECTED);
-                    }
-                    else if( vis_str == "public" )
-                    {
-                        attributes.setVisibility(PUBLIC);
-                    }
-                    else if( vis_str == "export" )
-                    {
-                        attributes.setVisibility(EXPORT);
-                    }
-                    else {
-                        throw UnknownVisibility(vis_str);
-                    }
-                }
-                else if( attrib_name == "remove_prefix")
-                {
-                    if( !YAJL_IS_STRING(sub_obj) )
-                    {
-                        throw ExpectedString(sub_obj);
-                    }
-                    string str(sub_obj->u.string);
-                    attributes.setRemovePrefix(&str);
-                }
-                else if( attrib_name == "strategy" )
-                {
-                    if( !YAJL_IS_OBJECT(sub_obj) )
-                    {
-                        throw ExpectedObject(sub_obj);
-                    }
-                    if( decl->isWrappable() ) // FIXME apply this higher up?
-                    {
-                        readStrategyConfiguration(*sub_obj, &type_attributes);
-                        decl->getType()->applyAttributes(&type_attributes);
-                    }
-                }
-                else {
-                    // throw UnrecognizedAttribute(attrib_name);
-                    // TODO I think I should just log this instead
-                    throw UnrecognizedAttribute(attrib_name);
+                    decl->getType()->applyAttributes(&type_attributes);
                 }
             }
-
-            decl->applyAttributes(&attributes);
+            catch (NotTypeDecl&)
+            {
+                // If the decl is not a type decl, then we don't apply type
+                // attributes to it, so nothing to do here.
+            }
         }
     }
     else {
@@ -380,34 +391,6 @@ static void applyConfigToObject(const std::string& name, const yajl_val_s& obj, 
                 search_result.first != search_result.second;
                 type = (++search_result.first)->second)
         {
-            // FIXME only validate json once per type in the above loop
-            for( size_t idx = 0; idx < obj.u.object.len; ++idx )
-            {
-                std::string attrib_name = obj.u.object.keys[idx];
-                const yajl_val_s* sub_obj = obj.u.object.values[idx];
-                if( attrib_name == "strategy" )
-                {
-                    if( !YAJL_IS_OBJECT(sub_obj) )
-                    {
-                        throw ExpectedObject(sub_obj);
-                    }
-                    readStrategyConfiguration(*sub_obj, &type_attributes);
-                }
-                else if (attrib_name == "target_module")
-                {
-                    if (!YAJL_IS_STRING(sub_obj))
-                    {
-                        throw ExpectedString(sub_obj);
-                    }
-                    type_attributes.target_module = sub_obj->u.string;
-                }
-                else {
-                    // throw UnrecognizedAttribute(attrib_name);
-                    // TODO I think I should just log this instead
-                    throw UnrecognizedAttribute(attrib_name);
-                }
-            }
-
             type->applyAttributes(&type_attributes);
         }
     }
