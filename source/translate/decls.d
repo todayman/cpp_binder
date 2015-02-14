@@ -522,7 +522,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE
                     && superclass.base.getStrategy() != unknown.Strategy.REPLACE)
             {
-                throw new Exception("Superclass of an interface is not an interface.");
+                throw new Exception("Superclass (" ~ binder.toDString(cppDecl.getSourceName()) ~") of an interface is not an interface.");
             }
             std.d.ast.BaseClass base = new BaseClass();
             base.type2 = superType.type2;
