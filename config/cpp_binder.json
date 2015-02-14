@@ -47,6 +47,13 @@
             }
           , "target_module": "manual_types"
         }
+        , "clang::ASTContext": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.ASTContext"
+            }
+          , "target_module": "manual_types"
+        }
         , "clang::ASTUnit": {
             "strategy": {
                 "name": "replace"
@@ -118,6 +125,15 @@
             "bound": 0
         }
         , "Type::type_by_name": {
+            "bound": 0
+        }
+        , "readFile": {
+            "bound": 0
+        }
+        , "parseClangArgs": {
+            "bound": 0
+        }
+        , "parseAndApplyConfiguration": {
             "bound": 0
         }
     }
