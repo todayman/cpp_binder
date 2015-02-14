@@ -16,8 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import core.exception : RangeError;
-
 import std.algorithm : map, filter, splitter;
 import std.array : array;
 import std.stdio : stdout;
@@ -32,10 +30,11 @@ class Package
 
     Module getOrCreateModulePath(string path)
     {
-        try {
-            return children[path];
+        if (auto ptr = path in children)
+        {
+            return *ptr;
         }
-        catch (RangeError)
+        else
         {
             Module mod = new Module();
             ModuleDeclaration decl = new ModuleDeclaration();
