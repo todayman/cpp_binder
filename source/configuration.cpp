@@ -24,6 +24,8 @@
 
 #include "yajl/yajl_tree.h"
 
+#include "clang/Frontend/ASTUnit.h"
+
 #include "configuration.hpp"
 #include "cpp_decl.hpp"
 
@@ -129,7 +131,7 @@ std::string readFile(const std::string& filename)
 
 static void applyRootObjectForAttributes(const yajl_val_s& obj, clang::ASTContext& ast);
 static void applyConfigToObjectMap(const yajl_val_s& obj_container, clang::ASTContext& ast);
-static void applyConfigToObject(const std::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes);
+void applyConfigToObject(const std::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes);
 static void parseAttributes(const yajl_val_s& obj, DeclarationAttributes* decl_attributes, TypeAttributes* type_attributes);
 static void readStrategyConfiguration(const yajl_val_s& container, TypeAttributes* type);
 
@@ -211,12 +213,13 @@ static void applyConfigToObjectMap(const yajl_val_s& obj, clang::ASTContext& ast
 
         parseAttributes(*sub_obj, &decl_attributes, &type_attributes);
 
-        applyConfigToObject(name, ast, &decl_attributes, &type_attributes);
+        applyConfigToObject(binder::string(name.c_str()), ast, &decl_attributes, &type_attributes);
     }
 }
 
-clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::ASTContext& ast, clang::DeclContext* context)
+clang::DeclContextLookupResult lookupDeclName(const binder::string& binder_name, clang::ASTContext& ast, clang::DeclContext* context)
 {
+    std::string name(binder_name.c_str());
     std::string top_name;
     auto scope_start = std::adjacent_find(begin(name), end(name), [](char a, char b) {
                 if( a != ':' ) return false;
@@ -246,7 +249,7 @@ clang::DeclContextLookupResult lookupDeclName(const std::string& name, clang::AS
         else {
             clang::NamedDecl * decl = result.front();
             clang::DeclContext * next_context = clang::Decl::castToDeclContext(decl);
-            return lookupDeclName(remaining_name, ast, next_context);
+            return lookupDeclName(binder::string(remaining_name.c_str()), ast, next_context);
         }
     }
 }
@@ -340,7 +343,7 @@ static void parseAttributes(const yajl_val_s& obj, DeclarationAttributes* decl_a
     }
 }
 
-static void applyConfigToObject(const std::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes)
+void applyConfigToObject(const binder::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes)
 {
     // Find the thing to add decl_attributes
     clang::DeclContextLookupResult lookup_result = lookupDeclName(name, ast, ast.getTranslationUnitDecl());

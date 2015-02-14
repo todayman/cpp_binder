@@ -19,12 +19,20 @@
 #ifndef __CONFIGURATION_HPP__
 #define __CONFIGURATION_HPP__
 
-#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "clang/Frontend/ASTUnit.h"
+#include "string.hpp"
+
+namespace clang
+{
+    class ASTContext;
+    class ASTUnit;
+}
+
+class DeclarationAttributes;
+class TypeAttributes;
 
 class ConfigurationException : public std::runtime_error
 {
@@ -36,6 +44,7 @@ class ConfigurationException : public std::runtime_error
 
 std::string readFile(const std::string& filename);
 std::vector<std::string> parseClangArgs(const std::vector<std::string>& config_files);
+void applyConfigToObject(const binder::string& name, clang::ASTContext& ast, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes);
 void parseAndApplyConfiguration(const std::vector<std::string>& config_files, clang::ASTUnit* ast);
 
 #endif // __CONFIGURATION_HPP__
