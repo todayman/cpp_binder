@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,30 +19,19 @@
 #ifndef __CONFIGURATION_HPP__
 #define __CONFIGURATION_HPP__
 
-#include <stdexcept>
-#include <string>
-#include <vector>
-
-#include "string.hpp"
-
 namespace clang
 {
     class ASTUnit;
 }
 
+namespace binder
+{
+    class string;
+}
+
 class DeclarationAttributes;
 class TypeAttributes;
 
-class ConfigurationException : public std::runtime_error
-{
-    public:
-    ConfigurationException(std::string msg)
-        : std::runtime_error(msg)
-    { }
-};
-
-std::string readFile(const std::string& filename);
-std::vector<std::string> parseClangArgs(const std::vector<std::string>& config_files);
 void applyConfigToObject(const binder::string* name, clang::ASTUnit* astunit, const DeclarationAttributes* decl_attributes, const TypeAttributes* type_attributes);
 
 #endif // __CONFIGURATION_HPP__
