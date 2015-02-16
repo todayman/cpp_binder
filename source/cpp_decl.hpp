@@ -277,22 +277,23 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
     //typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
 
 #define FORALL_DECLARATIONS(func) \
-func(Function)              \
-func(Namespace)             \
-func(Record)                \
-func(RecordTemplate)        \
-func(Typedef)               \
-func(Enum)                  \
-func(Field)                 \
-func(EnumConstant)          \
-func(Union)                 \
-func(SpecializedRecord)     \
-func(Method)                \
-func(Constructor)           \
-func(Destructor)            \
-func(Argument)              \
-func(Variable)              \
-func(TemplateTypeArgument)  \
+func(Function)                  \
+func(Namespace)                 \
+func(Record)                    \
+func(RecordTemplate)            \
+func(Typedef)                   \
+func(Enum)                      \
+func(Field)                     \
+func(EnumConstant)              \
+func(Union)                     \
+func(SpecializedRecord)         \
+func(Method)                    \
+func(Constructor)               \
+func(Destructor)                \
+func(Argument)                  \
+func(Variable)                  \
+func(TemplateTypeArgument)      \
+func(TemplateNonTypeArgument)   \
 func(Unwrappable)
 
 #define FORWARD_DECL(x) class x##Declaration;
@@ -1242,17 +1243,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return cpp_iter != other.cpp_iter;
         }
 
-        Declaration* operator*();
-        Declaration* operator->()
-        {
-            return operator*();
-        }
-
-        virtual Declaration* get()
-        {
-            return operator*();
-        }
-
         virtual void advance()
         {
             cpp_iter++;
@@ -1262,6 +1252,18 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return (*this) == (*other);
         }
+
+        enum Kind
+        {
+            Type,
+            NonType,
+        };
+
+        virtual Kind getKind();
+
+        virtual TemplateTypeArgumentDeclaration* getType();
+
+        virtual TemplateNonTypeArgumentDeclaration* getNonType();
     };
 
     class TemplateDeclaration /* : virtual public Declaration?*/
@@ -1450,6 +1452,41 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual void visit(DeclarationVisitor& visitor) override
         {
             visitor.visitTemplateTypeArgument(*this);
+        }
+        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
+        {
+        }*/
+
+        virtual void dump() override
+        {
+            _decl->dump();
+        }
+    };
+
+    // TODO is basically the same as VariableDeclarataion
+    class TemplateNonTypeArgumentDeclaration : public Declaration
+    {
+        private:
+        const clang::NonTypeTemplateParmDecl* _decl;
+
+        public:
+        TemplateNonTypeArgumentDeclaration(const clang::NonTypeTemplateParmDecl* d)
+            : _decl(d)
+        { }
+
+        virtual clang::SourceLocation getSourceLocation() const override
+        {
+            return _decl->getLocation();
+        }
+
+        virtual Type* getType() const override
+        {
+            return Type::get(_decl->getType());
+        }
+
+        virtual void visit(DeclarationVisitor& visitor) override
+        {
+            visitor.visitTemplateNonTypeArgument(*this);
         }
         /*virtual void visit(ConstDeclarationVisitor& visitor) const override
         {

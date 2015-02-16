@@ -150,6 +150,7 @@ bool isCXXMethodDecl(const clang::Decl* decl)
     #undef ABSTRACT_DECL
     return CXXMethodKinds.count(decl->getKind()) > 0;
 }
+
 bool isTemplateTypeParmDecl(const clang::Decl* decl)
 {
     // This set is of all the DeclKinds that are subclasses of CXXRecord
@@ -159,7 +160,22 @@ bool isTemplateTypeParmDecl(const clang::Decl* decl)
     static std::unordered_set<int> TemplateTypeParmKinds({
     #include "clang/AST/DeclNodes.inc"
             });
-    #undef CXXMETHOD
+    #undef TEMPLATETYPEPARM
+    #undef DECL
+    #undef ABSTRACT_DECL
+    return TemplateTypeParmKinds.count(decl->getKind()) > 0;
+}
+
+bool isTemplateNonTypeParmDecl(const clang::Decl* decl)
+{
+    // This set is of all the DeclKinds that are subclasses of CXXRecord
+    #define ABSTRACT_DECL(Type)
+    #define DECL(Type, Base)
+    #define NONTYPETEMPLATEPARM(Type, Base)   clang::Decl::Type,
+    static std::unordered_set<int> TemplateTypeParmKinds({
+    #include "clang/AST/DeclNodes.inc"
+            });
+    #undef NONTYPETEMPLATEPARM
     #undef DECL
     #undef ABSTRACT_DECL
     return TemplateTypeParmKinds.count(decl->getKind()) > 0;
@@ -309,8 +325,28 @@ Superclass* SuperclassIterator::operator*()
 
     return result;
 }
-Declaration* TemplateArgumentIterator::operator*()
+
+TemplateArgumentIterator::Kind TemplateArgumentIterator::getKind()
 {
+    const clang::NamedDecl* decl = *cpp_iter;
+    if (isTemplateTypeParmDecl(decl))
+    {
+        return TemplateArgumentIterator::Type;
+    }
+    else if (isTemplateNonTypeParmDecl(decl))
+    {
+        return TemplateArgumentIterator::NonType;
+    }
+    else
+    {
+        throw std::logic_error("Unhandled template argument type.");
+    }
+}
+
+TemplateTypeArgumentDeclaration* TemplateArgumentIterator::getType()
+{
+    assert(getKind() == TemplateArgumentIterator::Type);
+
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
@@ -318,8 +354,23 @@ Declaration* TemplateArgumentIterator::operator*()
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
-    return decl;
+    return dynamic_cast<TemplateTypeArgumentDeclaration*>(decl);
 }
+
+TemplateNonTypeArgumentDeclaration* TemplateArgumentIterator::getNonType()
+{
+    assert(getKind() == TemplateArgumentIterator::NonType);
+
+    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        (*cpp_iter)->dump();
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    return dynamic_cast<TemplateNonTypeArgumentDeclaration*>(decl);
+}
+
 SpecializedRecordDeclaration* SpecializedRecordIterator::operator*()
 {
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
@@ -331,30 +382,6 @@ SpecializedRecordDeclaration* SpecializedRecordIterator::operator*()
     Declaration* decl = search_result->second;
     SpecializedRecordDeclaration* result = dynamic_cast<SpecializedRecordDeclaration*>(decl);
     return result;
-}
-
-bool hasTemplateParent(const clang::CXXRecordDecl * parent_record)
-{
-    while(!parent_record->isTemplateDecl() && !parent_record->getDescribedClassTemplate())
-    {
-        const clang::DeclContext * parent_context = parent_record->getParent();
-        if( parent_context->isRecord() )
-        {
-            const clang::TagDecl * parent_decl = clang::TagDecl::castFromDeclContext(parent_context);
-            if( parent_decl->getKind() == clang::Decl::CXXRecord )
-            {
-                parent_record = static_cast<const clang::CXXRecordDecl*>(parent_decl);
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else {
-            return false;
-        }
-    }
-    return true;
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
@@ -701,7 +728,6 @@ bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
 bool DeclVisitor::WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
 {
     allocateDeclaration<clang::TemplateTypeParmDecl, TemplateTypeArgumentDeclaration>(cppDecl);
-
     return Super::WalkUpFromTemplateTypeParmDecl(cppDecl);
 }
 
@@ -716,8 +742,8 @@ bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl
 
 bool DeclVisitor::WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl)
 {
-    allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
-    return false;
+    allocateDeclaration<clang::NonTypeTemplateParmDecl, TemplateNonTypeArgumentDeclaration>(cppDecl);
+    return Super::WalkUpFromNonTypeTemplateParmDecl(cppDecl);
 }
 
 bool DeclVisitor::WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl)

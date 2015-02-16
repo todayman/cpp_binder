@@ -418,6 +418,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         override extern(C++) public void visitUnwrappable(unknown.UnwrappableDeclaration node) { }
 
         override extern(C++) public void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration node) { }
+
+        override extern(C++) public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node) { }
         // END BlackHole workaround
 
         public bool result;
@@ -577,14 +579,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         // Find the superclasses of this interface
         translateAllBaseClasses(cppDecl, result);
-
-        if (cppDecl.getTemplateArgumentCount() > 0)
-        {
-            // This cast always succeeds because we know there are template
-            // arguments.
-            auto templateDecl = cast(unknown.RecordTemplateDeclaration)cppDecl;
-            result.templateParameters = translateTemplateParameters(templateDecl);
-        }
 
         result.structBody = new StructBody();
         translateAllMethods!(VirtualBehavior.ALLOWED)(cppDecl, result);
@@ -1015,6 +1009,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto result = new std.d.ast.TemplateTypeParameter();
         result.identifier = nameFromDecl(cppDecl);
+        // TODO default values
         makeSymbolForDecl(cppDecl, result.identifier, null, null, "");
         return result;
     }
@@ -1022,6 +1017,36 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
     {
         throw new Exception("Attempting to translate a template type argument not via the template itself.");
+    }
+
+    std.d.ast.TemplateValueParameter translateTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
+    {
+        auto result = new std.d.ast.TemplateValueParameter();
+        result.type = translateType(cppDecl.getType(), QualifierSet.init);
+        result.identifier = nameFromDecl(cppDecl);
+        // TODO default values
+        makeSymbolForDecl(cppDecl, result.identifier, null, null, "");
+        return result;
+    }
+    extern(C++) override void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
+    {
+        throw new Exception("Attempting to translate a template type argument not via the template itself.");
+    }
+
+    std.d.ast.TemplateParameter translateTemplateArgument(unknown.TemplateArgumentIterator iter)
+    {
+        auto result = new std.d.ast.TemplateParameter();
+        final switch (iter.getKind())
+        {
+            case unknown.TemplateArgumentIterator.Kind.Type:
+                result.templateTypeParameter = translateTemplateTypeArgument(iter.getType());
+                break;
+            case unknown.TemplateArgumentIterator.Kind.NonType:
+                result.templateValueParameter = translateTemplateNonTypeArgument(iter.getNonType());
+                break;
+        }
+
+        return result;
     }
 
     std.d.ast.TemplateParameters translateTemplateParameters(Declaration)(Declaration cppDecl)
@@ -1034,9 +1059,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              !iter.equals(end);
              iter.advance() )
         {
-            // TODO only translating types for now
-            auto current = new std.d.ast.TemplateParameter();
-            current.templateTypeParameter = translateTemplateTypeArgument(cast(unknown.TemplateTypeArgumentDeclaration)iter.get());
+            auto current = translateTemplateArgument(iter);
             result.templateParameterList.items ~= [current];
         }
 

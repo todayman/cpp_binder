@@ -378,6 +378,8 @@ extern (C++) interface DeclarationVisitor
 
     public void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration node);
 
+    public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node);
+
     public void visitUnwrappable(unknown.UnwrappableDeclaration node);
 }
 
@@ -580,11 +582,21 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 extern (C++) interface TemplateArgumentIterator
 {
 
-    public unknown.Declaration get();
-
     public void advance();
 
     public bool equals(unknown.TemplateArgumentIterator other);
+
+    public unknown.TemplateArgumentIterator.Kind getKind();
+
+    public unknown.TemplateTypeArgumentDeclaration getType();
+
+    public unknown.TemplateNonTypeArgumentDeclaration getNonType();
+
+    enum Kind
+    {
+        Type,
+        NonType,
+    }
 }
 
 extern (C++) interface TemplateDeclaration
@@ -640,6 +652,8 @@ extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration
 
     final public unknown.TemplateArgumentType getTemplateArgumentType() const;
 }
+
+extern (C++) interface TemplateNonTypeArgumentDeclaration : unknown.Declaration {}
 
 extern (C++) interface UnwrappableDeclaration : unknown.Declaration {}
 
