@@ -18,7 +18,6 @@ find_library(LLVM_SUPPORT_LIBRARY_PATH LLVMSupport /usr/lib/llvm-3.5/lib/)
 find_library(PTHREADS_LIBRARY_PATH pthread)
 find_library(DL_LIBRARY_PATH dl)
 find_library(NCURSES_LIBRARY_PATH ncursesw)
-find_library(YAJL_LIBRARY_PATH yajl)
 find_library(BOOST_FILESYSTEM_LIBRARY_PATH boost_filesystem)
 find_library(BOOST_SYSTEM_LIBRARY_PATH boost_system)
 

@@ -22,8 +22,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "yajl/yajl_tree.h"
-
 #include "clang/Frontend/ASTUnit.h"
 
 #include "configuration.hpp"

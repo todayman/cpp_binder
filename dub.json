@@ -7,7 +7,6 @@
     , "targetType": "executable"
 	, "dependencies": {
         "libdparse": "~master"
-      , "yajl": "~>0.2.0"
 	}
     , "preBuildCommands": [
         "mkdir -p build"

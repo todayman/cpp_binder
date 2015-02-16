@@ -29,6 +29,8 @@ extern (C++) interface TypeAttributes
 
     static public TypeAttributes make();
 
+    public unknown.Strategy getStrategy() const;
+
     public void setStrategy(unknown.Strategy s);
 
     public void setTargetName(binder.binder.string new_target);

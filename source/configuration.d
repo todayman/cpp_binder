@@ -20,11 +20,11 @@ module configuration;
 
 import std.algorithm : map;
 import std.conv : to;
+import std.exception : enforce;
 import std.file;
+import std.json;
 import std.string : toStringz, fromStringz, toLower;
 import std.c.string;
-
-import yajl.c.tree;
 
 static import binder;
 static import unknown;
@@ -40,7 +40,7 @@ class ConfigurationException : Exception
 
 class ExpectedObject : ConfigurationException
 {
-    this(const yajl_val_s*)
+    this(in JSONValue)
     {
         super("Expected JSON object, got something like number, array, etc.");
     }
@@ -48,7 +48,7 @@ class ExpectedObject : ConfigurationException
 
 class ExpectedInteger : ConfigurationException
 {
-    this(const yajl_val_s*)
+    this(in JSONValue)
     {
         super("Expected JSON integer, got something like object, array, etc.");
     }
@@ -56,7 +56,7 @@ class ExpectedInteger : ConfigurationException
 
 class ExpectedArray : ConfigurationException
 {
-    this(const yajl_val_s*)
+    this(in JSONValue)
     {
         super("Expected JSON array, got something like number, object, etc.");
     }
@@ -64,7 +64,7 @@ class ExpectedArray : ConfigurationException
 
 class ExpectedString : ConfigurationException
 {
-    this(const yajl_val_s*)
+    this(in JSONValue)
     {
         super("Expected JSON string, got something like number, object, etc.");
     }
@@ -73,11 +73,11 @@ class ExpectedString : ConfigurationException
 class ExpectedNObjects : ConfigurationException
 {
     public:
-    this(ref const(yajl_val_s) container, size_t expected_count)
+    this(in JSONValue container, size_t expected_count)
     {
         super("Dummy");
         msg = "Expected an object with " ~ to!string(expected_count) ~
-            " elements, but found " ~ to!string(container.object.len) ~
+            " elements, but found " ~ to!string(container.object.length) ~
             " instead.";
     }
 }
@@ -94,7 +94,7 @@ class UnknownVisibility : ConfigurationException
 
 class ExpectedDDecl : ConfigurationException
 {
-    public this(ref const(yajl_val_s))
+    public this(in JSONValue)
     {
         super("Expected a \"d_decl\" entry for the REPLACE translation strategy.");
     }
@@ -113,65 +113,25 @@ string readFile(string filename)
     return cast(string)read(filename);
 }
 
-bool YAJL_IS_OBJECT(const yajl_val val)
-{
-    return val.type == yajl_type.yajl_t_object;
-}
-
-bool YAJL_IS_ARRAY(const yajl_val val)
-{
-    return val.type == yajl_type.yajl_t_array;
-}
-
-bool YAJL_IS_STRING(const yajl_val val)
-{
-    return val.type == yajl_type.yajl_t_string;
-}
-
-bool YAJL_IS_INTEGER(const yajl_val val)
-{
-    return val.type == yajl_type.yajl_t_number;
-}
-
-private yajl_val_s * parseJSON(string filename)
+private JSONValue parseJSON(string filename)
 {
     string config_contents = readFile(filename);
-    enum BUFFER_SIZE = 512;
-    char[BUFFER_SIZE] error_buffer;
 
-    yajl_val tree_root = yajl_tree_parse(toStringz(config_contents), error_buffer.ptr, BUFFER_SIZE);
-    if (!tree_root)
-    {
-        throw new ConfigurationException(error_buffer.idup);
-    }
-
-    if (!YAJL_IS_OBJECT(tree_root))
-    {
-        throw new ExpectedObject(tree_root);
-    }
-
-    return tree_root;
+    return std.json.parseJSON(config_contents);
 }
 
-private void applyRootObjectForClang(ref yajl_val_s obj, ref string[] clang_args)
+private void applyRootObjectForClang(in JSONValue obj, ref string[] clang_args)
 {
-    for (size_t idx = 0; idx < obj.object.len; ++idx)
+    enforce(obj.type == JSON_TYPE.OBJECT);
+    foreach (name, sub_obj; obj.object)
     {
-        ulong length = strlen(obj.object.keys[idx]);
-        string name = obj.object.keys[idx][0 .. length].idup;
-        const yajl_val_s* sub_obj = obj.object.values[idx];
-        if( !sub_obj )
-        {
-            throw new ExpectedObject(null);
-        }
-
         if (name == "clang_args")
         {
-            if (!YAJL_IS_ARRAY(sub_obj))
+            if (sub_obj.type != JSON_TYPE.ARRAY)
             {
                 throw new ExpectedArray(sub_obj);
             }
-            collectClangArguments(*sub_obj, clang_args);
+            collectClangArguments(sub_obj, clang_args);
         }
         else if (name == "binding_attributes")
         {
@@ -183,29 +143,25 @@ private void applyRootObjectForClang(ref yajl_val_s obj, ref string[] clang_args
     }
 }
 
-private void collectClangArguments(const ref yajl_val_s obj, ref string[] clang_args)
-{
-    for( size_t idx = 0; idx < obj.array.len; ++idx )
+private void collectClangArguments(in JSONValue obj, ref string[] clang_args)
+in {
+    assert(obj.type == JSON_TYPE.ARRAY);
+}
+body {
+    foreach (ref const sub_obj; obj.array)
     {
-        const yajl_val_s* sub_obj = obj.array.values[idx];
-        if (!sub_obj)
-        {
-            throw new ExpectedString(null);
-        }
-
-        if (!YAJL_IS_STRING(sub_obj))
+        if (sub_obj.type != JSON_TYPE.STRING)
         {
             throw new ExpectedString(sub_obj);
         }
-        ulong length = strlen(sub_obj.string);
-        clang_args ~= sub_obj.string[0 .. length].idup;
+        clang_args ~= sub_obj.str;
     }
 }
 
 private void applyClangConfig(string filename, ref string[] clang_args)
 {
-    yajl_val_s * tree_root = parseJSON(filename);
-    applyRootObjectForClang(*tree_root, clang_args);
+    JSONValue tree_root = parseJSON(filename);
+    applyRootObjectForClang(tree_root, clang_args);
 }
 
 string[] parseClangArgs(string[] config_files)
@@ -230,35 +186,25 @@ void parseAndApplyConfiguration(string[] config_files, clang.ASTUnit* astunit)
 
 private void applyConfigFromFile(string filename, clang.ASTUnit* astunit)
 {
-    yajl_val_s* tree_root = parseJSON(filename);
-    applyRootObjectForAttributes(*tree_root, astunit);
+    JSONValue tree_root = parseJSON(filename);
+    applyRootObjectForAttributes(tree_root, astunit);
 }
 
-private void applyRootObjectForAttributes(ref const(yajl_val_s) obj, clang.ASTUnit* astunit)
+private void applyRootObjectForAttributes(in JSONValue obj, clang.ASTUnit* astunit)
 {
-    foreach (size_t idx; 0 .. obj.object.len)
+    foreach (name, ref const sub_obj; obj.object)
     {
-        ulong length = strlen(obj.object.keys[idx]);
-        // TODO can probably avoid dup-ing the string
-        string name = obj.object.keys[idx][0 .. length].idup;
-        const yajl_val_s* sub_obj = obj.object.values[idx];
-
-        if (!sub_obj)
-        {
-            throw new ExpectedObject(null);
-        }
-
         if (name == "clang_args")
         {
             continue;
         }
         else if (name == "binding_attributes")
         {
-            if (!YAJL_IS_OBJECT(sub_obj))
+            if (sub_obj.type != JSON_TYPE.OBJECT)
             {
                 throw new ExpectedObject(sub_obj);
             }
-            applyConfigToObjectMap(*sub_obj, astunit);
+            applyConfigToObjectMap(sub_obj, astunit);
         }
         else
         {
@@ -267,71 +213,56 @@ private void applyRootObjectForAttributes(ref const(yajl_val_s) obj, clang.ASTUn
     }
 }
 
-private void applyConfigToObjectMap(ref const yajl_val_s obj, clang.ASTUnit* astunit)
+private void applyConfigToObjectMap(in JSONValue obj, clang.ASTUnit* astunit)
 {
-    foreach (size_t idx; 0 .. obj.object.len)
+    foreach (name, ref const sub_obj; obj.object)
     {
-        ulong length = strlen(obj.object.keys[idx]);
-        // TODO can probably avoid dup-ing the string
-        string name = obj.object.keys[idx][0 .. length].idup;
-        const yajl_val_s* sub_obj = obj.object.values[idx];
-
-        if (!sub_obj || !YAJL_IS_OBJECT(sub_obj))
+        if (sub_obj.type != JSON_TYPE.OBJECT)
         {
-            throw new ExpectedObject(null);
+            throw new ExpectedObject(sub_obj);
         }
         
         unknown.DeclarationAttributes decl_attributes = unknown.DeclarationAttributes.make();
         unknown.TypeAttributes type_attributes = unknown.TypeAttributes.make();
 
-        parseAttributes(*sub_obj, &decl_attributes, &type_attributes);
+        parseAttributes(sub_obj, &decl_attributes, &type_attributes);
 
         unknown.applyConfigToObject(binder.toBinderString(name), astunit, decl_attributes, type_attributes);
     }
 }
 
-private void parseAttributes(ref const yajl_val_s obj, unknown.DeclarationAttributes* decl_attributes, unknown.TypeAttributes* type_attributes)
-in {
-    assert(YAJL_IS_OBJECT(&obj));
-}
-body {
-    foreach (size_t idx; 0 .. obj.object.len)
+private void parseAttributes(in JSONValue obj, unknown.DeclarationAttributes* decl_attributes, unknown.TypeAttributes* type_attributes)
+{
+    foreach (attrib_name, ref const sub_obj; obj.object)
     {
-        ulong length = strlen(obj.object.keys[idx]);
-        // TODO can probably avoid dup-ing the string
-        string attrib_name = obj.object.keys[idx][0 .. length].idup;
-        const yajl_val_s* sub_obj = obj.object.values[idx];
-
         // TODO get these string constants out of here
         // TODO change to a hash table of functions??
         if (attrib_name == "bound" )
         {
             // FIXME bools might come through as strings
-            if (!YAJL_IS_INTEGER(sub_obj))
+            if (sub_obj.type != JSON_TYPE.INTEGER)
             {
                 throw new ExpectedInteger(sub_obj);
             }
-            decl_attributes.setBound(to!bool(sub_obj.number.i));
+            decl_attributes.setBound(to!bool(sub_obj.integer));
         }
         else if (attrib_name == "target_module")
         {
-            if (!YAJL_IS_STRING(sub_obj))
+            if (sub_obj.type != JSON_TYPE.STRING)
             {
                 throw new ExpectedString(sub_obj);
             }
-            // TODO kill the idup
-            string str = fromStringz(sub_obj.string).idup;
-            decl_attributes.setTargetModule(binder.toBinderString(str));
-            type_attributes.setTargetModule(binder.toBinderString(str));
+            decl_attributes.setTargetModule(binder.toBinderString(sub_obj.str));
+            type_attributes.setTargetModule(binder.toBinderString(sub_obj.str));
         }
         else if (attrib_name == "visibility")
         {
-            if (!YAJL_IS_STRING(sub_obj))
+            if (sub_obj.type != JSON_TYPE.STRING)
             {
                 throw new ExpectedString(sub_obj);
             }
             // TODO kill the idup
-            string vis_str = fromStringz(sub_obj.string).idup;
+            string vis_str = sub_obj.str;
             vis_str = toLower(vis_str);
             if (vis_str == "private")
             {
@@ -359,21 +290,19 @@ body {
         }
         else if (attrib_name == "remove_prefix")
         {
-            if (!YAJL_IS_STRING(sub_obj))
+            if (sub_obj.type != JSON_TYPE.STRING)
             {
                 throw new ExpectedString(sub_obj);
             }
-            // TODO kill the idup
-            string str = fromStringz(sub_obj.string).idup;
-            decl_attributes.setRemovePrefix(binder.toBinderString(str));
+            decl_attributes.setRemovePrefix(binder.toBinderString(sub_obj.str));
         }
         else if (attrib_name == "strategy")
         {
-            if (!YAJL_IS_OBJECT(sub_obj))
+            if (sub_obj.type != JSON_TYPE.OBJECT)
             {
                 throw new ExpectedObject(sub_obj);
             }
-            readStrategyConfiguration(*sub_obj, type_attributes);
+            readStrategyConfiguration(sub_obj, type_attributes);
         }
         else {
             // throw UnrecognizedAttribute(attrib_name);
@@ -383,45 +312,27 @@ body {
     }
 }
 
-private void readStrategyConfiguration(ref const yajl_val_s container, unknown.TypeAttributes* type_attributes)
+private void readStrategyConfiguration(in JSONValue container, unknown.TypeAttributes* type_attributes)
 {
-    foreach (size_t idx; 0 .. container.object.len)
+    bool setTargetName = false;
+    foreach (name, ref const obj; container.object)
     {
-        if ("name" == fromStringz(container.object.keys[idx]) )
+        if ("name" == name)
         {
-            const yajl_val name_obj = container.object.values[idx];
-            if (!YAJL_IS_STRING(name_obj))
+            if (obj.type != JSON_TYPE.STRING)
             {
-                throw new ExpectedString(name_obj);
+                throw new ExpectedString(obj);
             }
 
-            // TODO kill the idup
-            string name_str = toLower(fromStringz(name_obj.string)).idup;
+            string name_str = obj.str;
             if (name_str == "replace")
             {
-                if (container.object.len != 2)
+                if (container.object.length != 2)
                 {
                     throw new ExpectedNObjects(container, 2);
                 }
 
-                // If this attribute is "replace", then the other must be d_decl
-                // TODO kill the idup
-                string tag_name = fromStringz(container.object.keys[1 - idx]).idup;
-                if ("d_decl" != tag_name)
-                {
-                    throw new ExpectedDDecl(container);
-                }
-
-                const yajl_val target_obj = container.object.values[1 - idx];
-                if (!YAJL_IS_STRING(target_obj))
-                {
-                    throw new ExpectedString(target_obj);
-                }
-
-                // TODO kill the idup
-                string str = fromStringz(target_obj.string).idup;
                 type_attributes.setStrategy(unknown.Strategy.REPLACE);
-                type_attributes.setTargetName(binder.toBinderString(str));
             }
             else if (name_str == "struct")
             {
@@ -440,5 +351,19 @@ private void readStrategyConfiguration(ref const yajl_val_s container, unknown.T
                 type_attributes.setStrategy(unknown.Strategy.OPAQUE_CLASS);
             }
         }
+        else if ("d_decl" == name)
+        {
+            if (obj.type != JSON_TYPE.STRING)
+            {
+                throw new ExpectedString(obj);
+            }
+            type_attributes.setTargetName(binder.toBinderString(obj.str));
+            setTargetName = true;
+        }
+    }
+
+    if (type_attributes.getStrategy() == unknown.Strategy.REPLACE && !setTargetName)
+    {
+        throw new ExpectedDDecl(container);
     }
 }

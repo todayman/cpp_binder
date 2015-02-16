@@ -38,6 +38,11 @@ TypeAttributes* TypeAttributes::make()
     return new TypeAttributes();
 }
 
+Strategy TypeAttributes::getStrategy() const
+{
+    return strategy;
+}
+
 void TypeAttributes::setStrategy(Strategy s)
 {
     strategy = s;

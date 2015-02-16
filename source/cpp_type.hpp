@@ -75,6 +75,7 @@ class TemplateArgumentInstanceIterator;
         // To force this to an interface.
         // The fact that I'm doing this means that there are bugs
         // in my translator :(
+        virtual Strategy getStrategy() const;
         virtual void setStrategy(Strategy s);
         virtual void setTargetName(string* new_target);
         virtual void setTargetModule(string* new_module);
