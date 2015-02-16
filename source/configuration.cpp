@@ -114,7 +114,7 @@ void applyConfigToObject(const binder::string* name, clang::ASTUnit* astunit, co
         if( search_result.first == search_result.second )
         {
             // FIXME better error handling with stuff like localization
-            std::cerr << "WARNING: type " << name << " does not appear in the C++ source.\n";
+            std::cerr << "WARNING: type " << name->c_str() << " does not appear in the C++ source.\n";
             return;
         }
 
