@@ -680,17 +680,6 @@ class TemplateArgumentInstanceIterator;
             return cpp_iter != other.cpp_iter;
         }
 
-        Type* operator*();
-        Type* operator->()
-        {
-            return operator*();
-        }
-
-        virtual Type* get()
-        {
-            return operator*();
-        }
-
         virtual void advance()
         {
             cpp_iter++;
@@ -700,6 +689,16 @@ class TemplateArgumentInstanceIterator;
         {
             return (*this) == (*other);
         }
+
+        enum Kind
+        {
+            Type,
+            Integer, // TODO Merge with generic expressions?
+        };
+
+        virtual Kind getKind();
+        virtual class Type* getType();
+        virtual long long getInteger();
     };
 
 

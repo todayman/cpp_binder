@@ -352,6 +352,7 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
     }
 }
 
+// FIXME duplication with TranslatorVisitor.translateTemplateArguments
 package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
     //deferredTemplates[deferred.answer] = deferred;
@@ -370,7 +371,20 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
             !iter.equals(finish);
             iter.advance(), ++idx )
     {
-        template_symbol.arguments[idx] = translateType(iter.get(), QualifierSet.init);
+        template_symbol.arguments[idx] = new std.d.ast.TemplateArgument();
+        std.d.ast.TemplateArgument current = template_symbol.arguments[idx];
+        final switch (iter.getKind())
+        {
+            case unknown.TemplateArgumentInstanceIterator.Kind.Type:
+                current.type = translateType(iter.getType(), QualifierSet.init);
+                break;
+            case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
+                current.assignExpression = new std.d.ast.AssignExpression();
+                auto constant = new std.d.ast.PrimaryExpression();
+                constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
+                current.assignExpression.assignExpression = constant;
+                break;
+        }
     }
     auto deferred = new DeferredSymbolConcatenation(template_symbol);
     symbolForType[cast(void*)cppType] = deferred;
@@ -803,7 +817,7 @@ class DeferredTemplateInstantiation : DeferredSymbol
     std.d.ast.Symbol templateName;
     // TODO non-type arguments
     // Check out std.d.ast.TemplateArgument
-    std.d.ast.Type[] arguments;
+    std.d.ast.TemplateArgument[] arguments;
 
     this() pure
     {
@@ -833,12 +847,7 @@ class DeferredTemplateInstantiation : DeferredSymbol
         auto temp_arg_list = templateInstance.templateArguments.templateArgumentList;
         temp_arg_list.items.length = arguments.length;
 
-        foreach (idx, sym; arguments)
-        {
-            auto arg = new std.d.ast.TemplateArgument();
-            arg.type = sym;
-            temp_arg_list.items[idx] = arg;
-        }
+        temp_arg_list.items[] = arguments[];
         resolved = true;
     }
 }

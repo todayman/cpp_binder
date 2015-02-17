@@ -233,11 +233,21 @@ extern (C++) interface DelayedType : unknown.Type
 extern (C++) interface TemplateArgumentInstanceIterator
 {
 
-    public unknown.Type get();
-
     public void advance();
 
     public bool equals(unknown.TemplateArgumentInstanceIterator other);
+
+    enum Kind
+    {
+        Type,
+        Integer,
+    }
+
+    public unknown.TemplateArgumentInstanceIterator.Kind getKind();
+
+    public unknown.Type getType();
+
+    public long getInteger();
 }
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException

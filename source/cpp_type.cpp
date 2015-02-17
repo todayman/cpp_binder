@@ -412,11 +412,31 @@ Type* DelayedType::resolveType() const
     return nullptr;
 }
 
-Type* TemplateArgumentInstanceIterator::operator*()
+TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind()
+{
+    switch (cpp_iter->getKind())
+    {
+        case clang::TemplateArgument::Type:
+            return Type;
+        case clang::TemplateArgument::Integral:
+            return Integer;
+        default:
+            throw std::logic_error("Cannot handle other kinds of template arguments besides Type and Integral.");
+    }
+}
+
+Type* TemplateArgumentInstanceIterator::getType()
 {
     assert(cpp_iter->getKind() == clang::TemplateArgument::Type);
 
     return Type::get(cpp_iter->getAsType());
+}
+
+long long TemplateArgumentInstanceIterator::getInteger()
+{
+    assert(cpp_iter->getKind() == clang::TemplateArgument::Integral);
+
+    return cpp_iter->getAsIntegral().getSExtValue();
 }
 
 ClangTypeVisitor::ClangTypeVisitor(const clang::PrintingPolicy* pp)

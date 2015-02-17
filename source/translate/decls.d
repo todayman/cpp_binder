@@ -1077,9 +1077,19 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
              !iter.equals(end);
              iter.advance() )
         {
-            // TODO only translating types for now
             auto current = new std.d.ast.TemplateArgument();
-            current.type = translateType(iter.get(), QualifierSet.init);
+            final switch (iter.getKind())
+            {
+                case unknown.TemplateArgumentInstanceIterator.Kind.Type:
+                    current.type = translateType(iter.getType(), QualifierSet.init);
+                    break;
+                case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
+                    current.assignExpression = new std.d.ast.AssignExpression();
+                    auto constant = new std.d.ast.PrimaryExpression();
+                    constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
+                    current.assignExpression.assignExpression = constant;
+                    break;
+            }
             result.templateArgumentList.items ~= [current];
         }
 
