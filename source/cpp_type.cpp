@@ -543,6 +543,13 @@ bool ClangTypeVisitor::WalkUpFromIncompleteArrayType(clang::IncompleteArrayType*
     return Super::WalkUpFromIncompleteArrayType(type);
 }
 
+bool ClangTypeVisitor::WalkUpFromDependentSizedArrayType(clang::DependentSizedArrayType* type)
+{
+    allocateInvalidType(clang::QualType(type, 0));
+    return false;
+}
+
+
 WALK_UP_METHOD(Function)
 bool ClangTypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 {

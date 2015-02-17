@@ -762,6 +762,7 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromMemberPointerType(clang::MemberPointerType* type);
         bool WalkUpFromPackExpansionType(clang::PackExpansionType* type);
         bool WalkUpFromRValueReferenceType(clang::RValueReferenceType* type);
+        bool WalkUpFromDependentSizedArrayType(clang::DependentSizedArrayType* type);
 
         // Template types we can handle
         bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
