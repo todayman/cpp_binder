@@ -88,11 +88,7 @@ package void determineStrategy(unknown.Type cppType)
             determineRecordStrategy(cppType);
         }
 
-        override extern(C++) void visit(unknown.ArrayType cppType)
-        {
-            // TODO not implemented yet
-            throw new Error("Don't know how to choose a strategy for Array types. Implement me!");
-        }
+        mixin Replace!(unknown.ArrayType);
 
         override extern(C++) void visit(unknown.VectorType cppType)
         {
@@ -225,8 +221,7 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
 
                 extern(C++) void visit(unknown.ArrayType cppType)
                 {
-                    // TODO
-                    throw new Error("replaceType on Arrays is not implemented yet.");
+                    result = replaceArray(cppType, qualifiers);
                 }
 
                 extern(C++) void visit(unknown.VectorType cppType)
@@ -572,6 +567,59 @@ private std.d.ast.Type replaceFunction(unknown.FunctionType)
     // Needed for translating function types, but not declarations,
     // so I'm putting it off until later
     throw new Error("Translation of function types is not implemented yet.");
+}
+
+private std.d.ast.Type replaceArray(unknown.ArrayType cppType, QualifierSet qualifiers)
+{
+    auto result = new std.d.ast.Type();
+    unknown.Type element_type = cppType.getElementType();
+    // If a strategy is already picked, then this returns immediately
+    determineStrategy(element_type);
+
+    if (element_type.isReferenceType())
+    {
+        throw new Exception("ERROR: Do not know how to translate a variable length array of reference types.");
+    }
+
+    std.d.ast.Type translatedElementType = translateType(element_type, qualifiers).clone;
+    if (cppType.isFixedLength())
+    {
+        TypeSuffix arraySuffix = new TypeSuffix();
+        arraySuffix.array = true;
+        // FIXME duplication with translateEnumConstant
+        arraySuffix.low = new std.d.ast.AssignExpression();
+        auto constant = new std.d.ast.PrimaryExpression();
+
+        constant.primary = Token(tok!"longLiteral", to!string(cppType.getLength()), 0, 0, 0);
+        arraySuffix.low.assignExpression = constant;
+        result.typeSuffixes = [arraySuffix];
+    }
+    else
+    {
+        // FIXME copy-pasted from replacePointerOrReference
+        TypeSuffix pointerSuffix = new TypeSuffix();
+        pointerSuffix.star = Token(tok!"*", "", 0, 0, 0);
+        result.typeSuffixes = [pointerSuffix];
+    }
+
+    if (translatedElementType.typeConstructors.length > 0)
+    {
+        result.type2 = new Type2();
+        result.type2.typeConstructor = translatedElementType.typeConstructors[0];
+        translatedElementType.typeConstructors = translatedElementType.typeConstructors[1 .. $];
+        result.type2.type = translatedElementType;
+    }
+    else
+    {
+        // FIXME potentially does many concatenations; there should be a way
+        // to build them all into the same array.
+        // But this probably won't be a real problem, because
+        // how deep do people's types actually go? (Don't answer that!)
+        result.typeSuffixes ~= translatedElementType.typeSuffixes;
+        result.type2 = translatedElementType.type2;
+    }
+
+    return result;
 }
 
 // Qualifiers are the qualifiers that have already been applied to the type.

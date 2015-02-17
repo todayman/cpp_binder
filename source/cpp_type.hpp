@@ -460,14 +460,12 @@ class TemplateArgumentInstanceIterator;
         virtual void dump() const override;
     };
 
+    // Arrays always have fixed size; if they don't, then they're pointers
     class ArrayType : public Type
     {
-        protected:
-        const clang::ArrayType* type;
-
         public:
-        explicit ArrayType(const clang::ArrayType* t)
-            : Type(Type::Array), type(t)
+        explicit ArrayType()
+            : Type(Type::Array)
         { }
 
         virtual bool isReferenceType() const override
@@ -479,7 +477,48 @@ class TemplateArgumentInstanceIterator;
         {
             visitor.visit(*this);
         }
+
+        virtual bool isFixedLength() = 0;
+        // FIXME should probably not be in the superclass,
+        // but it avoids downcasting later
+        virtual long long getLength() = 0;
+        virtual Type* getElementType() = 0;
+    };
+
+    class ConstantArrayType : public ArrayType
+    {
+        protected:
+        const clang::ConstantArrayType* type;
+
+        public:
+        explicit ConstantArrayType(const clang::ConstantArrayType* t)
+            : ArrayType(), type(t)
+        { }
+
         virtual void dump() const override;
+
+        virtual Type* getElementType() override;
+
+        virtual bool isFixedLength() override;
+        virtual long long getLength() override;
+    };
+
+    class VariableArrayType : public ArrayType
+    {
+        protected:
+        const clang::IncompleteArrayType* type;
+
+        public:
+        explicit VariableArrayType(const clang::IncompleteArrayType* t)
+            : ArrayType(), type(t)
+        { }
+
+        virtual void dump() const override;
+
+        virtual Type* getElementType() override;
+
+        virtual bool isFixedLength() override;
+        virtual long long getLength() override;
     };
 
     class FunctionType : public Type
@@ -699,7 +738,8 @@ class TemplateArgumentInstanceIterator;
         bool WalkUpFromPointerType(clang::PointerType * type);
         bool WalkUpFromLValueReferenceType(clang::LValueReferenceType * type);
         bool WalkUpFromRecordType(clang::RecordType * type);
-        bool WalkUpFromArrayType(clang::ArrayType * type);
+        bool WalkUpFromConstantArrayType(clang::ConstantArrayType * type);
+        bool WalkUpFromIncompleteArrayType(clang::IncompleteArrayType * type);
         bool WalkUpFromFunctionType(clang::FunctionType * type);
         bool WalkUpFromTypedefType(clang::TypedefType * type);
         bool WalkUpFromVectorType(clang::VectorType * type);

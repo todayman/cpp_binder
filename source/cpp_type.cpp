@@ -18,6 +18,7 @@
 
 #include <array>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
@@ -307,6 +308,39 @@ UnionDeclaration * UnionType::getUnionDeclaration() const
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
 }
 
+Type* ConstantArrayType::getElementType()
+{
+    return Type::get(type->getElementType());
+}
+
+bool ConstantArrayType::isFixedLength()
+{
+    return true;
+}
+
+long long ConstantArrayType::getLength()
+{
+    std::istringstream strm(type->getSize().toString(10, true));
+    long long result;
+    strm >> result;
+    return result;
+}
+
+Type* VariableArrayType::getElementType()
+{
+    return Type::get(type->getElementType());
+}
+
+bool VariableArrayType::isFixedLength()
+{
+    return false;
+}
+
+long long VariableArrayType::getLength()
+{
+    throw std::logic_error("Asked for the length of a variable length area.");
+}
+
 bool QualifiedType::isReferenceType() const
 {
     return unqualifiedType()->isReferenceType();
@@ -361,7 +395,8 @@ DUMP_METHOD(Reference)
 DUMP_METHOD(Typedef)
 DUMP_METHOD(Enum)
 DUMP_METHOD(Union)
-DUMP_METHOD(Array)
+DUMP_METHOD(ConstantArray)
+DUMP_METHOD(VariableArray)
 DUMP_METHOD(Function)
 void QualifiedType::dump() const
 {
@@ -475,7 +510,19 @@ bool ClangTypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
 }
 WALK_UP_METHOD(Builtin)
 WALK_UP_METHOD(Pointer)
-WALK_UP_METHOD(Array)
+
+bool ClangTypeVisitor::WalkUpFromConstantArrayType(clang::ConstantArrayType* type)
+{
+    allocateType<ConstantArrayType>(type);
+    return Super::WalkUpFromConstantArrayType(type);
+}
+
+bool ClangTypeVisitor::WalkUpFromIncompleteArrayType(clang::IncompleteArrayType* type)
+{
+    allocateType<VariableArrayType>(type);
+    return Super::WalkUpFromIncompleteArrayType(type);
+}
+
 WALK_UP_METHOD(Function)
 bool ClangTypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 {

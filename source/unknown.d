@@ -176,7 +176,19 @@ extern (C++) interface UnionType : unknown.Type
     final public unknown.UnionDeclaration getUnionDeclaration() const;
 }
 
-extern (C++) interface ArrayType : unknown.Type {}
+extern (C++) interface ArrayType : unknown.Type
+{
+
+    public bool isFixedLength();
+
+    public long getLength();
+
+    public unknown.Type getElementType();
+}
+
+extern (C++) interface ConstantArrayType : unknown.ArrayType {}
+
+extern (C++) interface VariableArrayType : unknown.ArrayType {}
 
 extern (C++) interface FunctionType : unknown.Type {}
 
