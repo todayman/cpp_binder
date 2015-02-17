@@ -31,13 +31,13 @@ bool parse_args(string[] argv, out CLIArguments args)
 {
     bool setOutput = false;
 
-    if (argv.length == 2 && argv[1][0] == '@')
+    if (argv.length == 3 && argv[1] == "--")
     {
         import std.algorithm : map, splitter;
         import std.array : array;
         import std.file : read, FileException;
         try {
-            argv = [""] ~ (cast(const char[])read(argv[1][1 .. $])).splitter.map!idup.array;
+            argv = [""] ~ (cast(const char[])read(argv[2])).splitter.map!idup.array;
         }
         catch (FileException e)
         {
