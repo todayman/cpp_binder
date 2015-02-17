@@ -460,8 +460,6 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
         // Type::unqualifiedType()
         unqual.removeLocalConst();
         result = TraverseType(unqual);
-
-        return result;
     }
     else if (type.getTypePtrOrNull() == nullptr)
     {
@@ -469,6 +467,14 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
         type.dump();
         allocateInvalidType(type);
         result = true;
+    }
+    else if (type.isLocalRestrictQualified())
+    {
+        // restrict is (I think) just an optimization
+        clang::QualType unqual = type;
+        unqual.removeLocalRestrict();
+        result = TraverseType(unqual);
+        Type::type_map.insert(std::make_pair(type, Type::get(unqual)));
     }
     else if (!type.getQualifiers().empty())
     {
@@ -548,7 +554,6 @@ bool ClangTypeVisitor::WalkUpFromDependentSizedArrayType(clang::DependentSizedAr
     allocateInvalidType(clang::QualType(type, 0));
     return false;
 }
-
 
 WALK_UP_METHOD(Function)
 bool ClangTypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
