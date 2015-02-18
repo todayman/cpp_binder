@@ -268,35 +268,29 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         IdentifierChain this_package_name = mod.moduleDeclaration.moduleName;
         string package_name_string = this_package_name.identifiers.map!(t => t.text).join(".");
 
-        for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
-                children_end = cppDecl.getChildEnd();
-             !children_iter.equals(children_end);
-             children_iter.advance())
+        foreach (child; cppDecl.getChildren())
         {
-            if (!children_iter.get().isTargetModuleSet())
+            if (!child.isTargetModuleSet())
             {
                 // FIXME someday, use an IdentifierChain here
-                children_iter.get().setTargetModule(binder.toBinderString(package_name_string));
+                child.setTargetModule(binder.toBinderString(package_name_string));
             }
         }
 
         // This is the translated name, but really I want the C++ name
         string this_namespace_path = namespace_path ~ "::" ~ this_package_name.identifiers[$-1].text;
         // visit and translate all of the children
-        for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
-                children_end = cppDecl.getChildEnd();
-             !children_iter.equals(children_end);
-             children_iter.advance())
+        foreach (child; cppDecl.getChildren())
         {
             try {
                 TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, null);
-                children_iter.get().visit(subpackage_visitor);
+                child.visit(subpackage_visitor);
 
-                placeIntoTargetModule(children_iter.get(), subpackage_visitor.last_result);
+                placeIntoTargetModule(child, subpackage_visitor.last_result);
             }
             catch (Exception exc)
             {
-                children_iter.get().dump();
+                child.dump();
                 stderr.writeln("ERROR: ", exc.msg);
             }
         }
@@ -435,7 +429,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             if (binder.toDString(inner.getSourceName()) != binder.toDString(outer.getSourceName()))
                 return;
 
-            if (inner.getChildBegin().equals(inner.getChildEnd()))
+            if (inner.getChildren().empty())
                 result = true;
         }
 
@@ -467,24 +461,21 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         (SubdeclarationVisitor, TargetDeclaration)
         (unknown.RecordDeclaration cppDecl, TargetDeclaration result)
     {
-        for (unknown.DeclarationIterator iter = cppDecl.getChildBegin(),
-                finish = cppDecl.getChildEnd();
-            !iter.equals(finish);
-            iter.advance())
+        foreach (child; cppDecl.getChildren())
         {
-            if (cast(void*)iter.get() in translated)
+            if (cast(void*)child in translated)
             {
                 continue;
             }
             try {
                 // FIXME the check for whether or not to bind shouldn't be made
                 // everywhere; there should be a good, common place for it
-                if (isEmptyDuplicateStructThingy(cppDecl, iter.get()) || !iter.get().getShouldBind())
+                if (isEmptyDuplicateStructThingy(cppDecl, child) || !child.getShouldBind())
                 {
                     continue;
                 }
                 auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path[$-1]);
-                unknown.Declaration decl = iter.get();
+                unknown.Declaration decl = child;
                 decl.visit(visitor);
                 if (visitor.last_result)
                 {
@@ -493,7 +484,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             catch (Exception e)
             {
-                iter.get().dump();
+                child.dump();
                 stderr.writeln("ERROR: ", e.msg);
             }
         }
@@ -720,12 +711,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         //}
 
         // visit and translate all of the constants
-        for (unknown.DeclarationIterator children_iter = cppDecl.getChildBegin(),
-                children_end = cppDecl.getChildEnd();
-             !children_iter.equals(children_end);
-             children_iter.advance() )
+        foreach (child; cppDecl.getChildren())
         {
-            unknown.EnumConstantDeclaration constant = cast(unknown.EnumConstantDeclaration)children_iter.get();
+            unknown.EnumConstantDeclaration constant = cast(unknown.EnumConstantDeclaration)child;
             if (constant is null)
             {
                 stdout.write("Error translating enum constant.\n");

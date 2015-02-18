@@ -250,7 +250,7 @@ TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
     return dynamic_cast<TranslatorType*>(decl);
 }*/
 //template Declaration* Iterator<clang::DeclContext::decl_iterator, Declaration>::operator*();
-Declaration* DeclarationIterator::operator*()
+Declaration* DeclarationRange::front()
 {
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
@@ -259,8 +259,54 @@ Declaration* DeclarationIterator::operator*()
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
-    return dynamic_cast<Declaration*>(decl);
+    return decl;
 }
+
+template<typename T>
+class RedeclarableContextDeclarationRange : public DeclarationRange
+{
+    public:
+    typedef typename clang::Redeclarable<T>::redecl_iterator out_iterator_t;
+    typedef typename clang::Redeclarable<T>::redecl_range out_range_t;
+
+    protected:
+    out_iterator_t outer_iter;
+    out_iterator_t outer_end;
+
+    public:
+    explicit RedeclarableContextDeclarationRange(out_range_t outer)
+        : DeclarationRange(outer.begin()->decls()), outer_iter(outer.begin()), outer_end(outer.end())
+    { }
+
+    virtual bool empty() override
+    {
+        if (!*outer_iter || (outer_iter == outer_end))
+        {
+            if (!*cpp_iter || cpp_iter == end)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    virtual void popFront() override
+    {
+        cpp_iter++;
+        while (cpp_iter == end && outer_iter != outer_end)
+        {
+            outer_iter++;
+            if (*outer_iter == nullptr)
+            {
+                break;
+            }
+            cpp_iter = (*outer_iter)->decls_begin();
+            end = (*outer_iter)->decls_end();
+        }
+    }
+};
+
 //template ArgumentDeclaration* Iterator<clang::FunctionDecl::param_const_iterator, ArgumentDeclaration>::operator*();
 ArgumentDeclaration* ArgumentIterator::operator*()
 {
@@ -382,6 +428,12 @@ SpecializedRecordDeclaration* SpecializedRecordIterator::operator*()
     Declaration* decl = search_result->second;
     SpecializedRecordDeclaration* result = dynamic_cast<SpecializedRecordDeclaration*>(decl);
     return result;
+}
+
+
+DeclarationRange* NamespaceDeclaration::getChildren()
+{
+    return new RedeclarableContextDeclarationRange<clang::NamespaceDecl>(_decl->redecls());
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)

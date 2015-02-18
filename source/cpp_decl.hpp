@@ -230,51 +230,38 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         }
     };*/
 
-    class DeclarationIterator
+    class DeclarationRange
     {
-        private:
-        clang::DeclContext::decl_iterator cpp_iter;
+        public:
+        typedef clang::DeclContext::decl_iterator iterator_t;
+        typedef clang::DeclContext::decl_range range_t;
+
+        protected:
+        iterator_t cpp_iter;
+        iterator_t end;
 
         public:
-        explicit DeclarationIterator(clang::DeclContext::decl_iterator i)
-            : cpp_iter(i)
+        explicit DeclarationRange(range_t r)
+            : cpp_iter(r.begin()), end(r.end())
+        { }
+        explicit DeclarationRange(iterator_t i, iterator_t e)
+            : cpp_iter(i), end(e)
         { }
 
-        void operator++() {
-            cpp_iter++;
-        }
-
-        bool operator==(const DeclarationIterator& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const DeclarationIterator& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        Declaration* operator*();
-        Declaration* operator->()
+        virtual bool empty()
         {
-            return operator*();
+            return cpp_iter == end;
         }
 
-        virtual Declaration* get()
-        {
-            return operator*();
-        }
+        virtual Declaration* front();
 
-        virtual void advance()
+        virtual void popFront()
         {
             cpp_iter++;
-        }
-
-        virtual bool equals(DeclarationIterator* other)
-        {
-            return (*this) == (*other);
         }
     };
 
-    //typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationIterator;
+    //typedef Iterator<clang::DeclContext::decl_iterator, Declaration> DeclarationRange;
 
 #define FORALL_DECLARATIONS(func) \
 func(Function)                  \
@@ -422,7 +409,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
-
     class NamespaceDeclaration : public Declaration
     {
         private:
@@ -452,14 +438,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitNamespace(*this);
         }*/
 
-        virtual DeclarationIterator * getChildBegin()
-        {
-            return new DeclarationIterator(_decl->decls_begin());
-        }
-        virtual DeclarationIterator * getChildEnd()
-        {
-            return new DeclarationIterator(_decl->decls_end());
-        }
+        virtual DeclarationRange * getChildren();
 
         virtual void dump() override
         {
@@ -545,13 +524,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitEnum(*this);
         }*/
 
-        virtual DeclarationIterator * getChildBegin()
+        virtual DeclarationRange * getChildren()
         {
-            return new DeclarationIterator(_decl->decls_begin());
-        }
-        virtual DeclarationIterator * getChildEnd()
-        {
-            return new DeclarationIterator(_decl->decls_end());
+            return new DeclarationRange(_decl->decls());
         }
 
         virtual void dump() override
@@ -1068,13 +1043,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return new FieldIterator(definitionOrThis()->field_end());
         }
-        virtual DeclarationIterator * getChildBegin()
+        virtual DeclarationRange * getChildren()
         {
-            return new DeclarationIterator(definitionOrThis()->decls_begin());
-        }
-        virtual DeclarationIterator * getChildEnd()
-        {
-            return new DeclarationIterator(definitionOrThis()->decls_end());
+            return new DeclarationRange(definitionOrThis()->decls());
         }
 
         virtual MethodIterator * getMethodBegin()
@@ -1201,13 +1172,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return new FieldIterator(_decl->field_end());
         }
-        virtual DeclarationIterator * getChildBegin()
+        virtual DeclarationRange * getChildren()
         {
-            return new DeclarationIterator(_decl->decls_begin());
-        }
-        virtual DeclarationIterator * getChildEnd()
-        {
-            return new DeclarationIterator(_decl->decls_end());
+            return new DeclarationRange(_decl->decls());
         }
 
         virtual void dump() override
@@ -1673,7 +1640,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
         friend Declaration * getDeclaration(const clang::Decl* decl);
         friend class RecordDeclaration;
-        friend class DeclarationIterator;
+        friend class DeclarationRange;
         friend class ArgumentIterator;
         friend class FieldIterator;
         friend class MethodIterator;

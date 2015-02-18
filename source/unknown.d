@@ -355,14 +355,14 @@ extern (C++) void applyAttributesToDeclByName(const(unknown.DeclarationAttribute
 
 extern (C++) interface NotTypeDecl : std.runtime_error {}
 
-extern (C++) interface DeclarationIterator
+extern (C++) interface DeclarationRange
 {
 
-    public unknown.Declaration get();
+    public bool empty();
 
-    public void advance();
+    public unknown.Declaration front();
 
-    public bool equals(unknown.DeclarationIterator other);
+    public void popFront();
 }
 
 extern (C++) interface DeclarationVisitor
@@ -420,9 +420,7 @@ extern (C++) interface ArgumentDeclaration : unknown.Declaration {}
 extern (C++) interface NamespaceDeclaration : unknown.Declaration
 {
 
-    public unknown.DeclarationIterator getChildBegin();
-
-    public unknown.DeclarationIterator getChildEnd();
+    public unknown.DeclarationRange getChildren();
 }
 
 extern (C++) interface TypedefDeclaration : unknown.Declaration
@@ -440,9 +438,7 @@ extern (C++) interface EnumDeclaration : unknown.Declaration
 
     public unknown.Type getMemberType() const;
 
-    public unknown.DeclarationIterator getChildBegin();
-
-    public unknown.DeclarationIterator getChildEnd();
+    public unknown.DeclarationRange getChildren();
 }
 
 extern (C++) interface EnumConstantDeclaration : unknown.Declaration
@@ -560,9 +556,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public unknown.FieldIterator getFieldEnd();
 
-    public unknown.DeclarationIterator getChildBegin();
-
-    public unknown.DeclarationIterator getChildEnd();
+    public unknown.DeclarationRange getChildren();
 
     public unknown.MethodIterator getMethodBegin();
 
@@ -594,9 +588,7 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 
     public unknown.FieldIterator getFieldEnd();
 
-    public unknown.DeclarationIterator getChildBegin();
-
-    public unknown.DeclarationIterator getChildEnd();
+    public unknown.DeclarationRange getChildren();
 
     public uint getTemplateArgumentCount() const;
 }

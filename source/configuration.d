@@ -261,7 +261,6 @@ private void parseAttributes(in JSONValue obj, unknown.DeclarationAttributes* de
             {
                 throw new ExpectedString(sub_obj);
             }
-            // TODO kill the idup
             string vis_str = sub_obj.str;
             vis_str = toLower(vis_str);
             if (vis_str == "private")
