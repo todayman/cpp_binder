@@ -170,7 +170,7 @@ void Type::applyAttributes(const TypeAttributes* attribs)
 
 Type * QualifiedType::unqualifiedType()
 {
-    if (type.getQualifiers().empty())
+    if (type.getLocalQualifiers().empty())
     {
         return this;
     }
@@ -183,7 +183,7 @@ Type * QualifiedType::unqualifiedType()
 }
 const Type * QualifiedType::unqualifiedType() const
 {
-    if (type.getQualifiers().empty())
+    if (type.getLocalQualifiers().empty())
     {
         return this;
     }
@@ -486,9 +486,9 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
         result = TraverseType(unqual);
         Type::type_map.insert(std::make_pair(type, Type::get(unqual)));
     }
-    else if (!type.getQualifiers().empty())
+    else if (!type.getLocalQualifiers().empty())
     {
-        std::cerr << "ERROR: Unrecognized qualifiers (\"" << type.getQualifiers().getAsString() << "\") for type ";
+        std::cerr << "ERROR: Unrecognized qualifiers (\"" << type.getLocalQualifiers().getAsString() << "\") for type ";
         type.dump();
         allocateInvalidType(type);
         result = true;
