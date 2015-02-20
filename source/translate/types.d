@@ -28,6 +28,9 @@ import std.d.lexer;
 static import binder;
 static import unknown;
 
+import translate.expr;
+import translate.decls : exprForDecl;
+
 import dlang_decls : concat, makeIdentifierOrTemplateChain;
 
 private std.d.ast.Type[void*] translated_types;
@@ -202,7 +205,7 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                 mixin template Translate(T) {
                     override extern(C++) void visit(T cppType)
                     {
-                        result = translate(cppType, qualifiers);
+                        result = resolveOrDeferType(cppType, qualifiers);
                     }
                 }
                 mixin Translate!(unknown.TypedefType);
@@ -382,7 +385,11 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
                 current.assignExpression = new std.d.ast.AssignExpression();
                 auto constant = new std.d.ast.PrimaryExpression();
                 constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
-                current.assignExpression.assignExpression = constant;
+                current.assignExpression.ternaryExpression = constant;
+                break;
+            case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
+                current.assignExpression = new std.d.ast.AssignExpression();
+                current.assignExpression.ternaryExpression = translateExpression(iter.getExpression());
                 break;
         }
     }
@@ -420,7 +427,7 @@ private DeferredSymbol resolveOrDeferTemplateArgumentTypeSymbol(unknown.Template
     }
 }
 
-private std.d.ast.Type translate(Type)(Type cppType, QualifierSet qualifiers)
+private std.d.ast.Type resolveOrDeferType(Type)(Type cppType, QualifierSet qualifiers)
 {
     auto result = new std.d.ast.Type();
     auto type2 = new std.d.ast.Type2();
@@ -557,7 +564,8 @@ std.d.ast.Type clone(std.d.ast.Type t)
     return result;
 }
 
-private std.d.ast.Type translate
+// FIXME this name isn't great
+private std.d.ast.Type resolveOrDeferType
     (unknown.QualifiedType cppType, QualifierSet qualifiersAlreadApplied)
 {
     QualifierSet innerQualifiers;
@@ -688,9 +696,9 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     }
 }
 
-package DeferredSymbolConcatenation makeSymbolForDecl
-    (SourceDeclaration)
-    (SourceDeclaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+package DeferredSymbolConcatenation makeSymbolForTypeDecl
+    //(SourceDeclaration)
+    (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
 {
     import std.array : join;
     import std.algorithm : map;
@@ -706,6 +714,18 @@ package DeferredSymbolConcatenation makeSymbolForDecl
         symbolForType[cast(void*)cppDecl.getType()] = symbol;
     }
     unresolvedSymbols[symbol] = cppDecl;
+
+    DeferredExpression expr;
+    if (auto e_ptr = (cast(void*)cppDecl) in exprForDecl)
+    {
+        expr = *e_ptr;
+        expr.symbol = symbol;
+    }
+    else
+    {
+        expr = new DeferredExpression(symbol);
+        exprForDecl[cast(void*)cppDecl] = expr;
+    }
 
     DeferredSymbol[] original_components = symbol.components;
 
@@ -748,25 +768,31 @@ package DeferredSymbolConcatenation makeSymbolForDecl
     return symbol;
 }
 
-package DeferredSymbolConcatenation makeSymbolForDecl
+package DeferredSymbolConcatenation makeSymbolForTypeDecl
     (SourceDeclaration)
     (SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
 {
     auto inst = new std.d.ast.IdentifierOrTemplateInstance();
     inst.identifier = targetName;
-    return makeSymbolForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+    return makeSymbolForTypeDecl(cppDecl, inst, package_name, internal_path, namespace_path);
 }
-package DeferredSymbolConcatenation makeSymbolForDecl
+package DeferredSymbolConcatenation makeSymbolForTypeDecl
     (SourceDeclaration)
     (SourceDeclaration cppDecl, TemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
 {
     auto inst = new std.d.ast.IdentifierOrTemplateInstance();
     inst.templateInstance = targetName;
-    return makeSymbolForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+    return makeSymbolForTypeDecl(cppDecl, inst, package_name, internal_path, namespace_path);
 }
 
 // These won't be neccesary when I have a proper AST
-class DeferredSymbol
+interface Resolvable
+{
+    public void resolve();
+
+    public std.d.ast.IdentifierOrTemplateInstance[] getChain();
+}
+class DeferredSymbol : Resolvable
 {
     public:
     std.d.ast.Symbol answer;
@@ -777,6 +803,8 @@ class DeferredSymbol
     }
 
     abstract void resolve();
+
+    abstract IdentifierOrTemplateInstance[] getChain();
 }
 
 // Bad idea
@@ -801,6 +829,11 @@ class ActuallyNotDeferredSymbol : DeferredSymbol
     }
 
     override void resolve() { }
+
+    override IdentifierOrTemplateInstance[] getChain()
+    {
+        return answer.identifierOrTemplateChain.identifiersOrTemplateInstances[];
+    }
 }
 
 // We need this because we cannot compute the beginning of template
@@ -849,6 +882,14 @@ class DeferredTemplateInstantiation : DeferredSymbol
 
         temp_arg_list.items[] = arguments[];
         resolved = true;
+    }
+
+    override IdentifierOrTemplateInstance[] getChain()
+    in {
+        assert(resolved);
+    }
+    body {
+        return answer.identifierOrTemplateChain.identifiersOrTemplateInstances[];
     }
 }
 
@@ -908,6 +949,11 @@ class DeferredSymbolConcatenation : DeferredSymbol
         components ~= [new ActuallyNotDeferredSymbol(end)];
         return this; // For chaining
     }
+    DeferredSymbolConcatenation append(IdentifierChain end)
+    {
+        components ~= [new ActuallyNotDeferredSymbol(end)];
+        return this; // For chaining
+    }
 
     DeferredSymbolConcatenation append(DeferredSymbol[] chain) pure
     in {
@@ -919,6 +965,20 @@ class DeferredSymbolConcatenation : DeferredSymbol
     body {
         components ~= chain;
         return this;
+    }
+
+    @property
+    ulong length() const
+    {
+        return components.length;
+    }
+
+    override IdentifierOrTemplateInstance[] getChain()
+    in {
+        assert(resolved);
+    }
+    body {
+        return answer.identifierOrTemplateChain.identifiersOrTemplateInstances[];
     }
 }
 

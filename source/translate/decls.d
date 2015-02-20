@@ -31,9 +31,11 @@ import dlang_decls;
 static import unknown;
 import manual_types;
 import translate.types;
+import translate.expr;
 
 private std.d.ast.Declaration[void*] translated;
 private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
+package DeferredExpression[void*] exprForDecl;
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
@@ -515,7 +517,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE
                     && superclass.base.getStrategy() != unknown.Strategy.REPLACE)
             {
-                throw new Exception("Superclass (" ~ binder.toDString(cppDecl.getSourceName()) ~") of an interface is not an interface.");
+                throw new Exception("Superclass of an interface (" ~ binder.toDString(cppDecl.getSourceName()) ~") is not an interface.");
             }
             std.d.ast.BaseClass base = new BaseClass();
             base.type2 = superType.type2;
@@ -603,7 +605,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
         Token name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -622,7 +624,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
 
         {
-            DeferredSymbol symbol = makeSymbolForDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
+            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
             package_internal_path ~= [symbol];
             scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -652,7 +654,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         template_inst.identifier = nameFromDecl(cppDecl);
         template_inst.templateArguments = translateTemplateArguments(cppDecl);
 
-        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, template_inst, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, template_inst, parent_package_name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -671,7 +673,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         initializer.name = nameFromDecl(cppDecl);
         initializer.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
         result.initializers ~= [initializer];
-        makeSymbolForDecl(cppDecl, initializer.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        makeSymbolForTypeDecl(cppDecl, initializer.name, parent_package_name, package_internal_path[$-1], namespace_path);
 
         return result;
     }
@@ -691,7 +693,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.enumBody = new EnumBody();
 
         result.name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
@@ -742,7 +744,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         // FIXME, not the right types
         constant.primary = Token(tok!"longLiteral", to!string(cppDecl.getLLValue), 0, 0, 0);
-        result.assignExpression.assignExpression = constant;
+        result.assignExpression.ternaryExpression = constant;
 
         return result;
     }
@@ -790,7 +792,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
 
-        DeferredSymbol symbol = makeSymbolForDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
@@ -998,7 +1000,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = new std.d.ast.TemplateTypeParameter();
         result.identifier = nameFromDecl(cppDecl);
         // TODO default values
-        makeSymbolForDecl(cppDecl, result.identifier, null, null, "");
+        makeSymbolForTypeDecl(cppDecl, result.identifier, null, null, "");
         return result;
     }
 
@@ -1013,7 +1015,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
         result.identifier = nameFromDecl(cppDecl);
         // TODO default values
-        makeSymbolForDecl(cppDecl, result.identifier, null, null, "");
+        makeExprForDecl(cppDecl, result.identifier, null, null, "");
         return result;
     }
     extern(C++) override void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
@@ -1075,7 +1077,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     current.assignExpression = new std.d.ast.AssignExpression();
                     auto constant = new std.d.ast.PrimaryExpression();
                     constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
-                    current.assignExpression.assignExpression = constant;
+                    current.assignExpression.ternaryExpression = constant;
+                    break;
+                case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
+                    current.assignExpression = new std.d.ast.AssignExpression();
+                    current.assignExpression.ternaryExpression = translateExpression(iter.getExpression());
                     break;
             }
             result.templateArgumentList.items ~= [current];
@@ -1358,4 +1364,92 @@ void computeImports(Module mod)
     {
         mod.declarations = [imports] ~ mod.declarations;
     }
+}
+
+// Only call this on declarations that DO NOT declare a type!
+// TODO Type vs. non-type should be reflected by the inheritance hierarchy of
+// the unknown.Declaration types.
+package DeferredExpression makeExprForDecl
+    (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+{
+    import std.array : join;
+    import std.algorithm : map;
+
+    DeferredExpression expression;
+    if (auto e_ptr = (cast(void*)cppDecl) in exprForDecl)
+    {
+        expression = *e_ptr;
+    }
+    else
+    {
+        expression = new DeferredExpression(null);
+        exprForDecl[cast(void*)cppDecl] = expression;
+    }
+    DeferredSymbolConcatenation symbol;
+
+    if (expression.symbol is null)
+    {
+        symbol = new DeferredSymbolConcatenation();
+        expression.symbol = symbol;
+    }
+    else
+    {
+        symbol = expression.symbol;
+    }
+
+    unresolvedSymbols[symbol] = cppDecl;
+
+    if (symbol.length == 0)
+    {
+        if (internal_path is null && package_name !is null)
+            // Internal path is now a fully qualifed deferred symbol, so
+            // it obseletes the package name.
+            // FIXME the name "internal_path", since it's not internal anymore
+            // Package can be null for things like template arguments
+        {
+            symbol.append(package_name);
+        }
+        if (internal_path !is null) // internal_path is null at the top level inside a module
+        {
+            symbol.append(internal_path);
+        }
+        auto namespace_chain = makeIdentifierOrTemplateChain!"::"(namespace_path);
+        if (namespace_chain.identifiersOrTemplateInstances.length > 0)
+            // Things like template arguments aren't really in a namespace
+        {
+            symbol.append(namespace_chain);
+        }
+        symbol.append(targetName);
+    }
+
+    assert (symbol.length > 0);
+
+    // Used for computing imports
+    if (package_name && package_name.identifiers.length > 0)
+    {
+        symbolModules[symbol.answer] = join(package_name.identifiers.map!(a => a.text), ".");
+    }
+    else
+    {
+        symbolModules[symbol.answer] = "";
+    }
+
+    return expression;
+}
+
+package DeferredExpression makeExprForDecl
+    (SourceDeclaration)
+    (SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+{
+    auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+    inst.identifier = targetName;
+    return makeExprForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+}
+package DeferredExpression makeExprForDecl
+    (SourceDeclaration)
+    (SourceDeclaration cppDecl, TemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+{
+    auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+    inst.templateInstance = targetName;
+    return makeExprForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
 }

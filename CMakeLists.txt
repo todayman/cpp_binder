@@ -26,4 +26,4 @@ if(EXISTS /usr/lib/llvm-3.5/include)
 endif(EXISTS /usr/lib/llvm-3.5/include)
 
 add_compile_options(-std=c++11 -Wall -Wextra -pedantic)
-add_library(cpp_binder source/configuration.cpp source/cpp_type.cpp source/cpp_decl.cpp source/string.cpp source/clang_wrapper.cpp)
+add_library(cpp_binder source/configuration.cpp source/cpp_type.cpp source/cpp_decl.cpp source/cpp_expr.cpp source/string.cpp source/clang_wrapper.cpp)

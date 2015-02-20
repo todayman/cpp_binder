@@ -241,6 +241,7 @@ extern (C++) interface TemplateArgumentInstanceIterator
     {
         Type,
         Integer,
+        Expression,
     }
 
     public unknown.TemplateArgumentInstanceIterator.Kind getKind();
@@ -248,6 +249,8 @@ extern (C++) interface TemplateArgumentInstanceIterator
     public unknown.Type getType();
 
     public long getInteger();
+
+    public unknown.Expression getExpression();
 }
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
@@ -684,3 +687,27 @@ extern (C++) interface SkipUnwrappableDeclaration : unknown.NotWrappableExceptio
 extern (C++) extern const(clang.SourceManager)* source_manager;
 
 extern (C++) clang.ASTUnit* buildAST(char* contents, size_t arg_len, char** raw_args, char* filename);
+
+extern (C++) interface ExpressionVisitor
+{
+
+    public void visit(unknown.IntegerLiteralExpression expr);
+
+    public void visit(unknown.DeclaredExpression expr);
+}
+
+extern (C++) interface Expression
+{
+    public void dump() const;
+    public void visit(ExpressionVisitor visitor);
+}
+
+extern (C++) interface IntegerLiteralExpression
+{
+    public final long getValue() const;
+}
+
+extern (C++) interface DeclaredExpression
+{
+    public unknown.Declaration getDeclaration() const;
+}

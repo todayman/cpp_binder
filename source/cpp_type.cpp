@@ -29,6 +29,7 @@
 
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
+#include "cpp_expr.hpp"
 //using namespace cpp;
 
 std::unordered_map<const clang::QualType, Type*> Type::type_map;
@@ -420,6 +421,8 @@ TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind
             return Type;
         case clang::TemplateArgument::Integral:
             return Integer;
+        case clang::TemplateArgument::Expression:
+            return Expression;
         default:
             throw std::logic_error("Cannot handle other kinds of template arguments besides Type and Integral.");
     }
@@ -437,6 +440,13 @@ long long TemplateArgumentInstanceIterator::getInteger()
     assert(cpp_iter->getKind() == clang::TemplateArgument::Integral);
 
     return cpp_iter->getAsIntegral().getSExtValue();
+}
+
+Expression* TemplateArgumentInstanceIterator::getExpression()
+{
+    assert(cpp_iter->getKind() == clang::TemplateArgument::Expression);
+
+    return wrapClangExpression(cpp_iter->getAsExpr());
 }
 
 ClangTypeVisitor::ClangTypeVisitor(const clang::PrintingPolicy* pp)

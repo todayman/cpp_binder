@@ -57,6 +57,7 @@ class UnionDeclaration;
 class TemplateTypeArgumentDeclaration;
 class TemplateArgumentInstanceIterator;
 
+class Expression;
 //namespace cpp
 //{
 
@@ -694,11 +695,13 @@ class TemplateArgumentInstanceIterator;
         {
             Type,
             Integer, // TODO Merge with generic expressions?
+            Expression,
         };
 
         virtual Kind getKind();
         virtual class Type* getType();
         virtual long long getInteger();
+        virtual class Expression* getExpression();
     };
 
 

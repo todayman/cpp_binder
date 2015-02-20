@@ -1,0 +1,4 @@
+-c config/builtin_types.json
+-c config/llvm.json
+
+/usr/include/llvm/ADT/APInt.h
