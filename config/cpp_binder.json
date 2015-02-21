@@ -103,6 +103,13 @@
             }
           , "target_module": "manual_types"
         }
+        , "clang::Expr": {
+            "strategy": {
+                "name": "replace"
+              , "d_decl": "clang.Expr"
+            }
+          , "target_module": "manual_types"
+        }
         , "DeclVisitor": {
             "bound": 0
         }
