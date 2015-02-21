@@ -966,6 +966,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (short_circuit !is null) return short_circuit;
         auto var = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl);
 
+        auto declarator = new Declarator();
+        declarator.name = nameFromDecl(cppDecl);
+        var.declarators ~= [declarator];
+
+        makeExprForDecl(cppDecl, declarator.name, parent_package_name, package_internal_path[$-1], namespace_path);
+
         var.storageClasses ~= [makeStorageClass(translateLinkage(cppDecl, namespace_path))];
 
         // TODO is this the best way to see if this is a top level, global variable?
@@ -976,9 +982,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             var.storageClasses ~= [sc];
         }
 
-        auto declarator = new Declarator();
-        declarator.name = nameFromDecl(cppDecl);
-        var.declarators ~= [declarator];
         var.type = translateType(cppDecl.getType(), QualifierSet.init);
 
         return var;
