@@ -822,6 +822,15 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->isOverloadedOperator();
         }
 
+        virtual bool getShouldBind() const
+        {
+            if (isOverloadedOperator())
+            {
+                return false;
+            }
+            return Declaration::getShouldBind();
+        }
+
         virtual Type* getReturnType() const
         {
             return Type::get(_decl->getReturnType());
