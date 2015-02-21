@@ -329,9 +329,9 @@ extern (C++) interface Declaration
 
     public bool isWrappable() const;
 
-    public void shouldBind(bool decision);
+    public void shouldEmit(bool decision);
 
-    public bool getShouldBind() const;
+    public bool shouldEmit() const;
 
     public void setTargetModule(binder.binder.string target);
 

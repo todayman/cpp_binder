@@ -93,7 +93,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         bool is_wrappable;
         // Attributes!
         // Pointer to D declaration!
-        bool should_bind;
+        bool should_emit;
         string target_module;
         Visibility visibility;
         string remove_prefix;
@@ -114,7 +114,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
 
         public:
         Declaration()
-            : is_wrappable(true), should_bind(false), target_module(),
+            : is_wrappable(true), should_emit(false), target_module(),
               visibility(UNSET), remove_prefix(), source_name(), _name()
         { }
 
@@ -136,18 +136,19 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
             }
         }
 
-        virtual bool isWrappable() const noexcept {
+        virtual bool isWrappable() const
+        {
             return is_wrappable;
         }
 
-        virtual void shouldBind(bool decision)
+        virtual void shouldEmit(bool decision)
         {
-            should_bind = decision;
+            should_emit = decision;
         }
 
-        virtual bool getShouldBind() const
+        virtual bool shouldEmit() const
         {
-            return should_bind;
+            return should_emit;
         }
 
         virtual void setTargetModule(string* target)
@@ -462,6 +463,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return _decl->getLocation();
         }
+
+        virtual bool isWrappable() const override;
 
         TypedefType* getTypedefType() const;
         virtual Type* getType() const override
@@ -822,13 +825,13 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->isOverloadedOperator();
         }
 
-        virtual bool getShouldBind() const
+        virtual bool isWrappable() const override
         {
             if (isOverloadedOperator())
             {
                 return false;
             }
-            return Declaration::getShouldBind();
+            return Declaration::isWrappable();
         }
 
         virtual Type* getReturnType() const
@@ -1109,6 +1112,15 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual bool isCXXRecord() const
         {
             return ::isCXXRecord(_decl);
+        }
+
+        virtual bool shouldEmit() const override
+        {
+            if (!hasDefinition())
+            {
+                return false;
+            }
+            return Declaration::shouldEmit();
         }
 
         virtual bool hasDefinition() const

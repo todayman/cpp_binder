@@ -62,7 +62,7 @@ void Declaration::applyAttributes(const DeclarationAttributes* attribs)
 {
     if (attribs->isBoundSet)
     {
-        shouldBind(attribs->bound);
+        shouldEmit(attribs->bound);
     }
 
     if (attribs->isTargetModuleSet)
@@ -201,6 +201,13 @@ const RecordDeclaration* RecordDeclaration::getDefinition() const
     }
     Declaration* decl = search_result->second;
     return dynamic_cast<const RecordDeclaration*>(decl);
+}
+
+bool TypedefDeclaration::isWrappable() const
+{
+    // TODO make sure this is the correct thing
+    // it weeds out the implicit "typedef __int128" types
+    return !_decl->isImplicit();
 }
 
 TypedefType* TypedefDeclaration::getTypedefType() const
@@ -880,7 +887,7 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
             {
                 if( boost::filesystem::equivalent(name, this_filename) )
                 {
-                    maybe_emits->shouldBind(true);
+                    maybe_emits->shouldEmit(true);
                 }
             }
         }

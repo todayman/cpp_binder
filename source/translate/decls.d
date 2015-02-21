@@ -341,7 +341,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             // sometimes, e.g. for implicit destructors, the lookup from clang
             // type to my types fails.  So we should skip those.
             unknown.MethodDeclaration cpp_method = iter.get();
-            if (!cpp_method || !cpp_method.getShouldBind())
+            if (!cpp_method || !cpp_method.isWrappable())
                 continue;
 
             try {
@@ -357,13 +357,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                          override_iter.advance() )
                     {
                         unknown.MethodDeclaration superMethod = override_iter.get();
-                        if (superMethod.getShouldBind())
+                        if (superMethod.shouldEmit())
                         {
                             no_bound_overrides = false;
                         }
                     }
                     shouldInsert = no_bound_overrides;
                 }
+                shouldInsert = shouldInsert && cpp_method.shouldEmit();
 
                 if (shouldInsert)
                 {
@@ -472,14 +473,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             try {
                 // FIXME the check for whether or not to bind shouldn't be made
                 // everywhere; there should be a good, common place for it
-                if (isEmptyDuplicateStructThingy(cppDecl, child) || !child.getShouldBind())
+                if (isEmptyDuplicateStructThingy(cppDecl, child) || !child.isWrappable())
                 {
                     continue;
                 }
                 auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path[$-1]);
                 unknown.Declaration decl = child;
                 decl.visit(visitor);
-                if (visitor.last_result)
+                if (visitor.last_result && child.shouldEmit())
                 {
                     result.structBody.declarations ~= [visitor.last_result];
                 }
@@ -915,7 +916,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // Getting here means that there is a method declaration
         // outside of a record declaration, since the struct / interface building
         // functions call translateMethod directly.
-        throw new Exception("Attempting to translate a method as if it were top level, but methods are never top level.");
+        //assert(0);
+        //throw new Exception("Attempting to translate a method as if it were top level, but methods are never top level.");
     }
     extern(C++) override void visitConstructor(unknown.ConstructorDeclaration)
     {
@@ -1174,13 +1176,18 @@ void populateDAST()
     for (size_t i = 0; i < array_len; ++i)
     {
         unknown.Declaration declaration = freeDeclarations[i];
-        if (!declaration.getShouldBind())
+        if (!declaration.isWrappable())
         {
             continue;
         }
 
-        std.d.ast.Module mod = findTargetModule(declaration);
-        auto visitor = new TranslatorVisitor(mod.moduleDeclaration.moduleName, "", null);
+        std.d.ast.IdentifierChain moduleName = null;
+        if (declaration.shouldEmit())
+        {
+            std.d.ast.Module mod = findTargetModule(declaration);
+            moduleName = mod.moduleDeclaration.moduleName;
+        }
+        auto visitor = new TranslatorVisitor(moduleName, "", null);
         try {
             std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
@@ -1195,7 +1202,7 @@ void populateDAST()
 
             // some items, such as namespaces, don't need to be placed into a module
             // visiting them just translates their children and puts them in modules
-            if (translation)
+            if (translation && declaration.shouldEmit)
             {
                 placeIntoTargetModule(declaration, translation);
             }
@@ -1260,10 +1267,10 @@ void determineRecordStrategy(unknown.RecordType cppType)
     {
         if (!cpp_decl.hasDefinition())
         {
-            throw new NoDefinitionException(cpp_decl);
+            stderr.writeln("WARNING: ", binder.toDString(cpp_decl.getSourceName()), " has no definition, so I cannot determine a translation strategy; choosing REPLACE.");
+            cppType.chooseReplaceStrategy(binder.toBinderString(""));
         }
-
-        if(cpp_decl.isDynamicClass())
+        else if(cpp_decl.isDynamicClass())
         {
             cppType.setStrategy(unknown.Strategy.INTERFACE);
         }
