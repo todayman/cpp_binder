@@ -1216,7 +1216,6 @@ void populateDAST()
         foreach (symbol, decl; local_copy)
         {
             resolveSymbol(symbol, decl);
-            symbol.resolve();
         }
         if (unresolvedSymbols.length > 0)
         {
