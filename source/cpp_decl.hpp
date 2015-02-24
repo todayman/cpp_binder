@@ -1591,17 +1591,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseNamespaceDecl(clang::NamespaceDecl* cppDecl);
         bool TraverseFunctionDecl(clang::FunctionDecl* cppDecl);
         bool TraverseClassTemplatePartialSpecializationDecl(clang::ClassTemplatePartialSpecializationDecl* declaration);
-        //bool TraverseClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* declaration);
         bool TraverseCXXMethodDecl(clang::CXXMethodDecl* Declaration);
         bool TraverseLinkageSpecDecl(clang::LinkageSpecDecl* cppDecl);
         bool TraverseEnumDecl(clang::EnumDecl* cppDecl);
-        //bool TraverseEnumConstantDecl(clang::EnumConstantDecl* cppDecl);
-        // TODO handle constexpr
         bool TraverseUsingDirectiveDecl(clang::UsingDirectiveDecl* cppDecl);
         bool TraverseAccessSpecDecl(clang::AccessSpecDecl* cppDecl);
         bool TraverseFriendDecl(clang::FriendDecl* cppDecl);
         bool TraverseStaticAssertDecl(clang::StaticAssertDecl* cppDecl);
         bool TraverseIndirectFieldDecl(clang::IndirectFieldDecl* cppDecl);
+        bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl);
+        bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl);
         // FIXME I have no idea what this is.
         bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
         bool TraverseUsingDecl(clang::UsingDecl* cppDecl);
@@ -1613,8 +1612,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromTypedefDecl(clang::TypedefDecl * decl);
         bool WalkUpFromNamespaceDecl(clang::NamespaceDecl * cppDecl);
         bool WalkUpFromCXXMethodDecl(clang::CXXMethodDecl* cppDecl);
-        bool WalkUpFromCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl);
-        bool WalkUpFromCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl);
         bool WalkUpFromParmVarDecl(clang::ParmVarDecl* cppDecl);
         bool WalkUpFromRecordDecl(clang::RecordDecl* cppDecl);
         bool WalkUpFromEnumDecl(clang::EnumDecl* cppDecl);

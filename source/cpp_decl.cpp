@@ -678,6 +678,8 @@ UNWRAPPABLE_TRAVERSE(IndirectField)
 
 UNWRAPPABLE_TRAVERSE(Using) // FIXME we can translate these as aliases
 UNWRAPPABLE_TRAVERSE(UsingShadow) // FIXME we can probably translate these as aliases?
+UNWRAPPABLE_TRAVERSE(CXXConstructor) // FIXME maybe do this in the future?
+UNWRAPPABLE_TRAVERSE(CXXDestructor) // FIXME maybe do this in the future?
 
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {
@@ -710,8 +712,6 @@ bool DeclVisitor::WalkUpFrom##C##Decl(clang::C##Decl* cppDecl) \
 WALK_UP(Typedef, Typedef)
 WALK_UP(Namespace, Namespace)
 WALK_UP(CXXMethod, Method)
-WALK_UP(CXXConstructor, Constructor)
-WALK_UP(CXXDestructor, Destructor)
 WALK_UP(ParmVar, Argument)
 WALK_UP(Enum, Enum)
 WALK_UP(EnumConstant, EnumConstant)
