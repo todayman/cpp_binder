@@ -42,6 +42,33 @@ Declaration* DeclaredExpression::getDeclaration() const
     return ::getDeclaration(expr->getDecl());
 }
 
+void DelayedExpression::dump() const
+{
+    expr->dump();
+}
+
+Declaration* DelayedExpression::getDeclaration() const
+{
+    clang::NestedNameSpecifier* container = expr->getQualifier();
+
+    switch (container->getKind())
+    {
+        //case clang::NestedNameSpecifier::Identifier:
+        //    clang::IdentifierInfo* id = container->getAsIdentifier();
+        //    id->
+        //    break;
+        default:
+            throw std::logic_error("Unknown nested name kind");
+    }
+
+    return nullptr;
+}
+
+void UnwrappableExpression::dump() const
+{
+    expr->dump();
+}
+
 class ClangExpressionVisitor : public clang::RecursiveASTVisitor<ClangExpressionVisitor>
 {
     Expression * result;
@@ -71,6 +98,20 @@ class ClangExpressionVisitor : public clang::RecursiveASTVisitor<ClangExpression
     {
         stmt->dump();
         throw std::logic_error("ERROR: Unknown statement type");
+    }
+
+    bool WalkUpFromExpr(clang::Expr* expr)
+    {
+        result = new UnwrappableExpression(expr);
+
+        return false;
+    }
+
+    bool WalkUpFromDependentScopeDeclRefExpr(clang::DependentScopeDeclRefExpr* expr)
+    {
+        result = new DelayedExpression(expr);
+
+        return false;
     }
 
     Expression * getResult()

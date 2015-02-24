@@ -56,6 +56,18 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
             result = deferred.getExpression();
         }
     }
+
+    extern(C++) override
+    void visit(unknown.DelayedExpression expr)
+    {
+        expr.dump();
+        throw new Error("Translating delayed expressions is not implemented yet.");
+    }
+
+    extern(C++) override
+    void visit(unknown.UnwrappableExpression expr)
+    {
+    }
 }
 
 std.d.ast.ExpressionNode translateExpression(unknown.Expression expr)

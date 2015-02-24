@@ -24,6 +24,7 @@ namespace clang
     class Expr;
     class DeclRefExpr;
     class IntegerLiteral;
+    class DependentScopeDeclRefExpr;
 }
 
 class Declaration;
@@ -31,12 +32,16 @@ class Expression;
 class ExpressionVisitor;
 class IntegerLiteralExpression;
 class DeclaredExpression;
+class UnwrappableExpression;
+class DelayedExpression;
 
 class ExpressionVisitor
 {
     public:
     virtual void visit(IntegerLiteralExpression& expr) = 0;
     virtual void visit(DeclaredExpression& expr) = 0;
+    virtual void visit(UnwrappableExpression& expr) = 0;
+    virtual void visit(DelayedExpression& expr) = 0;
 };
 
 class Expression
@@ -75,6 +80,25 @@ class DeclaredExpression : public Expression
     explicit DeclaredExpression(const clang::DeclRefExpr* e)
         : expr(e)
     { }
+
+    virtual void dump() const override;
+
+    virtual void visit(ExpressionVisitor& visitor)
+    {
+        visitor.visit(*this);
+    }
+
+    Declaration* getDeclaration() const;
+};
+
+class DelayedExpression : public Expression
+{
+    const clang::DependentScopeDeclRefExpr* expr;
+
+    public:
+    explicit DelayedExpression(const clang::DependentScopeDeclRefExpr* e)
+        : expr(e)
+    { }
     
     virtual void dump() const override;
 
@@ -84,6 +108,21 @@ class DeclaredExpression : public Expression
     }
 
     Declaration* getDeclaration() const;
+};
+
+class UnwrappableExpression : public Expression
+{
+    const clang::Expr* expr;
+    public:
+    UnwrappableExpression(const clang::Expr* e)
+        : expr(e)
+    { }
+
+    virtual void dump() const override;
+    virtual void visit(ExpressionVisitor& visitor) override
+    {
+        visitor.visit(*this);
+    }
 };
 
 Expression* wrapClangExpression(clang::Expr* expr);

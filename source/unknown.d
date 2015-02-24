@@ -694,6 +694,10 @@ extern (C++) interface ExpressionVisitor
     public void visit(unknown.IntegerLiteralExpression expr);
 
     public void visit(unknown.DeclaredExpression expr);
+
+    public void visit(unknown.DelayedExpression expr);
+
+    public void visit(unknown.UnwrappableExpression expr);
 }
 
 extern (C++) interface Expression
@@ -702,12 +706,19 @@ extern (C++) interface Expression
     public void visit(ExpressionVisitor visitor);
 }
 
-extern (C++) interface IntegerLiteralExpression
+extern (C++) interface IntegerLiteralExpression : unknown.Expression
 {
     public final long getValue() const;
 }
 
-extern (C++) interface DeclaredExpression
+extern (C++) interface DeclaredExpression : unknown.Expression
+{
+    final public unknown.Declaration getDeclaration() const;
+}
+
+extern (C++) interface DelayedExpression : unknown.Expression
 {
     public unknown.Declaration getDeclaration() const;
 }
+
+extern (C++) interface UnwrappableExpression : unknown.Expression {}
