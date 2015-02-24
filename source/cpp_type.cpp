@@ -489,29 +489,11 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver>
             }
             else
             {
-                // TODO all of this logic is probably completely wrong and we
-                // should just throw an exception here, but I want to get the
-                // code into git before deleting it
-                std::cerr << "Could not find specialization for types:\n";
-                for (clang::TemplateArgument arg : template_args)
-                {
-                    std::cerr << "\tkind: " << arg.getKind();
-                    if (arg.getKind() == clang::TemplateArgument::Type)
-                    {
-                        std::cerr << "\ttype is: " << arg.getAsType().getAsOpaquePtr() << "\t";
-                        arg.getAsType().dump();
-                        std::cerr << "\t" << arg.getAsType().getTypePtr()->getTypeClassName();
-                    }
-                    std::cerr << "\n";
-                }
-                clang::ClassTemplatePartialSpecializationDecl* partial =
-                    decl->findPartialSpecialization(template_args, insertPos);
-                std::cerr << "Partial specialization: " << partial << "\n";
                 // If we cannot find the specialization declaration, that means
                 // that the template was not instantiated with these arguments
                 // anywhere, so the arguments are unsubstituted template
                 // parameters.  Right?
-                // TODO partial specializations
+                // TODO partial specializations, and a more rigorous check
                 return TraverseDecl(decl->getTemplatedDecl());
             }
         }
@@ -574,13 +556,6 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver>
                     break;
                 }
             }
-
-            //if (!result)
-            //{
-            //    std::cerr << "Could not find \"" << identifier->getName().str() << "\" in\n";
-            //    decl->dump();
-            //    throw std::logic_error("Could not resolve dependent type");
-            //}
         }
         return false;
     }
@@ -606,13 +581,6 @@ Type* DelayedType::resolveType() const
             throw std::logic_error("Unknown nested name kind");
     }
 
-    /*if (!result)
-    {
-        // ***** **. We're doing it live!
-        binder::string empty;
-        chooseReplaceStrategy(&empty);
-        result = this;
-    }*/
     return result;
 }
 
