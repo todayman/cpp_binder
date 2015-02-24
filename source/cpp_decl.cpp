@@ -207,7 +207,11 @@ bool TypedefDeclaration::isWrappable() const
 {
     // TODO make sure this is the correct thing
     // it weeds out the implicit "typedef __int128" types
-    return !_decl->isImplicit();
+   if (_decl->isImplicit() || getTargetType()->getKind() == Type::Invalid)
+   {
+       return false;
+   }
+   return true;
 }
 
 TypedefType* TypedefDeclaration::getTypedefType() const
