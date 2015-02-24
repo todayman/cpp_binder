@@ -120,7 +120,16 @@ package void determineStrategy(unknown.Type cppType)
 
         override extern(C++) void visit(unknown.DelayedType cppType)
         {
-            cppType.resolveType();
+            unknown.Type backing = cppType.resolveType();
+            determineStrategy(backing);
+            if (backing.getStrategy() == unknown.Strategy.REPLACE)
+            {
+                cppType.chooseReplaceStrategy(binder.toBinderString(""));
+            }
+            else
+            {
+                cppType.setStrategy(backing.getStrategy());
+            }
         }
     }
 
@@ -177,6 +186,8 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
         }
         else
         {
+            // TODO this is capturing "qualifiers" from the function scope
+            // Make sure that works with recursion
             class TranslateTypeClass : unknown.TypeVisitor
             {
                 public std.d.ast.Type result;
@@ -243,6 +254,8 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
 
                 extern(C++) void visit(unknown.DelayedType type)
                 {
+                    unknown.Type backing_type = type.resolveType();
+                    result = replaceType(backing_type, qualifiers);
                 }
             }
             auto visitor = new TranslateTypeClass();
@@ -660,6 +673,14 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
         {
             case unknown.Strategy.UNKNOWN:
                 determineStrategy(cppType);
+
+                // This if is for debugging; we're going to fail an assert
+                // so this re-plays the logic that got us there
+                if (cppType.getStrategy() == unknown.Strategy.UNKNOWN)
+                {
+                    determineStrategy(cppType);
+                    assert(cppType.getStrategy != unknown.Strategy.UNKNOWN);
+                }
                 result = translateType(cppType, qualifiers);
                 break;
             case unknown.Strategy.REPLACE:

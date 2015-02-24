@@ -409,9 +409,211 @@ DUMP_METHOD(TemplateArgument)
 DUMP_METHOD(TemplateSpecialization)
 DUMP_METHOD(Delayed)
 
+class InnerNameResolver : public clang::RecursiveASTVisitor<InnerNameResolver>
+{
+    public:
+    Type * result;
+    InnerNameResolver() : result(nullptr) { }
+
+    bool WalkUpFromDecl(clang::Decl*)
+    {
+        throw std::logic_error("Do not know how to refer to dependent type declaration");
+    }
+
+    bool WalkUpFromTypeDecl(clang::TypeDecl* decl)
+    {
+        result = Type::get(decl->getTypeForDecl());
+        return false;
+    }
+
+    bool WalkUpFromTypedefDecl(clang::TypedefDecl* decl)
+    {
+        result = Type::get(decl->getUnderlyingType());
+        return false;
+    }
+};
+
+class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver>
+{
+    public:
+    Type * result;
+    const clang::IdentifierInfo* identifier;
+    llvm::ArrayRef<clang::TemplateArgument> template_args;
+    NestedNameResolver(const clang::IdentifierInfo* id)
+        : result(nullptr), identifier(id), template_args()
+    { }
+
+    // WalkUpFrom*Type is used to find the Decl for that type
+    // Whenever we return from one of the WalkUpMethods, we either succeeded
+    // or failed, so the traversal is done (return false)
+    bool WalkUpFromType(clang::Type*)
+    {
+        throw std::logic_error("Don't know how to resolve dependent names in this type");
+    }
+
+    bool WalkUpFromRecordType(clang::RecordType* type)
+    {
+        return TraverseDecl(type->getDecl());
+    }
+
+    bool WalkUpFromTypedefType(clang::TypedefType* type)
+    {
+        return TraverseType(type->desugar());
+    }
+
+    bool WalkUpFromTemplateSpecializationType(clang::TemplateSpecializationType* type)
+    {
+        // FIXME I am not doing argument substitution or finding the right
+        // specialization here
+        clang::TemplateName template_name = type->getTemplateName();
+        template_args = llvm::ArrayRef<clang::TemplateArgument>(type->getArgs(), type->getNumArgs());
+        return TraverseDecl(template_name.getAsTemplateDecl());
+    }
+
+    // WalkUpFrom*Decl is used to get the final dependent Type from that Decl
+    bool WalkUpFromDecl(clang::Decl*)
+    {
+        throw std::logic_error("Don't know how to resolve a dependent type name from this decl");
+    }
+
+    bool WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* decl)
+    {
+        if (template_args.data())
+        {
+            void* insertPos = nullptr;
+            clang::ClassTemplateSpecializationDecl* specialization =
+                decl->findSpecialization(template_args, insertPos);
+            if (specialization)
+            {
+                return TraverseDecl(specialization);
+            }
+            else
+            {
+                // TODO all of this logic is probably completely wrong and we
+                // should just throw an exception here, but I want to get the
+                // code into git before deleting it
+                std::cerr << "Could not find specialization for types:\n";
+                for (clang::TemplateArgument arg : template_args)
+                {
+                    std::cerr << "\tkind: " << arg.getKind();
+                    if (arg.getKind() == clang::TemplateArgument::Type)
+                    {
+                        std::cerr << "\ttype is: " << arg.getAsType().getAsOpaquePtr() << "\t";
+                        arg.getAsType().dump();
+                        std::cerr << "\t" << arg.getAsType().getTypePtr()->getTypeClassName();
+                    }
+                    std::cerr << "\n";
+                }
+                clang::ClassTemplatePartialSpecializationDecl* partial =
+                    decl->findPartialSpecialization(template_args, insertPos);
+                std::cerr << "Partial specialization: " << partial << "\n";
+                // If we cannot find the specialization declaration, that means
+                // that the template was not instantiated with these arguments
+                // anywhere, so the arguments are unsubstituted template
+                // parameters.  Right?
+                // TODO partial specializations
+                return TraverseDecl(decl->getTemplatedDecl());
+            }
+        }
+        else
+        {
+            return TraverseDecl(decl->getTemplatedDecl());
+        }
+    }
+
+    bool lookupInContext(clang::DeclContext* ctx)
+    {
+        clang::DeclContextLookupResult lookup_result = ctx->lookup(identifier);
+        if (lookup_result.size() == 0)
+        {
+            return false;
+        }
+        else if (lookup_result.size() > 1)
+        {
+            throw std::logic_error("Did not find exactly one result looking up a dependent type");
+        }
+
+        // This basically does the "check if a type declaration, then get type"
+        InnerNameResolver inner;
+        inner.TraverseDecl(lookup_result[0]);
+        result = inner.result;
+        return true;
+    }
+
+    bool WalkUpFromRecordDecl(clang::RecordDecl* decl)
+    {
+        lookupInContext(decl);
+        return false;
+    }
+
+    bool WalkUpFromCXXRecordDecl(clang::CXXRecordDecl* decl)
+    {
+        if (lookupInContext(decl) && !result)
+        {
+            // This means we found the clang decl but couldn't translate it
+            // So just make a thing with the right name and hope it works
+            clang::DeclContextLookupResult lookup_result = decl->lookup(identifier);
+            lookup_result[0]->dump();
+            InnerNameResolver inner;
+            inner.TraverseDecl(lookup_result[0]);
+            throw std::logic_error("Couldn't translate the dependent type");
+        }
+        if (!result)
+        {
+            // TODO This is not quite following the C++ name resolution rules,
+            // because I'm probably looking at private members in superclasses,
+            // especially in the wrong order.
+            for (clang::CXXRecordDecl::base_class_iterator iter = decl->bases_begin(),
+                    finish = decl->bases_end();
+                 iter != finish;
+                 ++iter)
+            {
+                TraverseType(iter->getType());
+                if (result)
+                {
+                    break;
+                }
+            }
+
+            //if (!result)
+            //{
+            //    std::cerr << "Could not find \"" << identifier->getName().str() << "\" in\n";
+            //    decl->dump();
+            //    throw std::logic_error("Could not resolve dependent type");
+            //}
+        }
+        return false;
+    }
+};
+
 Type* DelayedType::resolveType() const
 {
-    return nullptr;
+    clang::NestedNameSpecifier* container = type->getQualifier();
+
+    clang::NestedNameSpecifier::SpecifierKind kind = container->getKind();
+    Type * result = nullptr;
+    switch (kind)
+    {
+        case clang::NestedNameSpecifier::TypeSpec:
+        {
+            const clang::Type* container_type = container->getAsType();
+            NestedNameResolver visitor(type->getIdentifier());
+            visitor.TraverseType(clang::QualType(container_type, 0));
+            result = visitor.result;
+            break;
+        }
+        default:
+            throw std::logic_error("Unknown nested name kind");
+    }
+
+    /*if (!result)
+    {
+        // ***** **. We're doing it live!
+        binder::string empty;
+        chooseReplaceStrategy(&empty);
+        result = this;
+    }*/
+    return result;
 }
 
 TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind()
@@ -474,8 +676,8 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
     }
     else if (type.getTypePtrOrNull() == nullptr)
     {
-        std::cerr << "ERROR: Found a NULL type!\n";
         type.dump();
+        throw std::runtime_error("Found a NULL type!");
         allocateInvalidType(type);
         result = true;
     }
