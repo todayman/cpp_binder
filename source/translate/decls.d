@@ -630,7 +630,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
             buildRecord(cppDecl, name, templateParameters);
-            last_result = translated[cast(void*)cppDecl];
+
+            // Records using the replacement strategy don't produce a result
+            if (auto ptr = cast(void*)cppDecl in translated)
+            {
+                last_result = *ptr;
+            }
         }
 
         // Make symbols for all of the specializations
