@@ -217,6 +217,7 @@ bool RecordType::isReferenceType() const
             {
                 return false;
             }
+            return false; // TODO Is this right???
         case UNKNOWN:
         default:
             dump();
