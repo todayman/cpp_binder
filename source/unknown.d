@@ -190,7 +190,19 @@ extern (C++) interface ConstantArrayType : unknown.ArrayType {}
 
 extern (C++) interface VariableArrayType : unknown.ArrayType {}
 
-extern (C++) interface FunctionType : unknown.Type {}
+extern (C++) interface ArgumentTypeRange
+{
+    public bool empty();
+    public unknown.Type front();
+    public void popFront();
+}
+
+extern (C++) interface FunctionType : unknown.Type
+{
+    public unknown.Type getReturnType();
+
+    public unknown.ArgumentTypeRange getArgumentRange();
+}
 
 extern (C++) interface QualifiedType : unknown.Type
 {

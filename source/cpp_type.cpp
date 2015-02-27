@@ -415,6 +415,22 @@ DUMP_METHOD(TemplateArgument)
 DUMP_METHOD(TemplateSpecialization)
 DUMP_METHOD(Delayed)
 
+Type* ArgumentTypeRange::front()
+{
+    return Type::get(*cpp_iter);
+}
+
+Type * FunctionType::getReturnType()
+{
+    return Type::get(type->getReturnType());
+}
+
+ArgumentTypeRange* FunctionType::getArgumentRange()
+{
+    // See the clang visitor visitFunctionType()
+    return new ArgumentTypeRange(type->param_types());
+}
+
 class InnerNameResolver : public clang::RecursiveASTVisitor<InnerNameResolver>
 {
     public:
@@ -628,7 +644,16 @@ bool ClangTypeVisitor::WalkUpFromDependentSizedArrayType(clang::DependentSizedAr
     return false;
 }
 
-WALK_UP_METHOD(Function)
+bool ClangTypeVisitor::WalkUpFromFunctionProtoType(clang::FunctionProtoType* type)
+{
+    allocateType<FunctionType>(type);
+    return Super::WalkUpFromFunctionProtoType(type);
+}
+bool ClangTypeVisitor::WalkUpFromFunctionNoProtoType(clang::FunctionNoProtoType* type)
+{
+    allocateInvalidType(clang::QualType(type, 0));
+    return false;
+}
 bool ClangTypeVisitor::WalkUpFromTypedefType(clang::TypedefType* type)
 {
     allocateType<TypedefType>(type);

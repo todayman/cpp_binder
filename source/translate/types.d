@@ -622,11 +622,24 @@ private std.d.ast.Type resolveOrDeferType
     return result;
 }
 
-private std.d.ast.Type replaceFunction(unknown.FunctionType)
+private std.d.ast.Type replaceFunction(unknown.FunctionType cppType)
 {
     // Needed for translating function types, but not declarations,
-    // so I'm putting it off until later
-    throw new Error("Translation of function types is not implemented yet.");
+    std.d.ast.Type returnType = translateType(cppType.getReturnType(), QualifierSet.init).clone;
+    auto suffix = new std.d.ast.TypeSuffix();
+    suffix.delegateOrFunction = Token(tok!"function", "", 0, 0, 0);
+    returnType.typeSuffixes ~= [suffix];
+
+    auto parameters = new std.d.ast.Parameters();
+    // TODO handle varargs case
+    parameters.hasVarargs = false;
+    foreach (unknown.Type arg_type; cppType.getArgumentRange())
+    {
+        auto param = new std.d.ast.Parameter();
+        param.type = translateType(arg_type, QualifierSet.init);
+        parameters.parameters ~= [param];
+    }
+    return returnType;
 }
 
 private std.d.ast.Type replaceArray(unknown.ArrayType cppType, QualifierSet qualifiers)

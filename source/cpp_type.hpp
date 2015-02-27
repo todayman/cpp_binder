@@ -522,13 +522,41 @@ class Expression;
         virtual long long getLength() override;
     };
 
+    class ArgumentTypeRange
+    {
+        public:
+        typedef clang::FunctionProtoType::param_type_iterator iterator_t;
+        typedef clang::FunctionProtoType::param_type_range range_t;
+
+        protected:
+        iterator_t cpp_iter;
+        iterator_t end;
+
+        public:
+        explicit ArgumentTypeRange(range_t r)
+            : cpp_iter(r.begin()), end(r.end())
+        { }
+
+        virtual bool empty()
+        {
+            return cpp_iter == end;
+        }
+
+        virtual Type* front();
+
+        virtual void popFront()
+        {
+            ++cpp_iter;
+        }
+    };
+
     class FunctionType : public Type
     {
         protected:
-        const clang::FunctionType* type;
+        const clang::FunctionProtoType* type;
 
         public:
-        explicit FunctionType(const clang::FunctionType* t)
+        explicit FunctionType(const clang::FunctionProtoType* t)
             : Type(Type::Function), type(t)
         { }
 
@@ -542,6 +570,9 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual Type* getReturnType();
+        virtual ArgumentTypeRange* getArgumentRange();
     };
 
     class QualifiedType : public Type
@@ -745,10 +776,10 @@ class Expression;
         bool WalkUpFromRecordType(clang::RecordType * type);
         bool WalkUpFromConstantArrayType(clang::ConstantArrayType * type);
         bool WalkUpFromIncompleteArrayType(clang::IncompleteArrayType * type);
-        bool WalkUpFromFunctionType(clang::FunctionType * type);
         bool WalkUpFromTypedefType(clang::TypedefType * type);
         bool WalkUpFromVectorType(clang::VectorType * type);
         bool WalkUpFromEnumType(clang::EnumType * type);
+        bool WalkUpFromFunctionProtoType(clang::FunctionProtoType* type);
 
         // These are sugar / slight modifications of other types
         // We just pass though them
@@ -769,6 +800,7 @@ class Expression;
         bool WalkUpFromPackExpansionType(clang::PackExpansionType* type);
         bool WalkUpFromRValueReferenceType(clang::RValueReferenceType* type);
         bool WalkUpFromDependentSizedArrayType(clang::DependentSizedArrayType* type);
+        bool WalkUpFromFunctionNoProtoType(clang::FunctionNoProtoType* type);
 
         // Template types we can handle
         bool WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type);
