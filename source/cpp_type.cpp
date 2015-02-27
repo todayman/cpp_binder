@@ -780,6 +780,7 @@ bool ClangTypeVisitor::WalkUpFromParenType(clang::ParenType* type)
     Type* t = Type::type_map.find(type->getInnerType())->second;
     // FIXME does this really need to go into the map here?
     Type::type_map.insert(std::make_pair(type->getInnerType(), t));
+    Type::type_map.insert(std::make_pair(clang::QualType(type, 0), t));
     return result;
 }
 
