@@ -457,6 +457,20 @@ Type* DelayedType::resolveType() const
     return result;
 }
 
+Type* DelayedType::getQualifierAsType() const
+{
+    clang::NestedNameSpecifier* container = type->getQualifier();
+
+    assert(container->getKind() == clang::NestedNameSpecifier::TypeSpec);
+
+    return Type::get(container->getAsType());
+}
+
+binder::string* DelayedType::getIdentifier() const
+{
+    return new binder::string(type->getIdentifier()->getNameStart(), type->getIdentifier()->getLength());
+}
+
 TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind()
 {
     switch (cpp_iter->getKind())

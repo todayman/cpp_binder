@@ -26,9 +26,10 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
 {
     public:
     decltype(Inner::result) result;
-    const clang::IdentifierInfo* identifier;
+    const clang::DeclarationName identifier;
     llvm::ArrayRef<clang::TemplateArgument> template_args;
-    NestedNameResolver(const clang::IdentifierInfo* id)
+
+    NestedNameResolver(const clang::DeclarationName id)
         : result(nullptr), identifier(id), template_args()
     { }
 
@@ -129,8 +130,9 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
             inner.TraverseDecl(lookup_result[0]);
             throw std::logic_error("Couldn't translate the dependent type");
         }
-        if (!result)
+        if (!result && decl->hasDefinition())
         {
+            decl = decl->getDefinition();
             // TODO This is not quite following the C++ name resolution rules,
             // because I'm probably looking at private members in superclasses,
             // especially in the wrong order.

@@ -40,8 +40,8 @@ class ExpressionVisitor
     public:
     virtual void visit(IntegerLiteralExpression& expr) = 0;
     virtual void visit(DeclaredExpression& expr) = 0;
-    virtual void visit(UnwrappableExpression& expr) = 0;
     virtual void visit(DelayedExpression& expr) = 0;
+    virtual void visit(UnwrappableExpression& expr) = 0;
 };
 
 class Expression

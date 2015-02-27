@@ -18,6 +18,7 @@
 
 #include "cpp_expr.hpp"
 #include "cpp_decl.hpp"
+#include "nested_name_resolver.hpp"
 
 #include "clang/AST/Expr.h"
 #include "clang/AST/RecursiveASTVisitor.h"
@@ -47,21 +48,61 @@ void DelayedExpression::dump() const
     expr->dump();
 }
 
+class InnerDeclResolver
+{
+    public:
+    clang::Decl* result;
+
+    bool TraverseDecl(clang::Decl* decl)
+    {
+        result = decl;
+        return true;
+    }
+};
+
 Declaration* DelayedExpression::getDeclaration() const
 {
     clang::NestedNameSpecifier* container = expr->getQualifier();
+    Declaration* result = nullptr;
 
     switch (container->getKind())
     {
-        //case clang::NestedNameSpecifier::Identifier:
-        //    clang::IdentifierInfo* id = container->getAsIdentifier();
-        //    id->
-        //    break;
+        case clang::NestedNameSpecifier::Global:
+            throw std::logic_error("Nested name kind is global");
+            break;
+        case clang::NestedNameSpecifier::Identifier:
+        {
+            /*clang::IdentifierInfo* id = container->getAsIdentifier();
+            //NestedNameResolver<InnerDeclResolver> visitor(id);
+            std::cerr << "id: " << id << "\n";
+            std::cerr << "Token id: " << (int)id->getTokenID() << "\n";
+            std::cerr << "token \"&&\" is " << (int)clang::tok::ampamp << "\n";
+            std::cerr << "Name start: " << (void*)id->getNameStart() << "\n";
+            std::cerr << "Name[0]: " << id->getNameStart()[0] << " (" << (int)id->getNameStart()[0] << ")\n";
+            std::cerr << "Length is " << id->getLength() << "\n";
+            std::cerr << "prefix is " << container->getPrefix() << "\n";
+            std::cerr << "is dependent: " << container->isDependent() << "\n";
+            std::cerr << "is instantiation dependent: " << container->isInstantiationDependent() << "\n";
+            std::cerr << "unexpanded parameter pack: " << container->containsUnexpandedParameterPack() << "\n";
+            std::cerr << "namespace: " << container->getAsNamespace() << "\n";
+            std::cerr << "namespace alias: " << container->getAsNamespaceAlias() << "\n";
+            std::cerr << "type: " << container->getAsType() << "\n";*/
+            throw std::logic_error("Nested name kind is identifier");
+            break;
+        }
+        case clang::NestedNameSpecifier::TypeSpec:
+        {
+            const clang::Type* container_type = container->getAsType();
+            NestedNameResolver<InnerDeclResolver> visitor(expr->getDeclName());
+            visitor.TraverseType(clang::QualType(container_type, 0));
+            result = ::getDeclaration(visitor.result);
+            break;
+        }
         default:
             throw std::logic_error("Unknown nested name kind");
     }
 
-    return nullptr;
+    return result;
 }
 
 void UnwrappableExpression::dump() const
@@ -83,7 +124,7 @@ class ClangExpressionVisitor : public clang::RecursiveASTVisitor<ClangExpression
     bool WalkUpFromIntegerLiteral(clang::IntegerLiteral* expr)
     {
         result = new IntegerLiteralExpression(expr);
-    
+
         return false;
     }
 

@@ -657,6 +657,8 @@ class Expression;
         virtual void dump() const override;
 
         Type* resolveType() const;
+        Type* getQualifierAsType() const;
+        binder::string* getIdentifier() const;
     };
 
     class TemplateArgumentInstanceIterator

@@ -60,8 +60,17 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     extern(C++) override
     void visit(unknown.DelayedExpression expr)
     {
-        expr.dump();
-        throw new Error("Translating delayed expressions is not implemented yet.");
+        unknown.Declaration decl = expr.getDeclaration();
+        if (auto deferred_ptr = cast(void*)decl in exprForDecl)
+        {
+            result = deferred_ptr.getExpression();
+        }
+        else
+        {
+            auto deferred = new DeferredExpression(null);
+            exprForDecl[cast(void*)decl] = deferred;
+            result = deferred.getExpression();
+        }
     }
 
     extern(C++) override

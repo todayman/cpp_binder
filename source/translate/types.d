@@ -31,7 +31,7 @@ static import unknown;
 import translate.expr;
 import translate.decls : exprForDecl;
 
-import dlang_decls : concat, makeIdentifierOrTemplateChain;
+import dlang_decls : concat, makeIdentifierOrTemplateChain, makeInstance;
 
 private std.d.ast.Type[void*] translated_types;
 private std.d.ast.Type[string] types_by_name;
@@ -121,14 +121,23 @@ package void determineStrategy(unknown.Type cppType)
         override extern(C++) void visit(unknown.DelayedType cppType)
         {
             unknown.Type backing = cppType.resolveType();
-            determineStrategy(backing);
-            if (backing.getStrategy() == unknown.Strategy.REPLACE)
+            if (backing !is null)
             {
-                cppType.chooseReplaceStrategy(binder.toBinderString(""));
+                determineStrategy(backing);
+                if (backing.getStrategy() == unknown.Strategy.REPLACE)
+                {
+                    cppType.chooseReplaceStrategy(binder.toBinderString(""));
+                }
+                else
+                {
+                    cppType.setStrategy(backing.getStrategy());
+                }
             }
             else
             {
-                cppType.setStrategy(backing.getStrategy());
+                // WE'RE DOING IT LIVE
+                // TODO emit a warning
+                cppType.chooseReplaceStrategy(binder.toBinderString(""));
             }
         }
     }
@@ -255,7 +264,21 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                 extern(C++) void visit(unknown.DelayedType type)
                 {
                     unknown.Type backing_type = type.resolveType();
-                    result = replaceType(backing_type, qualifiers);
+                    if (backing_type !is null)
+                    {
+                        result = replaceType(backing_type, qualifiers);
+                    }
+                    else
+                    {
+                        // DECIDED TO DO IT LIVE
+                        DeferredSymbol qualifier = resolveOrDefer(type.getQualifierAsType());
+                        auto deferred = new DeferredSymbolConcatenation(qualifier);
+                        std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(binder.toDString(type.getIdentifier()));
+                        deferred.append(instance);
+                        result = new std.d.ast.Type();
+                        result.type2 = new std.d.ast.Type2();
+                        result.type2.symbol = deferred.answer;
+                    }
                 }
             }
             auto visitor = new TranslateTypeClass();

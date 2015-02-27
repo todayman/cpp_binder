@@ -228,6 +228,10 @@ extern (C++) interface DelayedType : unknown.Type
 {
 
     final public unknown.Type resolveType() const;
+
+    final public unknown.Type getQualifierAsType() const;
+
+    final public binder.binder.string getIdentifier() const;
 }
 
 extern (C++) interface TemplateArgumentInstanceIterator
@@ -718,7 +722,7 @@ extern (C++) interface DeclaredExpression : unknown.Expression
 
 extern (C++) interface DelayedExpression : unknown.Expression
 {
-    public unknown.Declaration getDeclaration() const;
+    final public unknown.Declaration getDeclaration() const;
 }
 
 extern (C++) interface UnwrappableExpression : unknown.Expression {}
