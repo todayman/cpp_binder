@@ -257,8 +257,10 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                     // TODO should change depending on strategy and type of the actual thing
                     // TODO redo this in the new visitor / typesafe context
                     // Before, it was always a struct
-                    // result = translate!(unknown.RecordType)(cppType, qualifiers);
-                    throw new Error("Attempting to translate a template specialization type");
+                    DeferredSymbol deferred = resolveTemplateSpecializationTypeSymbol(cppType);
+                    result = new std.d.ast.Type();
+                    result.type2 = new std.d.ast.Type2();
+                    result.type2.symbol = deferred.answer;
                 }
 
                 extern(C++) void visit(unknown.DelayedType type)

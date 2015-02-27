@@ -627,6 +627,7 @@ class Expression;
             : Type(Type::TemplateSpecialization), type(t)
         { }
 
+        virtual Declaration* getDeclaration() const override;
         Declaration* getTemplateDeclaration() const;
 
         unsigned getTemplateArgumentCount() const;

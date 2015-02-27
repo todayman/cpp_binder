@@ -363,6 +363,11 @@ TemplateTypeArgumentDeclaration * TemplateArgumentType::getTemplateTypeArgumentD
     return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
 }
 
+Declaration* TemplateSpecializationType::getDeclaration() const
+{
+    return getTemplateDeclaration();
+}
+
 Declaration* TemplateSpecializationType::getTemplateDeclaration() const
 {
     clang::TemplateDecl* clang_decl = type->getTemplateName().getAsTemplateDecl();
