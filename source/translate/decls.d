@@ -64,8 +64,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.NoLanguageLinkage)
     {
-        cppDecl.dump();
-        stderr.writeln("WARNING: symbol has no language linkage.  Assuming C++.");
+        stderr.writeln("WARNING: \"", namespace_path, "::", binder.toDString(cppDecl.getSourceName()), "\" has no language linkage.  Assuming C++.");
         result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.hasPlusPlus = true;
         result.identifierChain = makeIdentifierChain(namespace_path);
