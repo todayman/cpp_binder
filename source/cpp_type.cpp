@@ -470,6 +470,7 @@ Type* DelayedType::resolveType() const
     switch (kind)
     {
         case clang::NestedNameSpecifier::TypeSpec:
+        case clang::NestedNameSpecifier::TypeSpecWithTemplate:
         {
             const clang::Type* container_type = container->getAsType();
             NestedNameResolver<InnerNameResolver> visitor(type->getIdentifier());
@@ -488,7 +489,8 @@ Type* DelayedType::getQualifierAsType() const
 {
     clang::NestedNameSpecifier* container = type->getQualifier();
 
-    assert(container->getKind() == clang::NestedNameSpecifier::TypeSpec);
+    assert(container->getKind() == clang::NestedNameSpecifier::TypeSpec
+        || container->getKind() == clang::NestedNameSpecifier::TypeSpecWithTemplate);
 
     return Type::get(container->getAsType());
 }
