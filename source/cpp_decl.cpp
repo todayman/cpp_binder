@@ -266,8 +266,7 @@ Declaration* DeclarationRange::front()
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
-        throw std::runtime_error("Lookup failed!");
+        return nullptr;
     }
     Declaration* decl = search_result->second;
     return decl;

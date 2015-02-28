@@ -271,7 +271,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         foreach (child; cppDecl.getChildren())
         {
-            if (!child.isTargetModuleSet())
+            // If child can't be bound and I didn't generate metadata for it,
+            // then it comes through as null
+            if (child && !child.isTargetModuleSet())
             {
                 // FIXME someday, use an IdentifierChain here
                 child.setTargetModule(binder.toBinderString(package_name_string));
@@ -472,7 +474,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             try {
                 // FIXME the check for whether or not to bind shouldn't be made
                 // everywhere; there should be a good, common place for it
-                if (isEmptyDuplicateStructThingy(cppDecl, child) || !child.isWrappable())
+                // At some point after I converted getChildren() to be a range,
+                // the range stopped being able to lookup my metadata for the
+                // EmptyDuplicateStructThingy, so it may return null now
+                if (!child || isEmptyDuplicateStructThingy(cppDecl, child) || !child.isWrappable())
                 {
                     continue;
                 }
