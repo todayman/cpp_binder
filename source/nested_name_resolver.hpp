@@ -157,11 +157,29 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
     {
         return false;
     }
+    // This a type like "A<T>::template B<R>"
+    // we're not going to find the answer here.
+    // If the T were resolved, we probably wouldn't be dependent
+    bool WalkUpFromDependentTemplateSpecializationType(clang::DependentTemplateSpecializationType*)
+    {
+        // I could probably do a better effort on these, e.g. find the
+        // ClassTemplateDecl and look there...
+        // TODO
+        return false;
+    }
+    bool WalkUpFromDependentNameType(clang::DependentNameType*)
+    {
+        // I could probably do a better effort on these, e.g. find the
+        // ClassTemplateDecl and look there...
+        // TODO
+        return false;
+    }
 
     bool TraverseElaboratedType(clang::ElaboratedType* type)
     {
         return this->TraverseType(type->desugar());
     }
+
 };
 
 #endif // __NESTED_NAME_RESOLVER_HPP_
