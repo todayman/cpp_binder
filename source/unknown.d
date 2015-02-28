@@ -539,14 +539,11 @@ extern (C++) interface FieldIterator
     public bool equals(unknown.FieldIterator other);
 }
 
-extern (C++) interface MethodIterator
+extern (C++) interface MethodRange
 {
-
-    public unknown.MethodDeclaration get();
-
-    public void advance();
-
-    public bool equals(unknown.MethodIterator other);
+    public bool empty();
+    public unknown.MethodDeclaration front();
+    public void popFront();
 }
 
 extern (C++) struct Superclass
@@ -582,9 +579,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public unknown.DeclarationRange getChildren();
 
-    public unknown.MethodIterator getMethodBegin();
-
-    public unknown.MethodIterator getMethodEnd();
+    public unknown.MethodRange getMethodRange();
 
     public unknown.SuperclassIterator getSuperclassBegin();
 

@@ -343,13 +343,14 @@ FieldDeclaration* FieldIterator::operator*()
     return dynamic_cast<FieldDeclaration*>(decl);
 }
 //template MethodDeclaration* Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration>::operator*();
-MethodDeclaration* MethodIterator::operator*()
+MethodDeclaration* MethodRange::front()
 {
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
         (*cpp_iter)->dump();
-        throw std::runtime_error("Lookup failed!");
+        std::cerr << "WARNING: Could not find a Declaration for this Decl.  This might be an internal error, or this might be a method that cannot be wrapped (e.g. ctor or dtor).\n";
+        return nullptr;
     }
     Declaration* decl = search_result->second;
     MethodDeclaration * result = dynamic_cast<MethodDeclaration*>(decl);

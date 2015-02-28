@@ -334,19 +334,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         (VirtualBehavior virtualPolicy, Record)
         (unknown.RecordDeclaration cppDecl, Record result)
     {
-        for (unknown.MethodIterator iter = cppDecl.getMethodBegin(),
-                  finish = cppDecl.getMethodEnd();
-             !iter.equals(finish);
-             iter.advance())
+        foreach (unknown.MethodDeclaration cpp_method; cppDecl.getMethodRange())
         {
             // sometimes, e.g. for implicit destructors, the lookup from clang
             // type to my types fails.  So we should skip those.
-            unknown.MethodDeclaration cpp_method = iter.get();
             if (!cpp_method || !cpp_method.isWrappable())
                 continue;
 
             try {
-                std.d.ast.Declaration method = translateMethod!virtualPolicy(iter.get());
+                std.d.ast.Declaration method = translateMethod!virtualPolicy(cpp_method);
 
                 bool shouldInsert = true;
                 static if (virtualPolicy != VirtualBehavior.FORBIDDEN)

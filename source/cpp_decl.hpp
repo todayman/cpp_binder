@@ -908,47 +908,34 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
     //typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
-    class MethodIterator
+    class MethodRange
     {
-        private:
-        clang::CXXRecordDecl::method_iterator cpp_iter;
+        public:
+        typedef clang::CXXRecordDecl::method_iterator iterator_t;
+        typedef clang::CXXRecordDecl::method_range range_t;
+
+        protected:
+        iterator_t cpp_iter;
+        iterator_t end;
 
         public:
-        explicit MethodIterator(clang::CXXRecordDecl::method_iterator i)
-            : cpp_iter(i)
+        MethodRange()
+            : cpp_iter(), end()
+        { }
+        explicit MethodRange(range_t r)
+            : cpp_iter(r.begin()), end(r.end())
         { }
 
-        void operator++() {
-            cpp_iter++;
-        }
-
-        bool operator==(const MethodIterator& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const MethodIterator& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        MethodDeclaration* operator*();
-        MethodDeclaration* operator->()
+        virtual bool empty()
         {
-            return operator*();
+            return cpp_iter == end;
         }
 
-        virtual MethodDeclaration* get()
-        {
-            return operator*();
-        }
+        virtual MethodDeclaration* front();
 
-        virtual void advance()
+        virtual void popFront()
         {
-            cpp_iter++;
-        }
-
-        virtual bool equals(MethodIterator* other)
-        {
-            return (*this) == (*other);
+            ++cpp_iter;
         }
     };
     //typedef Iterator<clang::CXXRecordDecl::method_iterator, MethodDeclaration> MethodIterator;
@@ -1060,27 +1047,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return new DeclarationRange(definitionOrThis()->decls());
         }
 
-        virtual MethodIterator * getMethodBegin()
+        virtual MethodRange * getMethodRange()
         {
             if( isCXXRecord() )
             {
                 const clang::CXXRecordDecl* record = reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis());
-                return new MethodIterator(record->method_begin());
+                return new MethodRange(record->methods());
             }
             else
             {
-                return new MethodIterator(clang::CXXRecordDecl::method_iterator());
-            }
-        }
-        virtual MethodIterator * getMethodEnd()
-        {
-            if( isCXXRecord() )
-            {
-                return new MethodIterator(reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis())->method_end());
-            }
-            else
-            {
-                return new MethodIterator(clang::CXXRecordDecl::method_iterator());
+                return new MethodRange();
             }
         }
 
@@ -1661,7 +1637,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class DeclarationRange;
         friend class ArgumentIterator;
         friend class FieldIterator;
-        friend class MethodIterator;
+        friend class MethodRange;
         friend class OverriddenMethodIterator;
         friend class TemplateArgumentIterator;
         friend class SpecializedRecordIterator;
