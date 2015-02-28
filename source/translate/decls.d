@@ -1092,6 +1092,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     current.assignExpression = new std.d.ast.AssignExpression();
                     current.assignExpression.ternaryExpression = translateExpression(iter.getExpression());
                     break;
+                case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
+                    iter.dumpPackInfo();
+                    throw new Exception("Cannot translate template Pack argument");
             }
             result.templateArgumentList.items ~= [current];
         }

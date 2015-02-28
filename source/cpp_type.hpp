@@ -732,12 +732,14 @@ class Expression;
             Type,
             Integer, // TODO Merge with generic expressions?
             Expression,
+            Pack, // That is "Name..."
         };
 
         virtual Kind getKind();
         virtual class Type* getType();
         virtual long long getInteger();
         virtual class Expression* getExpression();
+        virtual void dumpPackInfo();
     };
 
 

@@ -508,6 +508,8 @@ TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind
             return Integer;
         case clang::TemplateArgument::Expression:
             return Expression;
+        case clang::TemplateArgument::Pack:
+            return Pack;
         default:
             throw std::logic_error("Cannot handle other kinds of template arguments besides Type and Integral.");
     }
@@ -532,6 +534,29 @@ Expression* TemplateArgumentInstanceIterator::getExpression()
     assert(cpp_iter->getKind() == clang::TemplateArgument::Expression);
 
     return wrapClangExpression(cpp_iter->getAsExpr());
+}
+
+void TemplateArgumentInstanceIterator::dumpPackInfo()
+{
+    assert(cpp_iter->getKind() == clang::TemplateArgument::Pack);
+
+    clang::TemplateArgument expansion = cpp_iter->getPackExpansionPattern();
+    std::cerr << "expansion kind = " << expansion.getKind() << "\n";
+    std::cerr << "contains unexpanded parameter pack: " << cpp_iter->containsUnexpandedParameterPack() << "\n";
+    std::cerr << "is pack expansion: " << cpp_iter->isPackExpansion() << "\n";
+    llvm::Optional<unsigned> numExpansions = cpp_iter->getNumTemplateExpansions();
+    if (numExpansions.hasValue())
+    {
+        std::cerr << "expansion count " << numExpansions.getValue() << "\n";
+    }
+    else
+    {
+        std::cerr << "no expansions\n";
+    }
+    std::cerr << "pack size: " << cpp_iter->pack_size() << "\n";
+    std::cerr << "pack array size: " << cpp_iter->getPackAsArray().size() << "\n";
+    std::cerr << "dependent: " << cpp_iter->isDependent() << "\n";
+    std::cerr << "instantiation dependent: " << cpp_iter->isInstantiationDependent() << "\n";
 }
 
 ClangTypeVisitor::ClangTypeVisitor(const clang::PrintingPolicy* pp)

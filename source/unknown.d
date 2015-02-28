@@ -260,6 +260,7 @@ extern (C++) interface TemplateArgumentInstanceIterator
         Type,
         Integer,
         Expression,
+        Pack,
     }
 
     public unknown.TemplateArgumentInstanceIterator.Kind getKind();
@@ -269,6 +270,8 @@ extern (C++) interface TemplateArgumentInstanceIterator
     public long getInteger();
 
     public unknown.Expression getExpression();
+
+    public void dumpPackInfo();
 }
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException

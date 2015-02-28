@@ -443,6 +443,8 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
                 current.assignExpression = new std.d.ast.AssignExpression();
                 current.assignExpression.ternaryExpression = translateExpression(iter.getExpression());
                 break;
+            case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
+                throw new Exception("Cannot resolve template argument that is a Pack (...)");
         }
     }
     auto deferred = new DeferredSymbolConcatenation(template_symbol);
