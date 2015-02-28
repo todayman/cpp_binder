@@ -150,6 +150,18 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
         }
         return false;
     }
+
+    // This is the T in template<typename T>
+    // we're not going to find the answer here
+    bool WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmType*)
+    {
+        return false;
+    }
+
+    bool TraverseElaboratedType(clang::ElaboratedType* type)
+    {
+        return this->TraverseType(type->desugar());
+    }
 };
 
 #endif // __NESTED_NAME_RESOLVER_HPP_
