@@ -106,7 +106,14 @@ package void determineStrategy(unknown.Type cppType)
 
         override extern(C++) void visit(unknown.TemplateSpecializationType cppType)
         {
-            unknown.Type generic_type = cppType.getTemplateDeclaration().getType();
+            // The template could be unwrappable, but we wouldn't know that
+            // until we try to resolve the generic template.  I think.
+            unknown.Declaration parent_template = cppType.getTemplateDeclaration();
+            if (!parent_template.isWrappable())
+            {
+                throw new Exception("The template for this specialization is not wrappable.");
+            }
+            unknown.Type generic_type = parent_template.getType();
             determineStrategy(generic_type);
             if (generic_type.getStrategy() == unknown.Strategy.REPLACE)
             {
@@ -273,7 +280,13 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                     else
                     {
                         // DECIDED TO DO IT LIVE
-                        DeferredSymbol qualifier = resolveOrDefer(type.getQualifierAsType());
+                        unknown.Type qualifierType = type.getQualifierAsType();
+                        if (qualifierType.getKind() == unknown.Type.Kind.Invalid)
+                        {
+                            throw new Exception("Type is dependent on an invalid type.");
+                        }
+
+                        DeferredSymbol qualifier = resolveOrDefer(qualifierType);
                         auto deferred = new DeferredSymbolConcatenation(qualifier);
                         std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(binder.toDString(type.getIdentifier()));
                         deferred.append(instance);
