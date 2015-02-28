@@ -286,8 +286,28 @@ class RedeclarableContextDeclarationRange : public DeclarationRange
     public:
     explicit RedeclarableContextDeclarationRange(out_range_t outer)
         : DeclarationRange(outer.begin()->decls()), outer_iter(outer.begin()), outer_end(outer.end())
-    { }
+    {
+        // The first Declaration might not have any decls...
+        advanceOuterIfNeeded();
+    }
 
+    protected:
+    void advanceOuterIfNeeded()
+    {
+        while (cpp_iter == end && outer_iter != outer_end)
+        {
+            ++outer_iter;
+            if (*outer_iter == nullptr)
+            {
+                break;
+            }
+            cpp_iter = (*outer_iter)->decls_begin();
+            end = (*outer_iter)->decls_end();
+        }
+        assert(*cpp_iter || empty());
+    }
+
+    public:
     virtual bool empty() override
     {
         if (!*outer_iter || (outer_iter == outer_end))
@@ -303,17 +323,8 @@ class RedeclarableContextDeclarationRange : public DeclarationRange
 
     virtual void popFront() override
     {
-        cpp_iter++;
-        while (cpp_iter == end && outer_iter != outer_end)
-        {
-            outer_iter++;
-            if (*outer_iter == nullptr)
-            {
-                break;
-            }
-            cpp_iter = (*outer_iter)->decls_begin();
-            end = (*outer_iter)->decls_end();
-        }
+        ++cpp_iter;
+        advanceOuterIfNeeded();
     }
 };
 
