@@ -363,6 +363,12 @@ TemplateTypeArgumentDeclaration * TemplateArgumentType::getTemplateTypeArgumentD
     return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
 }
 
+binder::string* TemplateArgumentType::getIdentifier() const
+{
+    std::string identifier = type->getIdentifier()->getName().str();
+    return new binder::string(identifier.data(), identifier.size());
+}
+
 Declaration* TemplateSpecializationType::getDeclaration() const
 {
     return getTemplateDeclaration();

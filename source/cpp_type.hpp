@@ -646,6 +646,8 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        binder::string* getIdentifier() const;
     };
 
     class TemplateSpecializationType : public Type

@@ -393,10 +393,24 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
     }
 }
 
+private DeferredSymbol resolveOrDefer(unknown.TemplateArgumentType cppType)
+{
+    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
+    {
+        return (*deferred_ptr);
+    }
+    else
+    {
+        string name = binder.toDString(cppType.getIdentifier());
+        auto result = new DeferredSymbolConcatenation(makeInstance(name));
+        symbolForType[cast(void*)cppType] = result;
+        return result;
+    }
+}
+
 // FIXME duplication with TranslatorVisitor.translateTemplateArguments
 package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
-    //deferredTemplates[deferred.answer] = deferred;
     // This is dangerously close to recursion
     // but it isn't because this is the generic template type, not us
     // (the instantiation)
@@ -971,6 +985,13 @@ class DeferredSymbolConcatenation : DeferredSymbol
     body {
         super();
         components = [symbol];
+        resolved = false;
+    }
+
+    this(IdentifierOrTemplateInstance inst)
+    {
+        super();
+        components = [new ActuallyNotDeferredSymbol(inst)];
         resolved = false;
     }
 

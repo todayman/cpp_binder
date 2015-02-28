@@ -222,6 +222,8 @@ extern (C++) interface TemplateArgumentType : unknown.Type
     final public unknown.TemplateTypeArgumentDeclaration getTemplateTypeArgumentDeclaration() const;
 
     final public void setTemplateList(clang.TemplateParameterList* tl);
+
+    final public binder.binder.string getIdentifier() const;
 }
 
 extern (C++) interface TemplateSpecializationType : unknown.Type
