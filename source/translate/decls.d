@@ -285,6 +285,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // visit and translate all of the children
         foreach (child; cppDecl.getChildren())
         {
+            if (child is null)
+            {
+                continue;
+            }
             try {
                 TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, null);
                 child.visit(subpackage_visitor);
