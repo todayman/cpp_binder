@@ -133,6 +133,20 @@
                 "d_decl": "double"
             }
             , "target_module": "."
+        },
+        "long double": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "real"
+            }
+            , "target_module": "."
+        },
+        "wchar_t": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "dchar"
+            }
+            , "target_module": "."
         }
     }
 }
