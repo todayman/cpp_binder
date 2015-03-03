@@ -28,9 +28,11 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
     decltype(Inner::result) result;
     const clang::DeclarationName identifier;
     llvm::ArrayRef<clang::TemplateArgument> template_args;
+    Inner inner;
 
-    NestedNameResolver(const clang::DeclarationName id)
-        : result(nullptr), identifier(id), template_args()
+    template<typename... Args>
+    NestedNameResolver(const clang::DeclarationName id, Args... args)
+        : result(nullptr), identifier(id), template_args(), inner(args...)
     { }
 
     // WalkUpFrom*Type is used to find the Decl for that type
@@ -106,7 +108,6 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
         }
 
         // This basically does the "check if a type declaration, then get type"
-        Inner inner;
         inner.TraverseDecl(lookup_result[0]);
         result = inner.result;
         return true;
@@ -122,13 +123,7 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
     {
         if (lookupInContext(decl) && !result)
         {
-            // This means we found the clang decl but couldn't translate it
-            // So just make a thing with the right name and hope it works
-            clang::DeclContextLookupResult lookup_result = decl->lookup(identifier);
-            lookup_result[0]->dump();
-            Inner inner;
-            inner.TraverseDecl(lookup_result[0]);
-            throw std::logic_error("Couldn't translate the dependent type");
+            return false;
         }
         if (!result && decl->hasDefinition())
         {

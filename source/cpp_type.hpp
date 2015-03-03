@@ -674,6 +674,23 @@ class Expression;
         virtual void dump() const override;
     };
 
+    class NestedNameWrapper
+    {
+        private:
+        clang::NestedNameSpecifier* name;
+
+        public:
+        explicit NestedNameWrapper(clang::NestedNameSpecifier* n)
+            : name(n)
+        { }
+        // Maybe this should be another enum?
+        bool isType() const;
+        bool isIdentifier() const;
+        NestedNameWrapper* getPrefix() const;
+        binder::string* getAsIdentifier() const;
+        Type * getAsType() const;
+    };
+
     class DelayedType : public Type
     {
         protected:
@@ -691,8 +708,8 @@ class Expression;
         virtual void dump() const override;
 
         Type* resolveType() const;
-        Type* getQualifierAsType() const;
         binder::string* getIdentifier() const;
+        NestedNameWrapper* getQualifier() const;
     };
 
     class TemplateArgumentInstanceIterator

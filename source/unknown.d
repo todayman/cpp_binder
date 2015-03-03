@@ -238,14 +238,27 @@ extern (C++) interface TemplateSpecializationType : unknown.Type
     final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
 }
 
+extern (C++) interface NestedNameWrapper
+{
+    final public bool isType() const;
+
+    final public bool isIdentifier() const;
+
+    final public unknown.NestedNameWrapper getPrefix() const;
+
+    final public binder.binder.string getAsIdentifier() const;
+
+    final public unknown.Type getAsType() const;
+}
+
 extern (C++) interface DelayedType : unknown.Type
 {
 
     final public unknown.Type resolveType() const;
 
-    final public unknown.Type getQualifierAsType() const;
-
     final public binder.binder.string getIdentifier() const;
+
+    final public unknown.NestedNameWrapper getQualifier() const;
 }
 
 extern (C++) interface TemplateArgumentInstanceIterator

@@ -461,6 +461,86 @@ class InnerNameResolver : public clang::RecursiveASTVisitor<InnerNameResolver>
     }
 };
 
+class IdentifierPathResolver : public clang::RecursiveASTVisitor<IdentifierPathResolver>
+{
+    public:
+    Type * result;
+    std::stack<const clang::IdentifierInfo*>& identifier_path;
+    IdentifierPathResolver(std::stack<const clang::IdentifierInfo*>& path)
+        : result(nullptr), identifier_path(path)
+    { }
+
+    bool WalkUpFromDecl(clang::Decl*)
+    {
+        throw std::logic_error("Do not know how to refer to dependent type declaration");
+    }
+
+    bool WalkUpFromTypedefDecl(clang::TypedefDecl* decl)
+    {
+        clang::QualType underlying_type = decl->getUnderlyingType();
+        if (identifier_path.empty())
+        {
+            result = Type::get(underlying_type);
+        }
+        else
+        {
+            const clang::IdentifierInfo* next_id = identifier_path.top();
+            identifier_path.pop();
+            NestedNameResolver<IdentifierPathResolver> inner(next_id, identifier_path);
+            inner.TraverseType(underlying_type);
+            result = inner.result;
+        }
+        return false;
+    }
+};
+
+bool NestedNameWrapper::isType() const
+{
+    switch (name->getKind())
+    {
+        case clang::NestedNameSpecifier::TypeSpec:
+        case clang::NestedNameSpecifier::TypeSpecWithTemplate:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool NestedNameWrapper::isIdentifier() const
+{
+    switch (name->getKind())
+    {
+        case clang::NestedNameSpecifier::Identifier:
+            return true;
+        default:
+            return false;
+    }
+}
+
+NestedNameWrapper* NestedNameWrapper::getPrefix() const
+{
+    if (name->getPrefix())
+    {
+        return new NestedNameWrapper(name->getPrefix());
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+binder::string* NestedNameWrapper::getAsIdentifier() const
+{
+    return new binder::string(name->getAsIdentifier()->getNameStart(), name->getAsIdentifier()->getLength());
+}
+
+Type* NestedNameWrapper::getAsType() const
+{
+    assert(isType());
+
+    return Type::get(name->getAsType());
+}
+
 Type* DelayedType::resolveType() const
 {
     clang::NestedNameSpecifier* container = type->getQualifier();
@@ -478,6 +558,41 @@ Type* DelayedType::resolveType() const
             result = visitor.result;
             break;
         }
+        case clang::NestedNameSpecifier::Identifier:
+        {
+            std::stack<const clang::IdentifierInfo*> identifier_path;
+            identifier_path.push(type->getIdentifier());
+            const clang::NestedNameSpecifier* cur_name;
+            for (cur_name = container;
+                 cur_name->getKind() == clang::NestedNameSpecifier::Identifier;
+                 cur_name = cur_name->getPrefix()
+                )
+            {
+                identifier_path.push(cur_name->getAsIdentifier());
+            }
+
+            // TODO figure out how to get rid of this switch
+            switch (cur_name->getKind())
+            {
+                case clang::NestedNameSpecifier::TypeSpec:
+                case clang::NestedNameSpecifier::TypeSpecWithTemplate:
+                {
+                    const clang::Type* container_type = cur_name->getAsType();
+                    const clang::IdentifierInfo* first_id = identifier_path.top();
+                    identifier_path.pop();
+                    NestedNameResolver<IdentifierPathResolver> visitor(first_id, identifier_path);
+                    visitor.TraverseType(clang::QualType(container_type, 0));
+                    result = visitor.result;
+                    break;
+                }
+                case clang::NestedNameSpecifier::Identifier:
+                    throw std::logic_error("Tried to find the prefix of a nested name specifier that was not an identifier, but still have an identifier.");
+                    break;
+                default:
+                    throw std::logic_error("Unknown nested name prefix kind");
+            }
+            break;
+        }
         default:
             throw std::logic_error("Unknown nested name kind");
     }
@@ -485,19 +600,14 @@ Type* DelayedType::resolveType() const
     return result;
 }
 
-Type* DelayedType::getQualifierAsType() const
-{
-    clang::NestedNameSpecifier* container = type->getQualifier();
-
-    assert(container->getKind() == clang::NestedNameSpecifier::TypeSpec
-        || container->getKind() == clang::NestedNameSpecifier::TypeSpecWithTemplate);
-
-    return Type::get(container->getAsType());
-}
-
 binder::string* DelayedType::getIdentifier() const
 {
     return new binder::string(type->getIdentifier()->getNameStart(), type->getIdentifier()->getLength());
+}
+
+NestedNameWrapper* DelayedType::getQualifier() const
+{
+    return new NestedNameWrapper(type->getQualifier());
 }
 
 TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind()

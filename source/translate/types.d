@@ -19,6 +19,7 @@
 module translate.types;
 
 import std.conv : to;
+import std.range : retro;
 import std.stdio : stderr;
 import std.typecons : Flag;
 
@@ -280,16 +281,28 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                     else
                     {
                         // DECIDED TO DO IT LIVE
-                        unknown.Type qualifierType = type.getQualifierAsType();
+                        string[] identifier_stack;
+                        unknown.NestedNameWrapper current_name;
+                        for (current_name = type.getQualifier(); current_name.isIdentifier(); current_name = current_name.getPrefix())
+                        {
+                            identifier_stack ~= [binder.toDString(current_name.getAsIdentifier())];
+                        }
+                        assert(current_name.isType());
+
+                        unknown.Type qualifierType = current_name.getAsType();
                         if (qualifierType.getKind() == unknown.Type.Kind.Invalid)
                         {
                             throw new Exception("Type is dependent on an invalid type.");
                         }
-
                         DeferredSymbol qualifier = resolveOrDefer(qualifierType);
                         auto deferred = new DeferredSymbolConcatenation(qualifier);
-                        std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(binder.toDString(type.getIdentifier()));
-                        deferred.append(instance);
+
+
+                        foreach (string name; identifier_stack.retro)
+                        {
+                            std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(binder.toDString(type.getIdentifier()));
+                            deferred.append(instance);
+                        }
                         result = new std.d.ast.Type();
                         result.type2 = new std.d.ast.Type2();
                         result.type2.symbol = deferred.answer;
