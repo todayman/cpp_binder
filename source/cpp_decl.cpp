@@ -342,7 +342,7 @@ ArgumentDeclaration* ArgumentIterator::operator*()
     return dynamic_cast<ArgumentDeclaration*>(decl);
 }
 //template FieldDeclaration* Iterator<clang::RecordDecl::field_iterator, FieldDeclaration>::operator*();
-FieldDeclaration* FieldIterator::operator*()
+FieldDeclaration* FieldRange::front()
 {
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )

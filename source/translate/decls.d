@@ -324,12 +324,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     private void translateAllFields(unknown.RecordDeclaration cppDecl, std.d.ast.StructDeclaration result)
     {
-        for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
-                  finish = cppDecl.getFieldEnd();
-             !iter.equals(finish);
-             iter.advance())
+        foreach (unknown.FieldDeclaration cppField; cppDecl.getFieldRange())
         {
-            Declaration field = translateField(iter.get());
+            Declaration field = translateField(cppField);
             result.structBody.declarations ~= [field];
         }
     }
@@ -644,7 +641,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         // Make symbols for all of the specializations
         // This is done so that the symbols inside the specialization have
-        // proper paths; the declarations themselves shoudl not be emitted.
+        // proper paths; the declarations themselves should not be emitted.
         for (auto iter = cppDecl.getSpecializationBegin(), end = cppDecl.getSpecializationEnd();
              !iter.equals(end);
              iter.advance())
@@ -817,12 +814,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result.templateParameters = translateTemplateParameters(templateDecl);
         }
 
-        for (unknown.FieldIterator iter = cppDecl.getFieldBegin(),
-                  finish = cppDecl.getFieldEnd();
-             !iter.equals(finish);
-             iter.advance() )
+        foreach (unknown.FieldDeclaration cppField; cppDecl.getFieldRange())
         {
-            std.d.ast.Declaration field = translateField(iter.get());
+            std.d.ast.Declaration field = translateField(cppField);
             result.structBody.declarations ~= [field];
         }
 

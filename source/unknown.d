@@ -542,14 +542,14 @@ extern (C++) interface MethodDeclaration : unknown.Declaration
     public unknown.OverriddenMethodIterator getOverriddenEnd();
 }
 
-extern (C++) interface FieldIterator
+extern (C++) interface FieldRange
 {
 
-    public unknown.FieldDeclaration get();
+    public unknown.FieldDeclaration front();
 
-    public void advance();
+    public void popFront();
 
-    public bool equals(unknown.FieldIterator other);
+    public bool empty() const;
 }
 
 extern (C++) interface MethodRange
@@ -586,9 +586,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     final public unknown.RecordType getRecordType() const;
 
-    public unknown.FieldIterator getFieldBegin();
-
-    public unknown.FieldIterator getFieldEnd();
+    public unknown.FieldRange getFieldRange() const;
 
     public unknown.DeclarationRange getChildren();
 
@@ -616,9 +614,7 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
 
     final public unknown.UnionType getUnionType() const;
 
-    public unknown.FieldIterator getFieldBegin();
-
-    public unknown.FieldIterator getFieldEnd();
+    public unknown.FieldRange getFieldRange();
 
     public unknown.DeclarationRange getChildren();
 

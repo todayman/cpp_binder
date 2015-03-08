@@ -864,47 +864,31 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
-    class FieldIterator
+    class FieldRange
     {
+        public:
+        typedef clang::RecordDecl::field_iterator iterator_t;
+        typedef clang::RecordDecl::field_range range_t;
+
         private:
-        clang::RecordDecl::field_iterator cpp_iter;
+        iterator_t cpp_iter;
+        iterator_t end;
 
         public:
-        explicit FieldIterator(clang::RecordDecl::field_iterator i)
-            : cpp_iter(i)
+        explicit FieldRange(range_t r)
+            : cpp_iter(r.begin()), end(r.end())
         { }
 
-        void operator++() {
-            cpp_iter++;
-        }
+        virtual FieldDeclaration* front();
 
-        bool operator==(const FieldIterator& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const FieldIterator& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        FieldDeclaration* operator*();
-        FieldDeclaration* operator->()
-        {
-            return operator*();
-        }
-
-        virtual FieldDeclaration* get()
-        {
-            return operator*();
-        }
-
-        virtual void advance()
+        virtual void popFront()
         {
             cpp_iter++;
         }
 
-        virtual bool equals(FieldIterator* other)
+        virtual bool empty() const
         {
-            return (*this) == (*other);
+            return cpp_iter == end;
         }
     };
     //typedef Iterator<clang::RecordDecl::field_iterator, FieldDeclaration> FieldIterator;
@@ -1034,13 +1018,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitRecord(*this);
         }*/
 
-        virtual FieldIterator * getFieldBegin()
+        virtual FieldRange * getFieldRange() const
         {
-            return new FieldIterator(definitionOrThis()->field_begin());
-        }
-        virtual FieldIterator * getFieldEnd()
-        {
-            return new FieldIterator(definitionOrThis()->field_end());
+            return new FieldRange(definitionOrThis()->fields());
         }
         virtual DeclarationRange * getChildren()
         {
@@ -1161,13 +1141,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitUnion(*this);
         }*/
 
-        virtual FieldIterator * getFieldBegin()
+        virtual FieldRange * getFieldRange()
         {
-            return new FieldIterator(_decl->field_begin());
-        }
-        virtual FieldIterator * getFieldEnd()
-        {
-            return new FieldIterator(_decl->field_end());
+            return new FieldRange(_decl->fields());
         }
         virtual DeclarationRange * getChildren()
         {
@@ -1636,7 +1612,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class RecordDeclaration;
         friend class DeclarationRange;
         friend class ArgumentIterator;
-        friend class FieldIterator;
+        friend class FieldRange;
         friend class MethodRange;
         friend class OverriddenMethodIterator;
         friend class TemplateArgumentIterator;
