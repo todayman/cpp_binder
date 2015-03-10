@@ -511,6 +511,7 @@ class Expression;
         }
 
         virtual bool isFixedLength() = 0;
+        virtual bool isDependentLength() = 0;
         // FIXME should probably not be in the superclass,
         // but it avoids downcasting later
         virtual long long getLength() = 0;
@@ -539,7 +540,9 @@ class Expression;
         virtual Type* getElementType() const override;
 
         virtual bool isFixedLength() override;
+        virtual bool isDependentLength() override;
         virtual long long getLength() override;
+        virtual Expression* getLengthExpression() override;
     };
 
     class VariableArrayType : public ArrayType
