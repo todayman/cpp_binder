@@ -68,7 +68,6 @@ package void determineStrategy(unknown.Type cppType)
         }
 
         mixin template Replace(T) {
-            // TODO turn this into a template?
             override extern(C++) void visit(T cppType)
             {
                 // FIXME empty string means resolve to an actual AST type, not a string
@@ -77,7 +76,13 @@ package void determineStrategy(unknown.Type cppType)
         }
         mixin Replace!(unknown.PointerType);
         mixin Replace!(unknown.ReferenceType);
-        mixin Replace!(unknown.TypedefType);
+        override extern(C++) void visit(unknown.TypedefType cppType)
+        {
+            determineStrategy(cppType.getTargetType());
+            // FIXME verify and comment on why replace is always the right
+            // strategy, even if the target is an interface
+            cppType.chooseReplaceStrategy(binder.toBinderString(""));
+        }
         mixin Replace!(unknown.EnumType);
         mixin Replace!(unknown.FunctionType);
         mixin Replace!(unknown.TemplateArgumentType);
