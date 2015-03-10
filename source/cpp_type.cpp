@@ -169,6 +169,18 @@ void Type::applyAttributes(const TypeAttributes* attribs)
     setReplacementModule(attribs->target_module);
 }
 
+bool BuiltinType::isWrappable() const
+{
+    if (type->getKind() == clang::BuiltinType::Dependent)
+        std::cerr << "builtin is dependent\n";
+    else if (target_name.size() == 0)
+        std::cerr << "builtin has no name\n";
+    else
+        std::cerr << "builtin " << target_name.c_str() << " is wrappable\n";
+    return type->getKind() != clang::BuiltinType::Dependent
+        && target_name.size() > 0;
+}
+
 Type * QualifiedType::unqualifiedType()
 {
     if (type.getLocalQualifiers().empty())
@@ -223,7 +235,6 @@ bool RecordType::isReferenceType() const
         default:
             dump();
             throw std::logic_error("Haven't decided strategy for Record yet, so it is not known whether it is a reference type.");
-            ;
     };
 }
 Declaration* RecordType::getDeclaration() const
@@ -236,6 +247,11 @@ RecordDeclaration * NonTemplateRecordType::getRecordDeclaration() const
     return dynamic_cast<RecordDeclaration*>(::getDeclaration(type->getDecl()));
 }
 
+bool NonTemplateRecordType::isWrappable() const
+{
+    return getRecordDeclaration()->isWrappable();
+}
+
 RecordDeclaration* TemplateRecordType::getRecordDeclaration() const
 {
     Declaration* decl = ::getDeclaration(type->getDecl());
@@ -244,6 +260,11 @@ RecordDeclaration* TemplateRecordType::getRecordDeclaration() const
     // Make sure this is behaving the way I expect
     auto result = dynamic_cast<RecordDeclaration*>(decl);
     return result;
+}
+
+bool TemplateRecordType::isWrappable() const
+{
+    return getRecordDeclaration()->isWrappable();
 }
 
 Type * PointerType::getPointeeType() const
@@ -263,7 +284,7 @@ bool ReferenceType::isReferenceType() const
 
 bool TypedefType::isReferenceType() const
 {
-    return getTypedefDeclaration()->getTargetType()->isReferenceType();
+    return Type::get(type->desugar())->isReferenceType();
 }
 
 Declaration* TypedefType::getDeclaration() const
@@ -278,13 +299,24 @@ TypedefDeclaration * TypedefType::getTypedefDeclaration() const
     Declaration* this_declaration = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     if( !this_declaration )
     {
-        std::cerr << clang_decl->isImplicit() << "\n";
-        std::cerr << "type kind = " << type->getTypeClassName() << "\n";
         clang_decl->dump();
-        throw std::runtime_error("Found a declaration that I'm not wrapping.");
+        std::cerr << "ERROR: Typedef does not have a declaration!\n";
+        return nullptr;
     }
 
     return dynamic_cast<TypedefDeclaration*>(this_declaration);
+}
+
+Type* TypedefType::getTargetType() const
+{
+    return Type::get(type->desugar());
+}
+
+bool TypedefType::isWrappable() const
+{
+    bool result = getTargetType()->isWrappable();
+    std::cerr << "Typedef target (kind = " << getTargetType()->getKind() << ") is " << (result ? "" : "not ") << "wrappable\n";
+    return result;
 }
 
 Declaration* EnumType::getDeclaration() const
@@ -311,7 +343,12 @@ UnionDeclaration * UnionType::getUnionDeclaration() const
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
 }
 
-Type* ConstantArrayType::getElementType()
+bool UnionType::isWrappable() const
+{
+    return getUnionDeclaration()->isWrappable();
+}
+
+Type* ConstantArrayType::getElementType() const
 {
     return Type::get(type->getElementType());
 }
@@ -319,6 +356,11 @@ Type* ConstantArrayType::getElementType()
 bool ConstantArrayType::isFixedLength()
 {
     return true;
+}
+
+bool ConstantArrayType::isDependentLength()
+{
+    return false;
 }
 
 long long ConstantArrayType::getLength()
@@ -329,7 +371,12 @@ long long ConstantArrayType::getLength()
     return result;
 }
 
-Type* VariableArrayType::getElementType()
+Expression* ConstantArrayType::getLengthExpression()
+{
+    throw std::logic_error("Not a dependent length array; length is a constant int.");
+}
+
+Type* VariableArrayType::getElementType() const
 {
     return Type::get(type->getElementType());
 }
@@ -339,9 +386,44 @@ bool VariableArrayType::isFixedLength()
     return false;
 }
 
+bool VariableArrayType::isDependentLength()
+{
+    return false;
+}
+
 long long VariableArrayType::getLength()
 {
     throw std::logic_error("Asked for the length of a variable length area.");
+}
+
+Expression* VariableArrayType::getLengthExpression()
+{
+    throw std::logic_error("Not a dependent length array; length is variable.");
+}
+
+Type* DependentLengthArrayType::getElementType() const
+{
+    return Type::get(type->getElementType());
+}
+
+bool DependentLengthArrayType::isFixedLength()
+{
+    return true;
+}
+
+bool DependentLengthArrayType::isDependentLength()
+{
+    return true;
+}
+
+long long DependentLengthArrayType::getLength()
+{
+    throw std::logic_error("Asked for the length of a dependent length area.");
+}
+
+Expression* DependentLengthArrayType::getLengthExpression()
+{
+    return wrapClangExpression(type->getSizeExpr());
 }
 
 bool QualifiedType::isReferenceType() const
@@ -395,6 +477,12 @@ TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumen
     return new TemplateArgumentInstanceIterator(type->end());
 }
 
+bool TemplateSpecializationType::isWrappable() const
+{
+    // TODO check the template arguments
+    return getTemplateDeclaration()->isWrappable();
+}
+
 #define DUMP_METHOD(TYPE) \
 void TYPE##Type::dump() const\
 { \
@@ -411,6 +499,7 @@ DUMP_METHOD(Enum)
 DUMP_METHOD(Union)
 DUMP_METHOD(ConstantArray)
 DUMP_METHOD(VariableArray)
+DUMP_METHOD(DependentLengthArray)
 DUMP_METHOD(Function)
 void QualifiedType::dump() const
 {
@@ -783,8 +872,8 @@ bool ClangTypeVisitor::WalkUpFromIncompleteArrayType(clang::IncompleteArrayType*
 
 bool ClangTypeVisitor::WalkUpFromDependentSizedArrayType(clang::DependentSizedArrayType* type)
 {
-    allocateInvalidType(clang::QualType(type, 0));
-    return false;
+    allocateType<DependentLengthArrayType>(type);
+    return Super::WalkUpFromDependentSizedArrayType(type);
 }
 
 bool ClangTypeVisitor::WalkUpFromFunctionProtoType(clang::FunctionProtoType* type)

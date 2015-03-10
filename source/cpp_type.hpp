@@ -220,6 +220,7 @@ class Expression;
         virtual void dump() const = 0;
 
         void applyAttributes(const TypeAttributes* attribs);
+        virtual bool isWrappable() const = 0;
     };
 
     class TypeVisitor
@@ -263,6 +264,11 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override
+        {
+            return false;
+        }
     };
 
     class BuiltinType : public Type
@@ -290,6 +296,8 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override;
     };
 
     class RecordType : public Type
@@ -320,6 +328,7 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+        virtual bool isWrappable() const override;
     };
 
     class TemplateRecordType : public RecordType
@@ -338,6 +347,7 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+        virtual bool isWrappable() const override;
     };
 
     class PointerOrReferenceType : public Type
@@ -373,6 +383,11 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override
+        {
+            return getPointeeType()->isWrappable();
+        }
     };
     class ReferenceType : public PointerOrReferenceType
     {
@@ -390,6 +405,11 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override
+        {
+            return false;
+        }
     };
 
     class TypedefType : public Type
@@ -410,6 +430,10 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        Type* getTargetType() const;
+
+        virtual bool isWrappable() const override;
     };
 
     class EnumType : public Type
@@ -435,6 +459,11 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override
+        {
+            return true;
+        }
     };
 
     class UnionType : public Type
@@ -459,6 +488,8 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override;
     };
 
     // Arrays always have fixed size; if they don't, then they're pointers
@@ -483,7 +514,14 @@ class Expression;
         // FIXME should probably not be in the superclass,
         // but it avoids downcasting later
         virtual long long getLength() = 0;
-        virtual Type* getElementType() = 0;
+        // FIXME ditto
+        virtual Expression* getLengthExpression() = 0;
+        virtual Type* getElementType() const = 0;
+
+        virtual bool isWrappable() const override
+        {
+            return getElementType()->isWrappable();
+        }
     };
 
     class ConstantArrayType : public ArrayType
@@ -498,7 +536,7 @@ class Expression;
 
         virtual void dump() const override;
 
-        virtual Type* getElementType() override;
+        virtual Type* getElementType() const override;
 
         virtual bool isFixedLength() override;
         virtual long long getLength() override;
@@ -516,10 +554,32 @@ class Expression;
 
         virtual void dump() const override;
 
-        virtual Type* getElementType() override;
+        virtual Type* getElementType() const override;
 
         virtual bool isFixedLength() override;
+        virtual bool isDependentLength() override;
         virtual long long getLength() override;
+        virtual Expression* getLengthExpression() override;
+    };
+
+    class DependentLengthArrayType : public ArrayType
+    {
+        protected:
+        const clang::DependentSizedArrayType* type;
+
+        public:
+        explicit DependentLengthArrayType(const clang::DependentSizedArrayType* t)
+            : ArrayType(), type(t)
+        { }
+
+        virtual void dump() const override;
+
+        virtual Type* getElementType() const override;
+
+        virtual bool isFixedLength() override;
+        virtual bool isDependentLength() override;
+        virtual long long getLength() override;
+        virtual Expression* getLengthExpression() override;
     };
 
     class ArgumentTypeRange
@@ -573,6 +633,13 @@ class Expression;
 
         virtual Type* getReturnType();
         virtual ArgumentTypeRange* getArgumentRange();
+
+        virtual bool isWrappable() const override
+        {
+            // FIXME this isn't quite right
+            // ignores ref return values, invalid args, etc.
+            return true;
+        }
     };
 
     class QualifiedType : public Type
@@ -595,6 +662,11 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override
+        {
+            return unqualifiedType()->isWrappable();
+        }
     };
 
     class VectorType : public Type
@@ -617,6 +689,11 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override
+        {
+            return false;
+        }
     };
 
     class TemplateArgumentType : public Type
@@ -648,6 +725,11 @@ class Expression;
         virtual void dump() const override;
 
         binder::string* getIdentifier() const;
+
+        virtual bool isWrappable() const override
+        {
+            return true;
+        }
     };
 
     class TemplateSpecializationType : public Type
@@ -672,6 +754,8 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
+
+        virtual bool isWrappable() const override;
     };
 
     class NestedNameWrapper
@@ -710,6 +794,19 @@ class Expression;
         Type* resolveType() const;
         binder::string* getIdentifier() const;
         NestedNameWrapper* getQualifier() const;
+
+        virtual bool isWrappable() const override
+        {
+            Type * r = resolveType();
+            if (r)
+            {
+                return r->isWrappable();
+            }
+            else
+            {
+                return false;
+            }
+        }
     };
 
     class TemplateArgumentInstanceIterator

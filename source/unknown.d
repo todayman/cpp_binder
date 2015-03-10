@@ -71,6 +71,8 @@ extern (C++) interface Type
 
     final public void applyAttributes(const(unknown.TypeAttributes)* attribs);
 
+    public bool isWrappable() const;
+
     enum Kind : uint 
 
     {
@@ -162,6 +164,8 @@ extern (C++) interface TypedefType : unknown.Type
 {
 
     final public unknown.TypedefDeclaration getTypedefDeclaration() const;
+
+    final public unknown.Type getTargetType() const;
 }
 
 extern (C++) interface EnumType : unknown.Type
@@ -181,14 +185,20 @@ extern (C++) interface ArrayType : unknown.Type
 
     public bool isFixedLength();
 
+    public bool isDependentLength();
+
     public long getLength();
 
-    public unknown.Type getElementType();
+    public unknown.Expression getLengthExpression();
+
+    public unknown.Type getElementType() const;
 }
 
 extern (C++) interface ConstantArrayType : unknown.ArrayType {}
 
 extern (C++) interface VariableArrayType : unknown.ArrayType {}
+
+extern (C++) interface DependentLengthArrayType : unknown.ArrayType {}
 
 extern (C++) interface ArgumentTypeRange
 {
