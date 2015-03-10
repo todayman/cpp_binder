@@ -864,7 +864,20 @@ bool ClangTypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
     }
     return Super::WalkUpFromRecordType(type);
 }
-WALK_UP_METHOD(Builtin)
+
+bool ClangTypeVisitor::WalkUpFromBuiltinType(clang::BuiltinType* type)
+{
+    if (type->getKind() == clang::BuiltinType::Dependent)
+    {
+        allocateInvalidType(clang::QualType(type, 0));
+        return true;
+    }
+    else
+    {
+        allocateType<BuiltinType>(type);
+        return Super::WalkUpFromBuiltinType(type);
+    }
+}
 WALK_UP_METHOD(Pointer)
 
 bool ClangTypeVisitor::WalkUpFromConstantArrayType(clang::ConstantArrayType* type)
