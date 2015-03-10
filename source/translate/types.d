@@ -414,9 +414,25 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
         DeferredSymbolConcatenation result = null;
         if (cppDecl !is null)
         {
+            if (!cppDecl.isWrappable())
+            {
+                cppDecl.dump();
+                throw new Exception("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~") is not wrappable.");
+            }
+            // cppDecl.getType() can be different than cppType
+            // FIXME I need to find a better way to fix this at the source
+            if (auto deferred_ptr = cast(void*)cppDecl.getType() in symbolForType)
+            {
+                return *deferred_ptr;
+            }
+            if (!cppType.isWrappable())
+            {
+                cppDecl.dump();
+                throw new Exception("This type is not wrappable.");
+            }
             result = new DeferredSymbolConcatenation();
             // This symbol will be filled in when the declaration is traversed
-            symbolForType[cast(void*)cppType] = result;
+            symbolForType[cast(void*)cppDecl.getType()] = result;
             unresolvedSymbols[result] = cppDecl;
         }
         // cppDecl can be null if the type is a builtin type,
