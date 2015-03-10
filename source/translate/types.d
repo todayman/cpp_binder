@@ -465,7 +465,7 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
     // (the instantiation)
     // TODO template_symbol needs a better name
     auto template_symbol = new DeferredTemplateInstantiation();
-    template_symbol.templateName = translateType(cppType.getTemplateDeclaration().getType(), QualifierSet.init).type2.symbol;
+    template_symbol.templateName = resolveOrDefer(cppType.getTemplateDeclaration().getType());
     assert(template_symbol.templateName !is null);
     template_symbol.arguments.length = cppType.getTemplateArgumentCount();
     uint idx = 0;
@@ -536,6 +536,7 @@ private std.d.ast.Type resolveOrDeferType(Type)(Type cppType, QualifierSet quali
     result.type2 = type2;
     enum kind = Type.stringof;
     type2.symbol = resolveOrDefer(cppType).answer;
+    assert(type2.symbol !is null);
     return result;
 }
 
@@ -992,7 +993,7 @@ class DeferredTemplateInstantiation : DeferredSymbol
 {
     bool resolved;
     public:
-    std.d.ast.Symbol templateName;
+    DeferredSymbol templateName;
     // TODO non-type arguments
     // Check out std.d.ast.TemplateArgument
     std.d.ast.TemplateArgument[] arguments;
@@ -1009,9 +1010,11 @@ class DeferredTemplateInstantiation : DeferredSymbol
         auto chain = new std.d.ast.IdentifierOrTemplateChain();
         answer.identifierOrTemplateChain = chain;
 
-        assert(templateName.identifierOrTemplateChain.identifiersOrTemplateInstances.length > 0);
-        chain.identifiersOrTemplateInstances = templateName.identifierOrTemplateChain.identifiersOrTemplateInstances[0 .. $-1];
-        auto lastIorT = templateName.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];
+        templateName.resolve();
+        assert(templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances.length > 0);
+
+        chain.identifiersOrTemplateInstances = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[0 .. $-1];
+        auto lastIorT = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];
 
         auto iorT = new std.d.ast.IdentifierOrTemplateInstance();
         chain.identifiersOrTemplateInstances ~= [iorT];
