@@ -297,7 +297,6 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                         DeferredSymbol qualifier = resolveOrDefer(qualifierType);
                         auto deferred = new DeferredSymbolConcatenation(qualifier);
 
-
                         foreach (string name; identifier_stack.retro)
                         {
                             std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(binder.toDString(type.getIdentifier()));
@@ -679,7 +678,22 @@ private std.d.ast.Type replaceFunction(unknown.FunctionType cppType)
     foreach (unknown.Type arg_type; cppType.getArgumentRange())
     {
         auto param = new std.d.ast.Parameter();
-        param.type = translateType(arg_type, QualifierSet.init);
+        try {
+            param.type = translateType(arg_type, QualifierSet.init);
+        }
+        catch (RefTypeException e)
+        {
+            // Make sure that this isn't a ref farther down, since the ref
+            // modifier can only be applied to the parameter
+            if (e.type != cppType)
+            {
+                throw e;
+            }
+
+            unknown.Type targetType = (cast(unknown.ReferenceType)cppType).getPointeeType();
+            param.type = translateType(targetType, QualifierSet.init).clone;
+            param.type.typeConstructors ~= [tok!"ref"];
+        }
         parameters.parameters ~= [param];
     }
     return returnType;
