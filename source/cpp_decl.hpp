@@ -985,11 +985,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         protected:
         const clang::RecordDecl* _decl;
 
-        const clang::RecordDecl* definitionOrThis()
+        const clang::RecordDecl* definitionOrThis() const
         {
-            if (hasDefinition())
+            const clang::RecordDecl* definition = _decl->getDefinition();
+            if (definition)
             {
-                return _decl->getDefinition();
+                return definition;
             }
             else
             {
@@ -1028,7 +1029,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return new FieldRange(definitionOrThis()->fields());
         }
-        virtual DeclarationRange * getChildren()
+        virtual DeclarationRange * getChildren() const
         {
             return new DeclarationRange(definitionOrThis()->decls());
         }
@@ -1206,6 +1207,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         };
 
         virtual Kind getKind();
+        virtual bool isPack();
 
         virtual TemplateTypeArgumentDeclaration* getType();
 
@@ -1294,6 +1296,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : RecordDeclaration(d->getTemplatedDecl()), outer_decl(d)
         { }
 
+        bool isVariadic() const;
+
         virtual clang::SourceLocation getSourceLocation() const override
         {
             return outer_decl->getLocation();
@@ -1321,11 +1325,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return outer_decl->getTemplateParameters()->size();
         }
-        virtual TemplateArgumentIterator * getTemplateArgumentBegin()
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin() const
         {
             return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
         }
-        virtual TemplateArgumentIterator * getTemplateArgumentEnd()
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd() const
         {
             return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
         }

@@ -269,8 +269,28 @@ TemplateArgumentInstanceIterator* SpecializedRecordDeclaration::getTemplateArgum
     return new TemplateArgumentInstanceIterator(template_decl->getTemplateArgs().data() + getTemplateArgumentCount());
 }
 
+bool RecordTemplateDeclaration::isVariadic() const
+{
+    TemplateArgumentIterator * end = getTemplateArgumentEnd();
+    for(TemplateArgumentIterator* iter = getTemplateArgumentBegin();
+            !iter->equals(end);
+            iter->advance())
+    {
+        if (iter->isPack())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool RecordTemplateDeclaration::isWrappable() const
 {
+    if (isVariadic())
+    {
+        return false;
+    }
+
     return RecordDeclaration::isWrappable();
 }
 
@@ -444,6 +464,23 @@ TemplateArgumentIterator::Kind TemplateArgumentIterator::getKind()
     else if (isTemplateNonTypeParmDecl(decl))
     {
         return TemplateArgumentIterator::NonType;
+    }
+    else
+    {
+        throw std::logic_error("Unhandled template argument type.");
+    }
+}
+
+bool TemplateArgumentIterator::isPack()
+{
+    const clang::NamedDecl* decl = *cpp_iter;
+    if (isTemplateTypeParmDecl(decl))
+    {
+        return dynamic_cast<const clang::TemplateTypeParmDecl*>(decl)->isParameterPack();
+    }
+    else if (isTemplateNonTypeParmDecl(decl))
+    {
+        return dynamic_cast<const clang::NonTypeTemplateParmDecl*>(decl)->isParameterPack();
     }
     else
     {

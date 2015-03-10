@@ -592,13 +592,13 @@ extern (C++) interface SuperclassIterator
 extern (C++) interface RecordDeclaration : unknown.Declaration
 {
 
-    final protected const(clang.RecordDecl)* definitionOrThis();
+    final protected const(clang.RecordDecl)* definitionOrThis() const;
 
     final public unknown.RecordType getRecordType() const;
 
     public unknown.FieldRange getFieldRange() const;
 
-    public unknown.DeclarationRange getChildren();
+    public unknown.DeclarationRange getChildren() const;
 
     public unknown.MethodRange getMethodRange();
 
@@ -639,6 +639,8 @@ extern (C++) interface TemplateArgumentIterator
     public bool equals(unknown.TemplateArgumentIterator other);
 
     public unknown.TemplateArgumentIterator.Kind getKind();
+
+    public bool isPack();
 
     public unknown.TemplateTypeArgumentDeclaration getType();
 
@@ -682,9 +684,9 @@ extern (C++) interface SpecializedRecordIterator
 extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
 {
 
-    public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin() const;
 
-    public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
 
     public unknown.SpecializedRecordIterator getSpecializationBegin();
 
