@@ -489,7 +489,16 @@ void TYPE##Type::dump() const\
     type->dump(); \
 }
 DUMP_METHOD(Invalid)
-DUMP_METHOD(Builtin)
+void BuiltinType::dump() const
+{
+    std::cerr << "is sugared: " << type->isSugared() << "\n";
+    std::cerr << "isPlaceholder: " << type->isPlaceholderType() << "\n";
+    std::cerr << "kind: " << type->getKind() << "\n";
+    std::cerr << "clang::BuiltinType::Bool " << clang::BuiltinType::Bool << "\n";
+    std::cerr << "clang::BuiltinType::Int128 " << clang::BuiltinType::Int128 << "\n";
+    std::cerr << "clang::BuiltinType::Dependent " << clang::BuiltinType::Dependent << "\n";
+    type->dump();
+}
 DUMP_METHOD(NonTemplateRecord)
 DUMP_METHOD(TemplateRecord)
 DUMP_METHOD(Pointer)
