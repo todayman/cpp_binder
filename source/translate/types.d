@@ -716,12 +716,19 @@ private std.d.ast.Type replaceArray(unknown.ArrayType cppType, QualifierSet qual
     {
         TypeSuffix arraySuffix = new TypeSuffix();
         arraySuffix.array = true;
-        // FIXME duplication with translateEnumConstant
         arraySuffix.low = new std.d.ast.AssignExpression();
-        auto constant = new std.d.ast.PrimaryExpression();
+        if (cppType.isDependentLength())
+        {
+            arraySuffix.low.ternaryExpression = translateExpression(cppType.getLengthExpression());
+        }
+        else
+        {
+            // FIXME duplication with translateEnumConstant
+            auto constant = new std.d.ast.PrimaryExpression();
 
-        constant.primary = Token(tok!"longLiteral", to!string(cppType.getLength()), 0, 0, 0);
-        arraySuffix.low.assignExpression = constant;
+            constant.primary = Token(tok!"longLiteral", to!string(cppType.getLength()), 0, 0, 0);
+            arraySuffix.low.ternaryExpression = constant;
+        }
         result.typeSuffixes = [arraySuffix];
     }
     else
