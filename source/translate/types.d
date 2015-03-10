@@ -96,7 +96,7 @@ package void determineStrategy(unknown.Type cppType)
 
         override extern(C++) void visit(unknown.VectorType cppType)
         {
-            throw new Error("Cannot translate vector (e.g. SSE, AVX) types.");
+            throw new Exception("Cannot translate vector (e.g. SSE, AVX) types.");
         }
 
         override extern(C++) void visit(unknown.QualifiedType cppType)
