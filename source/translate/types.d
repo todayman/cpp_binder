@@ -443,6 +443,23 @@ private DeferredSymbol resolveOrDefer(unknown.TemplateArgumentType cppType)
 // FIXME duplication with TranslatorVisitor.translateTemplateArguments
 package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
+    // Since I can't translate variadic templates, make sure that this is not
+    // the fixed-argument-length specialization of a variadic template.
+    // TODO implment variadic templates
+    unknown.Declaration parent = cppType.getTemplateDeclaration();
+    // FIXME this is a super-bad assumption
+    auto record_parent = cast(unknown.RecordTemplateDeclaration) parent;
+    for (auto iter = record_parent.getTemplateArgumentBegin(),
+            finish = record_parent.getTemplateArgumentEnd();
+            !iter.equals(finish);
+            iter.advance())
+    {
+        if (iter.isPack())
+        {
+            throw new Exception("Cannot translate variadic templates");
+        }
+    }
+
     // This is dangerously close to recursion
     // but it isn't because this is the generic template type, not us
     // (the instantiation)
@@ -452,7 +469,6 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
     assert(template_symbol.templateName !is null);
     template_symbol.arguments.length = cppType.getTemplateArgumentCount();
     uint idx = 0;
-    // FIXME only deals with type arguments
     for (auto iter = cppType.getTemplateArgumentBegin(),
             finish = cppType.getTemplateArgumentEnd();
             !iter.equals(finish);
