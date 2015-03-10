@@ -459,8 +459,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
 
     private void translateStructBody
-        (SubdeclarationVisitor, TargetDeclaration)
-        (unknown.RecordDeclaration cppDecl, TargetDeclaration result)
+        (SubdeclarationVisitor, SourceDeclaration, TargetDeclaration)
+        (SourceDeclaration cppDecl, TargetDeclaration result)
     {
         foreach (child; cppDecl.getChildren())
         {
@@ -474,9 +474,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 // At some point after I converted getChildren() to be a range,
                 // the range stopped being able to lookup my metadata for the
                 // EmptyDuplicateStructThingy, so it may return null now
-                if (!child || isEmptyDuplicateStructThingy(cppDecl, child) || !child.isWrappable())
+                if (!child || !child.isWrappable())
                 {
                     continue;
+                }
+                static if (__traits(compiles, isEmptyDuplicateStructThingy(cppDecl, child)))
+                {
+                    if (isEmptyDuplicateStructThingy(cppDecl, child))
+                    {
+                        continue;
+                    }
                 }
                 auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path[$-1]);
                 unknown.Declaration decl = child;
@@ -820,6 +827,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result.structBody.declarations ~= [field];
         }
 
+        translateStructBody!TranslatorVisitor(cppDecl, result);
         // TODO static methods and other things?
         return result;
     }
