@@ -855,10 +855,39 @@ bool DeclVisitor::VisitClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     return result;
 }
 
+bool isTemplateVariadic(clang::TemplateDecl* cppDecl)
+{
+    for (clang::NamedDecl* argDecl : *(cppDecl->getTemplateParameters()))
+    {
+        bool pack = false;
+        if (isTemplateTypeParmDecl(argDecl))
+        {
+            pack = dynamic_cast<const clang::TemplateTypeParmDecl*>(argDecl)->isParameterPack();
+        }
+        else if (isTemplateNonTypeParmDecl(argDecl))
+        {
+            pack = dynamic_cast<const clang::NonTypeTemplateParmDecl*>(argDecl)->isParameterPack();
+        }
+        if (pack)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
 {
+    // Don't traverse variadic templates
+    if (isTemplateVariadic(cppDecl))
+    {
+        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
+        return false;
+    }
+
     // FIXME reduce redundancy with WalkUpFromRecordDecl
     clang::CXXRecordDecl * templatedDecl = cppDecl->getTemplatedDecl();
+
     if (templatedDecl->isUnion())
     {
         allocateDeclaration<clang::ClassTemplateDecl, UnionTemplateDeclaration>(cppDecl);
@@ -899,6 +928,11 @@ bool DeclVisitor::WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDe
 
 bool DeclVisitor::WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl)
 {
+    if (isTemplateVariadic(cppDecl->getSpecializedTemplate()))
+    {
+        allocateDeclaration<clang::Decl, UnwrappableDeclaration>(cppDecl);
+        return false;
+    }
     allocateDeclaration<clang::ClassTemplateSpecializationDecl, SpecializedRecordDeclaration>(cppDecl);
     return Super::WalkUpFromClassTemplateSpecializationDecl(cppDecl);
 }
