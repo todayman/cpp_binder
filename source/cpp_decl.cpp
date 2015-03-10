@@ -100,6 +100,31 @@ RecordType* RecordDeclaration::getRecordType() const
     return dynamic_cast<RecordType*>(Type::get(_decl->getTypeForDecl()));
 }
 
+bool RecordDeclaration::isWrappable() const
+{
+    //if (getType()->getStrategy() == STRUCT)
+    //{
+    // FIXME this returns the wrong answer for interfaces
+    // since they can contain fields that can't be wrapped
+    // since those elements are not exposed to D
+        FieldRange * fields;
+        for(fields = getFieldRange(); !fields->empty(); fields->popFront())
+        {
+            FieldDeclaration* cur_field = fields->front();
+            if (!cur_field->isWrappable())
+            {
+                return false;
+            }
+        }
+        // FIXME leaking the fields
+    //}
+    //else if (getType()->getStrategy() == UNKNOWN)
+    //{
+    //    assert(0);
+    //}
+    return true;
+}
+
 long long EnumConstantDeclaration::getLLValue() const
 {
     long long result;
@@ -207,11 +232,11 @@ bool TypedefDeclaration::isWrappable() const
 {
     // TODO make sure this is the correct thing
     // it weeds out the implicit "typedef __int128" types
-   if (_decl->isImplicit() || getTargetType()->getKind() == Type::Invalid)
+   if (_decl->isImplicit())
    {
        return false;
    }
-   return true;
+   return getTargetType()->isWrappable();
 }
 
 TypedefType* TypedefDeclaration::getTypedefType() const
@@ -222,6 +247,11 @@ TypedefType* TypedefDeclaration::getTypedefType() const
 Type* TypedefDeclaration::getTargetType() const
 {
     return Type::get(_decl->getUnderlyingType());
+}
+
+bool EnumDeclaration::isWrappable() const
+{
+    return getMemberType()->isWrappable();
 }
 
 unsigned SpecializedRecordDeclaration::getTemplateArgumentCount() const
@@ -237,6 +267,11 @@ TemplateArgumentInstanceIterator* SpecializedRecordDeclaration::getTemplateArgum
 TemplateArgumentInstanceIterator* SpecializedRecordDeclaration::getTemplateArgumentEnd()
 {
     return new TemplateArgumentInstanceIterator(template_decl->getTemplateArgs().data() + getTemplateArgumentCount());
+}
+
+bool RecordTemplateDeclaration::isWrappable() const
+{
+    return RecordDeclaration::isWrappable();
 }
 
 SpecializedRecordIterator* RecordTemplateDeclaration::getSpecializationBegin()
@@ -392,6 +427,11 @@ Superclass* SuperclassIterator::operator*()
     result->base = Type::get(base->getType());
 
     return result;
+}
+
+bool FunctionDeclaration::isWrappable() const
+{
+    return Declaration::isWrappable();
 }
 
 TemplateArgumentIterator::Kind TemplateArgumentIterator::getKind()

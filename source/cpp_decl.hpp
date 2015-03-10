@@ -536,6 +536,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             _decl->dump();
         }
+
+        virtual bool isWrappable() const override;
     };
     // TODO change this to a generic constant class
     class EnumConstantDeclaration : public Declaration
@@ -634,6 +636,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         FunctionDeclaration(const clang::FunctionDecl* d)
             : _decl(d)
         { }
+
+        virtual bool isWrappable() const override;
 
         virtual clang::SourceLocation getSourceLocation() const override
         {
@@ -1009,6 +1013,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return getRecordType();
         }
 
+        virtual bool isWrappable() const override;
+
         virtual void visit(DeclarationVisitor& visitor) override
         {
             visitor.visitRecord(*this);
@@ -1303,6 +1309,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             // TODO I don't know what forward declared templates look like
             return true;
         }
+
+        virtual bool isWrappable() const override;
 
         virtual const RecordDeclaration* getDefinition() const override
         {
