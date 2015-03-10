@@ -321,10 +321,12 @@ class RefTypeException : Exception
 {
     public:
     unknown.Type type;
-    this(unknown.Type t)
+    unknown.Declaration declaration;
+    this(unknown.Type t, unknown.Declaration d = null)
     {
         super("Trying to translate into a ref");
         type = t;
+        declaration = d;
     }
 };
 
@@ -820,7 +822,6 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
 }
 
 package DeferredSymbolConcatenation makeSymbolForTypeDecl
-    //(SourceDeclaration)
     (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
 {
     import std.array : join;

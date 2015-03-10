@@ -190,6 +190,21 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
+    void visit(unknown.Declaration cppDecl)
+    {
+        try {
+            cppDecl.visit(this);
+        }
+        catch (RefTypeException e)
+        {
+            if (!e.declaration)
+            {
+                e.declaration = cppDecl;
+            }
+            throw e;
+        }
+    }
+
     std.d.ast.Declaration translateFunction(unknown.FunctionDeclaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
@@ -291,9 +306,19 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             try {
                 TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, null);
-                child.visit(subpackage_visitor);
+                subpackage_visitor.visit(child);
 
                 placeIntoTargetModule(child, subpackage_visitor.last_result);
+            }
+            catch (RefTypeException exc)
+            {
+                child.dump();
+                stderr.writeln("ERROR: (namespace) ", exc.msg);
+                if (exc.declaration)
+                {
+                    stderr.writeln("    ref:");
+                    exc.declaration.dump();
+                }
             }
             catch (Exception exc)
             {
@@ -487,11 +512,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 }
                 auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path[$-1]);
                 unknown.Declaration decl = child;
-                decl.visit(visitor);
+                visitor.visit(decl);
                 if (visitor.last_result && child.shouldEmit())
                 {
                     result.structBody.declarations ~= [visitor.last_result];
                 }
+            }
+            catch (RefTypeException e)
+            {
+                child.dump();
+                stderr.writeln("ERROR: (ref in struct body) ", e.msg);
             }
             catch (Exception e)
             {
@@ -775,18 +805,25 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        std.d.ast.Declaration outerDeclaration;
-        // FIXME this type needs to correspond with the CHECK_FOR_DECL
-        auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
-        result.type = translateType(cppDecl.getType(), QualifierSet.init);
+        try {
+            std.d.ast.Declaration outerDeclaration;
+            // FIXME this type needs to correspond with the CHECK_FOR_DECL
+            auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
+            result.type = translateType(cppDecl.getType(), QualifierSet.init);
 
-        auto declarator = new Declarator();
-        declarator.name = nameFromDecl(cppDecl);
-        result.declarators = [declarator];
+            auto declarator = new Declarator();
+            declarator.name = nameFromDecl(cppDecl);
+            result.declarators = [declarator];
 
-        outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
+            outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
 
-        return outerDeclaration;
+            return outerDeclaration;
+        }
+        catch (RefTypeException e)
+        {
+            e.declaration = cppDecl;
+            throw e;
+        }
     }
     extern(C++) override void visitField(unknown.FieldDeclaration)
     {
@@ -1206,7 +1243,7 @@ void populateDAST()
             std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
             {
-                declaration.visit(visitor);
+                visitor.visit(declaration);
                 translation = visitor.last_result;
             }
             else
