@@ -467,12 +467,12 @@ unsigned TemplateSpecializationType::getTemplateArgumentCount() const
     return type->getNumArgs();
 }
 
-TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentBegin()
+TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentBegin() const
 {
     return new TemplateArgumentInstanceIterator(type->begin());
 }
 
-TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentEnd()
+TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumentEnd() const
 {
     return new TemplateArgumentInstanceIterator(type->end());
 }

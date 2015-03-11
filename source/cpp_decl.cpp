@@ -249,6 +249,14 @@ Type* TypedefDeclaration::getTargetType() const
     return Type::get(_decl->getUnderlyingType());
 }
 
+void TypedefDeclaration::dump()
+{
+    _decl->dump();
+    Type* target = getTargetType();
+    std::cerr << "Target type (kind = " << target->getKind() << ")\n";
+    target->dump();
+}
+
 bool EnumDeclaration::isWrappable() const
 {
     return getMemberType()->isWrappable();

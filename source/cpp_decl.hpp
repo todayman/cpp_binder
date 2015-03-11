@@ -483,10 +483,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         Type* getTargetType() const;
 
-        virtual void dump() override
-        {
-            _decl->dump();
-        }
+        virtual void dump() override;
     };
 
     class EnumDeclaration : public Declaration
