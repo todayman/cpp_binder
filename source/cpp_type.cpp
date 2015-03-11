@@ -248,7 +248,13 @@ RecordDeclaration * NonTemplateRecordType::getRecordDeclaration() const
 
 bool NonTemplateRecordType::isWrappable() const
 {
-    return getRecordDeclaration()->isWrappable();
+    // This is kind of a hack, since this method should really just be:
+    // return getRecordDeclaration()->isWrappable()
+    // but sometimes the decl is Unwrappable (usually because it's a
+    // variadic template (FIXME how did this type even get created?
+    // It should be a SpecializationType.))
+    Declaration* d = ::getDeclaration(type->getDecl());
+    return d->isWrappable();
 }
 
 RecordDeclaration* TemplateRecordType::getRecordDeclaration() const
@@ -314,7 +320,7 @@ Type* TypedefType::getTargetType() const
 bool TypedefType::isWrappable() const
 {
     bool result = getTargetType()->isWrappable();
-    std::cerr << "Typedef target (kind = " << getTargetType()->getKind() << ") is " << (result ? "" : "not ") << "wrappable\n";
+    //std::cerr << "Typedef target (kind = " << getTargetType()->getKind() << ") is " << (result ? "" : "not ") << "wrappable\n";
     return result;
 }
 
@@ -479,7 +485,16 @@ TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumen
 bool TemplateSpecializationType::isWrappable() const
 {
     // TODO check the template arguments
-    return getTemplateDeclaration()->isWrappable();
+    if (!getTemplateDeclaration()->isWrappable()) return false;
+
+    /*TemplateArgumentInstanceIterator* end = getTemplateArgumentEnd();
+    for (TemplateArgumentInstanceIterator* iter = getTemplateArgumentBegin();
+            !iter->equals(end);
+            iter->advance())
+    {
+        if (iter->isPack()
+    }*/
+    return true;
 }
 
 void TemplateSpecializationType::dump() const
