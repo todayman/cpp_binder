@@ -557,8 +557,15 @@ private std.d.ast.Type resolveOrDeferType(Type)(Type cppType, QualifierSet quali
     auto type2 = new std.d.ast.Type2();
     result.type2 = type2;
     enum kind = Type.stringof;
-    type2.symbol = resolveOrDefer(cppType).answer;
-    assert(type2.symbol !is null);
+    DeferredSymbol deferred = resolveOrDefer(cppType);
+    if (deferred !is null)
+    {
+        type2.symbol = deferred.answer;
+    }
+    else
+    {
+        throw new Exception("Could not resolve or defer type.");
+    }
     return result;
 }
 
