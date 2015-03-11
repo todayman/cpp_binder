@@ -319,6 +319,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     stderr.writeln("    ref:");
                     exc.declaration.dump();
                 }
+                stderr.writeln(exc.toString());
             }
             catch (Exception exc)
             {
@@ -512,7 +513,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 }
                 auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path[$-1]);
                 unknown.Declaration decl = child;
-                visitor.visit(decl);
+                try {
+                    visitor.visit(decl);
+                }
+                catch(RefTypeException e)
+                {
+                    e.declaration = decl;
+                    throw e;
+                }
                 if (visitor.last_result && child.shouldEmit())
                 {
                     result.structBody.declarations ~= [visitor.last_result];
@@ -522,6 +530,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             {
                 child.dump();
                 stderr.writeln("ERROR: (ref in struct body) ", e.msg);
+                if (e.declaration)
+                {
+                    stderr.writeln("    ref:");
+                    e.declaration.dump();
+                }
             }
             catch (Exception e)
             {
@@ -659,6 +672,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
     {
+        stderr.writeln("Visiting record template.");
+        cppDecl.dump();
         Token name = nameFromDecl(cppDecl);
         std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
 
@@ -713,6 +728,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
+        stderr.writeln("Visiting typedef.");
+        cppDecl.dump();
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl, outerDeclaration);
@@ -1128,7 +1145,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             final switch (iter.getKind())
             {
                 case unknown.TemplateArgumentInstanceIterator.Kind.Type:
-                    current.type = translateType(iter.getType(), QualifierSet.init);
+                    try {
+                        current.type = translateType(iter.getType(), QualifierSet.init);
+                    }
+                    catch(RefTypeException e)
+                    {
+                        stderr.writeln("Template argument is a reference...");
+                        throw e;
+                    }
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
                     current.assignExpression = new std.d.ast.AssignExpression();
@@ -1262,6 +1286,12 @@ void populateDAST()
                 placeIntoTargetModule(declaration, translation);
             }
         }
+        catch(RefTypeException exc)
+        {
+            declaration.dump();
+            stderr.writeln("ERROR: ", exc.msg);
+            stderr.writeln(exc.toString());
+        }
         catch (Exception exc)
         {
             declaration.dump();
@@ -1312,7 +1342,12 @@ void determineRecordStrategy(unknown.RecordType cppType)
     // so it's not perfect
 
     unknown.RecordDeclaration cpp_decl = cppType.getRecordDeclaration();
-    assert(cpp_decl !is null);
+    if (cpp_decl is null)
+    {
+        cppType.dump();
+        stderr.writeln("Wrappable: ", cppType.isWrappable());
+        throw new Exception("This type isn't wrappable, so I cannot pick a strategy.");
+    }
 
     if (!cpp_decl.isCXXRecord())
     {

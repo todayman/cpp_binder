@@ -56,7 +56,7 @@ package void determineStrategy(unknown.Type cppType)
         override extern(C++) void visit(unknown.InvalidType cppType)
         {
             cppType.dump();
-            throw new Exception("Attempting to determine strategy for invalid type.");
+            throw new Exception("Attempting to determine strategy for invalid type (cppType=" ~ to!string(cast(void*)cppType)~ ").");
         }
 
         override extern(C++) void visit(unknown.BuiltinType cppType)
@@ -417,7 +417,7 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
             if (!cppDecl.isWrappable())
             {
                 cppDecl.dump();
-                throw new Exception("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~") is not wrappable.");
+                throw new Exception("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~"~" ~to!string(cast(void*)cppDecl.getType()) ~") is not wrappable.");
             }
             // cppDecl.getType() can be different than cppType
             // FIXME I need to find a better way to fix this at the source
@@ -431,7 +431,13 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
                 throw new Exception("This type is not wrappable.");
             }
             result = new DeferredSymbolConcatenation();
+            cppDecl.isWrappable();
+            stderr.writeln("For cppType ", cast(void*)cppType, "~", cast(void*)cppDecl.getType(), "(decl =", cast(void*)cppDecl, "), Made ", cast(void*)result, " for");
+            cppType.dump();
+            cppDecl.dump();
             // This symbol will be filled in when the declaration is traversed
+            determineStrategy(cppType);
+            stderr.writeln("Tried to determine strategy.");
             symbolForType[cast(void*)cppDecl.getType()] = result;
             unresolvedSymbols[result] = cppDecl;
         }
@@ -869,11 +875,13 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
     if (auto s_ptr = (cast(void*)cppDecl.getType()) in symbolForType)
     {
         symbol = *s_ptr;
+        stderr.writeln("Found an existing deferred symbol for ", cast(void*)cppDecl.getType());
     }
     else
     {
         symbol = new DeferredSymbolConcatenation();
         symbolForType[cast(void*)cppDecl.getType()] = symbol;
+        stderr.writeln("Making a new deferred symbol for ", cast(void*)cppDecl.getType());
     }
     unresolvedSymbols[symbol] = cppDecl;
 
@@ -1092,7 +1100,11 @@ class DeferredSymbolConcatenation : DeferredSymbol
         auto chain = new std.d.ast.IdentifierOrTemplateChain();
         answer.identifierOrTemplateChain = chain;
 
-        assert(components.length > 0);
+        if (components.length == 0)
+        {
+            stderr.writeln("Never filled in symbol concatenation ", cast(void*)this);
+            assert(components.length > 0);
+        }
         // TODO make sure all the components are resolved
         foreach (DeferredSymbol dependency; components)
         {

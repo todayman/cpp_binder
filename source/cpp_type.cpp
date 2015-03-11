@@ -171,12 +171,6 @@ void Type::applyAttributes(const TypeAttributes* attribs)
 
 bool BuiltinType::isWrappable() const
 {
-    if (type->getKind() == clang::BuiltinType::Dependent)
-        std::cerr << "builtin is dependent\n";
-    else if (target_name.size() == 0)
-        std::cerr << "builtin has no name\n";
-    else
-        std::cerr << "builtin " << target_name.c_str() << " is wrappable\n";
     return type->getKind() != clang::BuiltinType::Dependent
         && target_name.size() > 0;
 }
@@ -244,7 +238,12 @@ Declaration* RecordType::getDeclaration() const
 
 RecordDeclaration * NonTemplateRecordType::getRecordDeclaration() const
 {
-    return dynamic_cast<RecordDeclaration*>(::getDeclaration(type->getDecl()));
+    const clang::Decl* clang_decl = type->getDecl();
+    Declaration* d = ::getDeclaration(clang_decl);
+    std::cerr << "Type class: " << type->getTypeClassName() << "\n";
+    //std::cerr << "Before dynamic cast: " << d << ", wrappable = " << d->isWrappable() << "\n";
+    d->dump();
+    return dynamic_cast<RecordDeclaration*>(d);
 }
 
 bool NonTemplateRecordType::isWrappable() const
@@ -483,6 +482,17 @@ bool TemplateSpecializationType::isWrappable() const
     return getTemplateDeclaration()->isWrappable();
 }
 
+void TemplateSpecializationType::dump() const
+{
+    type->dump();
+    Declaration* root_declaration = getTemplateDeclaration();
+    if (root_declaration)
+    {
+        std::cerr << "Declaration of original template at:\n";
+        root_declaration->dump();
+    }
+}
+
 #define DUMP_METHOD(TYPE) \
 void TYPE##Type::dump() const\
 { \
@@ -516,7 +526,6 @@ void QualifiedType::dump() const
 }
 DUMP_METHOD(Vector)
 DUMP_METHOD(TemplateArgument)
-DUMP_METHOD(TemplateSpecialization)
 DUMP_METHOD(Delayed)
 
 Type* ArgumentTypeRange::front()
@@ -854,13 +863,16 @@ bool ClangTypeVisitor::WalkUpFromLValueReferenceType(clang::LValueReferenceType*
 
 bool ClangTypeVisitor::WalkUpFromRecordType(clang::RecordType* type)
 {
-    if( type->isStructureType() || type->isClassType() )
+    if (!type_in_progress)
     {
-        allocateType<NonTemplateRecordType>(type);
-    }
-    else if( type->isUnionType() )
-    {
-        allocateType<UnionType>(type);
+        if( type->isStructureType() || type->isClassType() )
+        {
+            allocateType<NonTemplateRecordType>(type);
+        }
+        else if( type->isUnionType() )
+        {
+            allocateType<UnionType>(type);
+        }
     }
     return Super::WalkUpFromRecordType(type);
 }
