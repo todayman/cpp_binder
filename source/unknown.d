@@ -671,14 +671,14 @@ extern (C++) interface SpecializedRecordDeclaration : unknown.RecordDeclaration
     public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
 }
 
-extern (C++) interface SpecializedRecordIterator
+extern (C++) interface SpecializedRecordRange
 {
 
-    public unknown.SpecializedRecordDeclaration get();
+    public unknown.SpecializedRecordDeclaration front();
 
-    public void advance();
+    public void popFront();
 
-    public bool equals(unknown.SpecializedRecordIterator other);
+    public bool empty() const;
 }
 
 extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
@@ -688,9 +688,7 @@ extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
 
     public unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
 
-    public unknown.SpecializedRecordIterator getSpecializationBegin();
-
-    public unknown.SpecializedRecordIterator getSpecializationEnd();
+    public unknown.SpecializedRecordRange getSpecializationRange();
 }
 
 extern (C++) interface UnionTemplateDeclaration : unknown.UnionDeclaration

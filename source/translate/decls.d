@@ -679,12 +679,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // Make symbols for all of the specializations
         // This is done so that the symbols inside the specialization have
         // proper paths; the declarations themselves should not be emitted.
-        for (auto iter = cppDecl.getSpecializationBegin(), end = cppDecl.getSpecializationEnd();
-             !iter.equals(end);
-             iter.advance())
+        foreach (unknown.SpecializedRecordDeclaration special; cppDecl.getSpecializationRange())
         {
-            unknown.SpecializedRecordDeclaration special = iter.get();
-            visitSpecializedRecord(special);
+            try {
+                visitSpecializedRecord(special);
+            }
+            catch(Exception e)
+            {
+                special.dump();
+                stderr.writeln("ERROR: ", e.msg);
+            }
         }
 
     }

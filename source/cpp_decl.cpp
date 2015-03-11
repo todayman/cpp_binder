@@ -294,14 +294,9 @@ bool RecordTemplateDeclaration::isWrappable() const
     return RecordDeclaration::isWrappable();
 }
 
-SpecializedRecordIterator* RecordTemplateDeclaration::getSpecializationBegin()
+SpecializedRecordRange* RecordTemplateDeclaration::getSpecializationRange()
 {
-    return new SpecializedRecordIterator(outer_decl->spec_begin());
-}
-
-SpecializedRecordIterator* RecordTemplateDeclaration::getSpecializationEnd()
-{
-    return new SpecializedRecordIterator(outer_decl->spec_end());
+    return new SpecializedRecordRange(outer_decl->specializations());
 }
 /*template<typename ClangType, typename TranslatorType>
 TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
@@ -516,7 +511,7 @@ TemplateNonTypeArgumentDeclaration* TemplateArgumentIterator::getNonType()
     return dynamic_cast<TemplateNonTypeArgumentDeclaration*>(decl);
 }
 
-SpecializedRecordDeclaration* SpecializedRecordIterator::operator*()
+SpecializedRecordDeclaration* SpecializedRecordRange::front()
 {
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )

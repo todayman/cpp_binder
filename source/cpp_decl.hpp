@@ -1242,47 +1242,31 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
     };
 
-    class SpecializedRecordIterator
+    class SpecializedRecordRange
     {
+        public:
+        typedef clang::ClassTemplateDecl::spec_iterator iterator_t;
+        typedef clang::ClassTemplateDecl::spec_range range_t;
+
         private:
-        clang::ClassTemplateDecl::spec_iterator cpp_iter;
+        iterator_t cpp_iter;
+        iterator_t end;
 
         public:
-        explicit SpecializedRecordIterator(clang::ClassTemplateDecl::spec_iterator i)
-            : cpp_iter(i)
+        explicit SpecializedRecordRange(range_t r)
+            : cpp_iter(r.begin()), end(r.end())
         { }
 
-        void operator++() {
-            cpp_iter++;
-        }
+        virtual SpecializedRecordDeclaration* front();
 
-        bool operator==(const SpecializedRecordIterator& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const SpecializedRecordIterator& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        SpecializedRecordDeclaration* operator*();
-        SpecializedRecordDeclaration* operator->()
-        {
-            return operator*();
-        }
-
-        virtual SpecializedRecordDeclaration* get()
-        {
-            return operator*();
-        }
-
-        virtual void advance()
+        virtual void popFront()
         {
             cpp_iter++;
         }
 
-        virtual bool equals(SpecializedRecordIterator* other)
+        virtual bool empty() const
         {
-            return (*this) == (*other);
+            return cpp_iter == end;
         }
     };
 
@@ -1339,8 +1323,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             outer_decl->dump();
         }
 
-        virtual SpecializedRecordIterator* getSpecializationBegin();
-        virtual SpecializedRecordIterator* getSpecializationEnd();
+        virtual SpecializedRecordRange* getSpecializationRange();
+
+        virtual const void* getAddr() const override
+        {
+            return outer_decl;
+        }
     };
 
     class UnionTemplateDeclaration : public UnionDeclaration//, public TemplateDeclaration
@@ -1628,7 +1616,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend class MethodRange;
         friend class OverriddenMethodIterator;
         friend class TemplateArgumentIterator;
-        friend class SpecializedRecordIterator;
+        friend class SpecializedRecordRange;
     };
 
 namespace clang
