@@ -1324,11 +1324,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
 
         virtual SpecializedRecordRange* getSpecializationRange();
-
-        virtual const void* getAddr() const override
-        {
-            return outer_decl;
-        }
     };
 
     class UnionTemplateDeclaration : public UnionDeclaration//, public TemplateDeclaration
