@@ -749,8 +749,8 @@ class Expression;
         Declaration* getTemplateDeclaration() const;
 
         unsigned getTemplateArgumentCount() const;
-        TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
-        TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
+        TemplateArgumentInstanceIterator* getTemplateArgumentBegin() const;
+        TemplateArgumentInstanceIterator* getTemplateArgumentEnd() const;
 
         virtual void visit(TypeVisitor& visitor) override
         {

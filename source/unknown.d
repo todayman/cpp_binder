@@ -243,9 +243,9 @@ extern (C++) interface TemplateSpecializationType : unknown.Type
 
     final public uint getTemplateArgumentCount() const;
 
-    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
+    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin() const;
 
-    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd() const;
 }
 
 extern (C++) interface NestedNameWrapper
