@@ -102,26 +102,15 @@ RecordType* RecordDeclaration::getRecordType() const
 
 bool RecordDeclaration::isWrappable() const
 {
-    //if (getType()->getStrategy() == STRUCT)
-    //{
-    // FIXME this returns the wrong answer for interfaces
-    // since they can contain fields that can't be wrapped
-    // since those elements are not exposed to D
-        FieldRange * fields;
-        for(fields = getFieldRange(); !fields->empty(); fields->popFront())
+    FieldRange * fields;
+    for(fields = getFieldRange(); !fields->empty(); fields->popFront())
+    {
+        FieldDeclaration* cur_field = fields->front();
+        if (!cur_field->isWrappable())
         {
-            FieldDeclaration* cur_field = fields->front();
-            if (!cur_field->isWrappable())
-            {
-                return false;
-            }
+            return false;
         }
-        // FIXME leaking the fields
-    //}
-    //else if (getType()->getStrategy() == UNKNOWN)
-    //{
-    //    assert(0);
-    //}
+    }
     return true;
 }
 
@@ -252,9 +241,6 @@ Type* TypedefDeclaration::getTargetType() const
 void TypedefDeclaration::dump()
 {
     _decl->dump();
-    Type* target = getTargetType();
-    std::cerr << "Target type (kind = " << target->getKind() << ")\n";
-    target->dump();
 }
 
 bool EnumDeclaration::isWrappable() const

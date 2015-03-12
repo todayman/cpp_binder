@@ -308,7 +308,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, null);
                 subpackage_visitor.visit(child);
 
-                placeIntoTargetModule(child, subpackage_visitor.last_result);
+                if (subpackage_visitor.last_result && child.shouldEmit)
+                {
+                    placeIntoTargetModule(child, subpackage_visitor.last_result);
+                }
             }
             catch (RefTypeException exc)
             {
@@ -672,8 +675,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
     {
-        stderr.writeln("Visiting record template.");
-        cppDecl.dump();
         Token name = nameFromDecl(cppDecl);
         std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
 
@@ -728,8 +729,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        stderr.writeln("Visiting typedef.");
-        cppDecl.dump();
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl, outerDeclaration);
@@ -1255,7 +1254,7 @@ void populateDAST()
     for (size_t i = 0; i < array_len; ++i)
     {
         unknown.Declaration declaration = freeDeclarations[i];
-        if (!declaration.isWrappable())
+        if (!declaration.isWrappable())// || !declaration.shouldEmit())
         {
             continue;
         }
@@ -1266,6 +1265,7 @@ void populateDAST()
             std.d.ast.Module mod = findTargetModule(declaration);
             moduleName = mod.moduleDeclaration.moduleName;
         }
+
         auto visitor = new TranslatorVisitor(moduleName, "", null);
         try {
             std.d.ast.Declaration translation;
@@ -1322,7 +1322,7 @@ void populateDAST()
 
     foreach (path, mod; rootPackage.children)
     {
-        computeImports(mod);
+        //computeImports(mod);
     }
 }
 

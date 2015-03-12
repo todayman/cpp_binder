@@ -240,9 +240,6 @@ RecordDeclaration * NonTemplateRecordType::getRecordDeclaration() const
 {
     const clang::Decl* clang_decl = type->getDecl();
     Declaration* d = ::getDeclaration(clang_decl);
-    std::cerr << "Type class: " << type->getTypeClassName() << "\n";
-    //std::cerr << "Before dynamic cast: " << d << ", wrappable = " << d->isWrappable() << "\n";
-    d->dump();
     return dynamic_cast<RecordDeclaration*>(d);
 }
 
@@ -320,7 +317,6 @@ Type* TypedefType::getTargetType() const
 bool TypedefType::isWrappable() const
 {
     bool result = getTargetType()->isWrappable();
-    //std::cerr << "Typedef target (kind = " << getTargetType()->getKind() << ") is " << (result ? "" : "not ") << "wrappable\n";
     return result;
 }
 
@@ -500,12 +496,6 @@ bool TemplateSpecializationType::isWrappable() const
 void TemplateSpecializationType::dump() const
 {
     type->dump();
-    Declaration* root_declaration = getTemplateDeclaration();
-    if (root_declaration)
-    {
-        std::cerr << "Declaration of original template at:\n";
-        root_declaration->dump();
-    }
 }
 
 #define DUMP_METHOD(TYPE) \
@@ -516,12 +506,6 @@ void TYPE##Type::dump() const\
 DUMP_METHOD(Invalid)
 void BuiltinType::dump() const
 {
-    std::cerr << "is sugared: " << type->isSugared() << "\n";
-    std::cerr << "isPlaceholder: " << type->isPlaceholderType() << "\n";
-    std::cerr << "kind: " << type->getKind() << "\n";
-    std::cerr << "clang::BuiltinType::Bool " << clang::BuiltinType::Bool << "\n";
-    std::cerr << "clang::BuiltinType::Int128 " << clang::BuiltinType::Int128 << "\n";
-    std::cerr << "clang::BuiltinType::Dependent " << clang::BuiltinType::Dependent << "\n";
     type->dump();
 }
 DUMP_METHOD(NonTemplateRecord)

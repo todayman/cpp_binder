@@ -431,13 +431,7 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
                 throw new Exception("This type is not wrappable.");
             }
             result = new DeferredSymbolConcatenation();
-            cppDecl.isWrappable();
-            stderr.writeln("For cppType ", cast(void*)cppType, "~", cast(void*)cppDecl.getType(), "(decl =", cast(void*)cppDecl, "), Made ", cast(void*)result, " for");
-            cppType.dump();
-            cppDecl.dump();
-            // This symbol will be filled in when the declaration is traversed
-            determineStrategy(cppType);
-            stderr.writeln("Tried to determine strategy.");
+            //// This symbol will be filled in when the declaration is traversed
             symbolForType[cast(void*)cppDecl.getType()] = result;
             unresolvedSymbols[result] = cppDecl;
         }
@@ -882,13 +876,11 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
     if (auto s_ptr = (cast(void*)cppDecl.getType()) in symbolForType)
     {
         symbol = *s_ptr;
-        stderr.writeln("Found an existing deferred symbol for ", cast(void*)cppDecl.getType());
     }
     else
     {
         symbol = new DeferredSymbolConcatenation();
         symbolForType[cast(void*)cppDecl.getType()] = symbol;
-        stderr.writeln("Making a new deferred symbol for ", cast(void*)cppDecl.getType());
     }
     unresolvedSymbols[symbol] = cppDecl;
 
@@ -1110,7 +1102,6 @@ class DeferredSymbolConcatenation : DeferredSymbol
         if (components.length == 0)
         {
             stderr.writeln("Never filled in symbol concatenation ", cast(void*)this);
-            assert(components.length > 0);
         }
         // TODO make sure all the components are resolved
         foreach (DeferredSymbol dependency; components)
