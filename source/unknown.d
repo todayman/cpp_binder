@@ -7,21 +7,18 @@ import
 
 extern (C++) interface ConfigurationException : std.runtime_error {}
 
-extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* ast, const(unknown.DeclarationAttributes) decl_attributes, const(unknown.TypeAttributes) type_attributes);
-
-extern (C++) void parseAndApplyConfiguration(size_t config_count, const(char)** config_files, clang.ASTUnit* astunit);
-
-extern (C++) interface NotWrappableException : std.runtime_error {}
-
-enum Strategy : uint 
-
+extern (C++) interface DeclarationAttributes
 {
-UNKNOWN =   0,
-REPLACE =   1,
-STRUCT =   2,
-INTERFACE =   3,
-CLASS =   4,
-OPAQUE_CLASS =   5
+
+    static public unknown.DeclarationAttributes make();
+
+    final public void setBound(bool value);
+
+    final public void setTargetModule(binder.binder.string value);
+
+    final public void setVisibility(unknown.Visibility value);
+
+    final public void setRemovePrefix(binder.binder.string value);
 }
 
 extern (C++) interface TypeAttributes
@@ -36,6 +33,23 @@ extern (C++) interface TypeAttributes
     public void setTargetName(binder.binder.string new_target);
 
     public void setTargetModule(binder.binder.string new_module);
+}
+
+extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* ast, const(unknown.DeclarationAttributes) decl_attributes, const(unknown.TypeAttributes) type_attributes);
+
+extern (C++) void parseAndApplyConfiguration(size_t config_count, const(char)** config_files, clang.ASTUnit* astunit);
+
+extern (C++) interface NotWrappableException : std.runtime_error {}
+
+enum Strategy : uint 
+
+{
+UNKNOWN = 0,
+REPLACE = 1,
+STRUCT = 2,
+INTERFACE = 3,
+CLASS = 4,
+OPAQUE_CLASS = 5
 }
 
 extern (C++) interface Type
@@ -76,21 +90,21 @@ extern (C++) interface Type
     enum Kind : uint 
 
     {
-Invalid =   0,
-Builtin =   1,
-Pointer =   2,
-Reference =   3,
-Record =   4,
-Union =   5,
-Array =   6,
-Function =   7,
-Typedef =   8,
-Vector =   9,
-Enum =   10,
-Qualified =   11,
-TemplateArgument =   12,
-TemplateSpecialization =   13,
-Delayed =   14
+Invalid = 0,
+Builtin = 1,
+Pointer = 2,
+Reference = 3,
+Record = 4,
+Union = 5,
+Array = 6,
+Function = 7,
+Typedef = 8,
+Vector = 9,
+Enum = 10,
+Qualified = 11,
+TemplateArgument = 12,
+TemplateSpecialization = 13,
+Delayed = 14
     }
 
     extern (C++) interface DontSetUnknown : std.runtime_error {}
@@ -278,14 +292,6 @@ extern (C++) interface TemplateArgumentInstanceIterator
 
     public bool equals(unknown.TemplateArgumentInstanceIterator other);
 
-    enum Kind
-    {
-        Type,
-        Integer,
-        Expression,
-        Pack,
-    }
-
     public unknown.TemplateArgumentInstanceIterator.Kind getKind();
 
     public unknown.Type getType();
@@ -295,6 +301,14 @@ extern (C++) interface TemplateArgumentInstanceIterator
     public unknown.Expression getExpression();
 
     public void dumpPackInfo();
+
+    enum Kind
+    {
+        Type,
+        Integer,
+        Expression,
+        Pack,
+    }
 }
 
 extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
@@ -343,20 +357,6 @@ extern (C++) unknown.Visibility accessSpecToVisibility(clang.AccessSpecifier as)
 extern (C++) bool isCXXRecord(const(clang.Decl)* decl);
 
 extern (C++) bool isTemplateTypeParmDecl(const(clang.Decl)* decl);
-
-extern (C++) interface DeclarationAttributes
-{
-
-    static public unknown.DeclarationAttributes make();
-
-    final public void setBound(bool value);
-
-    final public void setTargetModule(binder.binder.string value);
-
-    final public void setVisibility(unknown.Visibility value);
-
-    final public void setRemovePrefix(binder.binder.string value);
-}
 
 extern (C++) interface Declaration
 {
@@ -721,8 +721,6 @@ extern (C++) interface SkipUnwrappableDeclaration : unknown.NotWrappableExceptio
 
 extern (C++) extern const(clang.SourceManager)* source_manager;
 
-extern (C++) clang.ASTUnit* buildAST(char* contents, size_t arg_len, char** raw_args, char* filename);
-
 extern (C++) interface ExpressionVisitor
 {
 
@@ -737,23 +735,30 @@ extern (C++) interface ExpressionVisitor
 
 extern (C++) interface Expression
 {
+
     public void dump() const;
+
     public void visit(ExpressionVisitor visitor);
 }
 
 extern (C++) interface IntegerLiteralExpression : unknown.Expression
 {
-    public final long getValue() const;
+
+    final public long getValue() const;
 }
 
 extern (C++) interface DeclaredExpression : unknown.Expression
 {
+
     final public unknown.Declaration getDeclaration() const;
 }
 
 extern (C++) interface DelayedExpression : unknown.Expression
 {
+
     final public unknown.Declaration getDeclaration() const;
 }
 
 extern (C++) interface UnwrappableExpression : unknown.Expression {}
+
+extern (C++) clang.ASTUnit* buildAST(char* contents, size_t arg_len, char** raw_args, char* filename);
