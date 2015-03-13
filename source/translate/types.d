@@ -425,13 +425,15 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
             {
                 return *deferred_ptr;
             }
-            if (!cppType.isWrappable())
+            // Don't allow refs here becuase those should go though a different
+            // path, namely the translateReference path.
+            if (!cppType.isWrappable(false))
             {
                 cppDecl.dump();
                 throw new Exception("This type is not wrappable.");
             }
             result = new DeferredSymbolConcatenation();
-            //// This symbol will be filled in when the declaration is traversed
+            // This symbol will be filled in when the declaration is traversed
             symbolForType[cast(void*)cppDecl.getType()] = result;
             unresolvedSymbols[result] = cppDecl;
         }
@@ -817,7 +819,7 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     }
     else
     {
-        if (!cppType.isWrappable())
+        if (!cppType.isWrappable(true))
         {
             throw new Exception("Type is not wrappable!");
         }

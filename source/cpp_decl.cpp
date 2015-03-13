@@ -225,7 +225,7 @@ bool TypedefDeclaration::isWrappable() const
    {
        return false;
    }
-   return getTargetType()->isWrappable();
+   return getTargetType()->isWrappable(false);
 }
 
 TypedefType* TypedefDeclaration::getTypedefType() const
@@ -245,7 +245,7 @@ void TypedefDeclaration::dump()
 
 bool EnumDeclaration::isWrappable() const
 {
-    return getMemberType()->isWrappable();
+    return getMemberType()->isWrappable(false);
 }
 
 unsigned SpecializedRecordDeclaration::getTemplateArgumentCount() const

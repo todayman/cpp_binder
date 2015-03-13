@@ -169,7 +169,7 @@ void Type::applyAttributes(const TypeAttributes* attribs)
     setReplacementModule(attribs->target_module);
 }
 
-bool BuiltinType::isWrappable()
+bool BuiltinType::isWrappable(bool)
 {
     return type->getKind() != clang::BuiltinType::Dependent
         && target_name.size() > 0;
@@ -243,7 +243,7 @@ RecordDeclaration * NonTemplateRecordType::getRecordDeclaration() const
     return dynamic_cast<RecordDeclaration*>(d);
 }
 
-bool NonTemplateRecordType::isWrappable()
+bool NonTemplateRecordType::isWrappable(bool)
 {
     // This is kind of a hack, since this method should really just be:
     // return getRecordDeclaration()->isWrappable()
@@ -264,7 +264,7 @@ RecordDeclaration* TemplateRecordType::getRecordDeclaration() const
     return result;
 }
 
-bool TemplateRecordType::isWrappable()
+bool TemplateRecordType::isWrappable(bool)
 {
     return getRecordDeclaration()->isWrappable();
 }
@@ -314,9 +314,9 @@ Type* TypedefType::getTargetType() const
     return Type::get(type->desugar());
 }
 
-bool TypedefType::isWrappable()
+bool TypedefType::isWrappable(bool refAllowed)
 {
-    bool result = getTargetType()->isWrappable();
+    bool result = getTargetType()->isWrappable(refAllowed);
     return result;
 }
 
@@ -344,7 +344,7 @@ UnionDeclaration * UnionType::getUnionDeclaration() const
     return dynamic_cast<UnionDeclaration*>(::getDeclaration(clang_decl));
 }
 
-bool UnionType::isWrappable()
+bool UnionType::isWrappable(bool)
 {
     return getUnionDeclaration()->isWrappable();
 }
@@ -478,7 +478,7 @@ TemplateArgumentInstanceIterator* TemplateSpecializationType::getTemplateArgumen
     return new TemplateArgumentInstanceIterator(type->end());
 }
 
-bool TemplateSpecializationType::isWrappable()
+bool TemplateSpecializationType::isWrappable(bool)
 {
     // TODO check the template arguments
     if (!getTemplateDeclaration()->isWrappable()) return false;

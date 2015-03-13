@@ -220,7 +220,7 @@ class Expression;
         virtual void dump() const = 0;
 
         void applyAttributes(const TypeAttributes* attribs);
-        virtual bool isWrappable() = 0;
+        virtual bool isWrappable(bool refAllowed) = 0;
     };
 
     class TypeVisitor
@@ -265,7 +265,7 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
             return false;
         }
@@ -297,7 +297,7 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override;
+        virtual bool isWrappable(bool refAllowed) override;
     };
 
     class RecordType : public Type
@@ -328,7 +328,7 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
-        virtual bool isWrappable() override;
+        virtual bool isWrappable(bool refAllowed) override;
     };
 
     class TemplateRecordType : public RecordType
@@ -347,7 +347,7 @@ class Expression;
             visitor.visit(*this);
         }
         virtual void dump() const override;
-        virtual bool isWrappable() override;
+        virtual bool isWrappable(bool refAllowed) override;
     };
 
     class PointerOrReferenceType : public Type
@@ -384,9 +384,9 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
-            return getPointeeType()->isWrappable();
+            return getPointeeType()->isWrappable(false);
         }
     };
     class ReferenceType : public PointerOrReferenceType
@@ -406,9 +406,9 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool refAllowed) override
         {
-            return false;
+            return refAllowed;
         }
     };
 
@@ -433,7 +433,7 @@ class Expression;
 
         Type* getTargetType() const;
 
-        virtual bool isWrappable() override;
+        virtual bool isWrappable(bool refAllowed) override;
     };
 
     class EnumType : public Type
@@ -460,7 +460,7 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
             return true;
         }
@@ -489,7 +489,7 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override;
+        virtual bool isWrappable(bool) override;
     };
 
     // Arrays always have fixed size; if they don't, then they're pointers
@@ -519,9 +519,9 @@ class Expression;
         virtual Expression* getLengthExpression() = 0;
         virtual Type* getElementType() const = 0;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
-            return getElementType()->isWrappable();
+            return getElementType()->isWrappable(false);
         }
     };
 
@@ -637,7 +637,7 @@ class Expression;
         virtual Type* getReturnType();
         virtual ArgumentTypeRange* getArgumentRange();
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
             // FIXME this isn't quite right
             // ignores ref return values, invalid args, etc.
@@ -666,9 +666,9 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool refAllowed) override
         {
-            return unqualifiedType()->isWrappable();
+            return unqualifiedType()->isWrappable(refAllowed);
         }
     };
 
@@ -693,7 +693,7 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
             return false;
         }
@@ -729,7 +729,7 @@ class Expression;
 
         binder::string* getIdentifier() const;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool) override
         {
             return true;
         }
@@ -758,7 +758,7 @@ class Expression;
         }
         virtual void dump() const override;
 
-        virtual bool isWrappable() override;
+        virtual bool isWrappable(bool refAllowed) override;
     };
 
     class NestedNameWrapper
@@ -803,7 +803,7 @@ class Expression;
         binder::string* getIdentifier() const;
         NestedNameWrapper* getQualifier() const;
 
-        virtual bool isWrappable() override
+        virtual bool isWrappable(bool refAllowed) override
         {
             Type * r = resolveType();
             if (wrapping)
@@ -813,7 +813,7 @@ class Expression;
             if (r)
             {
                 wrapping = true;
-                bool result = r->isWrappable();
+                bool result = r->isWrappable(refAllowed);
                 wrapping = false;
                 return result;
             }

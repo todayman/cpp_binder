@@ -1345,7 +1345,7 @@ void determineRecordStrategy(unknown.RecordType cppType)
     if (cpp_decl is null)
     {
         cppType.dump();
-        stderr.writeln("Wrappable: ", cppType.isWrappable());
+        stderr.writeln("Wrappable: ", cppType.isWrappable(false));
         throw new Exception("This type isn't wrappable, so I cannot pick a strategy.");
     }
 
