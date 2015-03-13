@@ -817,6 +817,10 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     }
     else
     {
+        if (!cppType.isWrappable())
+        {
+            throw new Exception("Type is not wrappable!");
+        }
         std.d.ast.Type result;
         final switch (cppType.getStrategy())
         {
@@ -1034,7 +1038,13 @@ class DeferredTemplateInstantiation : DeferredSymbol
         answer.identifierOrTemplateChain = chain;
 
         templateName.resolve();
-        assert(templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances.length > 0);
+        if (templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances.length == 0)
+        {
+            stderr.writeln("Never filled in template name ", cast(void*)templateName);
+            stderr.writeln("For instantiation ", cast(void*)this);
+            return;
+            //assert(templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances.length > 0);
+        }
 
         chain.identifiersOrTemplateInstances = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[0 .. $-1];
         auto lastIorT = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];

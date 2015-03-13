@@ -71,7 +71,7 @@ extern (C++) interface Type
 
     final public void applyAttributes(const(unknown.TypeAttributes)* attribs);
 
-    public bool isWrappable() const;
+    public bool isWrappable();
 
     enum Kind : uint 
 
