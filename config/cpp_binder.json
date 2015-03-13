@@ -134,5 +134,48 @@
         , "Type::type_by_name": {
             "bound": 0
         }
+        , "wrapClangExpression": {
+            "bound": 0
+        }
+        , "DeclarationRange::range_t": {
+            "bound": 0
+        }
+        , "DeclarationRange::iterator_t": {
+            "bound": 0
+        }
+        , "ArgumentTypeRange::range_t": {
+            "bound": 0
+        }
+        , "ArgumentTypeRange::iterator_t": {
+            "bound": 0
+        }
+        , "FieldRange::range_t": {
+            "bound": 0
+        }
+        , "FieldRange::iterator_t": {
+            "bound": 0
+        }
+        , "MethodRange::range_t": {
+            "bound": 0
+        }
+        , "MethodRange::iterator_t": {
+            "bound": 0
+        }
+        , "SpecializedRecordRange::range_t": {
+            "bound": 0
+        }
+        , "SpecializedRecordRange::iterator_t": {
+            "bound": 0
+        }
+        , "DeclarationAttributes": {
+            "strategy": {
+                "name": "interface"
+            }
+        }
+        , "NestedNameWrapper": {
+            "strategy": {
+                "name": "interface"
+            }
+        }
     }
 }

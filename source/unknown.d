@@ -24,7 +24,7 @@ extern (C++) interface DeclarationAttributes
 extern (C++) interface TypeAttributes
 {
 
-    static public TypeAttributes make();
+    static public unknown.TypeAttributes make();
 
     public unknown.Strategy getStrategy() const;
 
@@ -35,7 +35,7 @@ extern (C++) interface TypeAttributes
     public void setTargetModule(binder.binder.string new_module);
 }
 
-extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* ast, const(unknown.DeclarationAttributes) decl_attributes, const(unknown.TypeAttributes) type_attributes);
+extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* astunit, const unknown.DeclarationAttributes decl_attributes, const unknown.TypeAttributes type_attributes);
 
 extern (C++) void parseAndApplyConfiguration(size_t config_count, const(char)** config_files, clang.ASTUnit* astunit);
 
@@ -83,7 +83,7 @@ extern (C++) interface Type
 
     public void dump() const;
 
-    final public void applyAttributes(const(unknown.TypeAttributes)* attribs);
+    final public void applyAttributes(const unknown.TypeAttributes attribs);
 
     public bool isWrappable(bool refAllowed);
 
@@ -216,13 +216,17 @@ extern (C++) interface DependentLengthArrayType : unknown.ArrayType {}
 
 extern (C++) interface ArgumentTypeRange
 {
+
     public bool empty();
+
     public unknown.Type front();
+
     public void popFront();
 }
 
 extern (C++) interface FunctionType : unknown.Type
 {
+
     public unknown.Type getReturnType();
 
     public unknown.ArgumentTypeRange getArgumentRange();
@@ -264,6 +268,7 @@ extern (C++) interface TemplateSpecializationType : unknown.Type
 
 extern (C++) interface NestedNameWrapper
 {
+
     final public bool isType() const;
 
     final public bool isIdentifier() const;
@@ -302,12 +307,13 @@ extern (C++) interface TemplateArgumentInstanceIterator
 
     public void dumpPackInfo();
 
-    enum Kind
+    enum Kind : uint 
+
     {
-        Type,
-        Integer,
-        Expression,
-        Pack,
+Type = 0,
+Integer = 1,
+Expression = 2,
+Pack = 3
     }
 }
 
@@ -344,12 +350,12 @@ extern (C++) interface SkipMemberPointer : unknown.SkipUnwrappableType
 enum Visibility : uint 
 
 {
-UNSET =   0,
-PRIVATE =   1,
-PACKAGE =   2,
-PROTECTED =   3,
-PUBLIC =   4,
-EXPORT =   5
+UNSET = 0,
+PRIVATE = 1,
+PACKAGE = 2,
+PROTECTED = 3,
+PUBLIC = 4,
+EXPORT = 5
 }
 
 extern (C++) unknown.Visibility accessSpecToVisibility(clang.AccessSpecifier as);
@@ -395,10 +401,10 @@ extern (C++) interface Declaration
 
     public void dump();
 
-    final public void applyAttributes(const(unknown.DeclarationAttributes)* attribs);
+    final public void applyAttributes(const unknown.DeclarationAttributes attribs);
 }
 
-extern (C++) void applyAttributesToDeclByName(const(unknown.DeclarationAttributes)* attribs, const binder.binder.string declName);
+extern (C++) void applyAttributesToDeclByName(const unknown.DeclarationAttributes attribs, const binder.binder.string declName);
 
 extern (C++) interface NotTypeDecl : std.runtime_error {}
 
@@ -564,8 +570,11 @@ extern (C++) interface FieldRange
 
 extern (C++) interface MethodRange
 {
+
     public bool empty();
+
     public unknown.MethodDeclaration front();
+
     public void popFront();
 }
 
@@ -646,10 +655,11 @@ extern (C++) interface TemplateArgumentIterator
 
     public unknown.TemplateNonTypeArgumentDeclaration getNonType();
 
-    enum Kind
+    enum Kind : uint 
+
     {
-        Type,
-        NonType,
+Type = 0,
+NonType = 1
     }
 }
 
@@ -683,6 +693,8 @@ extern (C++) interface SpecializedRecordRange
 
 extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
 {
+
+    final public bool isVariadic() const;
 
     public unknown.TemplateArgumentIterator getTemplateArgumentBegin() const;
 
@@ -738,7 +750,7 @@ extern (C++) interface Expression
 
     public void dump() const;
 
-    public void visit(ExpressionVisitor visitor);
+    public void visit(unknown.ExpressionVisitor visitor);
 }
 
 extern (C++) interface IntegerLiteralExpression : unknown.Expression
