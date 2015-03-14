@@ -50,11 +50,11 @@ class Package
 
 Package rootPackage;
 
-IdentifierChain makeIdentifierChain(string path)
+IdentifierChain makeIdentifierChain(string separator = ".")(string path)
 {
     auto result = new IdentifierChain();
     result.identifiers =
-      path.splitter('.')
+      path.splitter(separator)
         .filter!(a => a.length != 0)
         .map!(a => Token(tok!"identifier", a, 0, 0, 0))
         .array;
@@ -122,6 +122,49 @@ void append(IdentifierOrTemplateChain chain, Token identifier)
     auto instance = new IdentifierOrTemplateInstance();
     instance.identifier = identifier;
     chain.identifiersOrTemplateInstances ~= [instance];
+}
+
+class ModuleWithNamespaces
+{
+    protected:
+    std.d.ast.Module mod;
+    std.d.ast.Declaration[string] namespaces;
+
+    public:
+    this(string path)
+    {
+        mod = new std.d.ast.Module();
+    }
+
+    void addDeclaration(std.d.ast.Declaration decl, string namespace)
+    {
+        if (namespace == "")
+        {
+            mod.declarations ~= [decl];
+            return;
+        }
+
+        if (auto dest = namespace in namespaces)
+        {
+            dest.declarations ~= [decl];
+        }
+        else {
+            auto linkage = new std.d.ast.LinkageAttribute();
+            linkage.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+            linkage.hasPlusPlus = true;
+            linkage.identifierChain = makeIdentifierChain!"::"(namespace);
+
+            auto attr = new std.d.ast.Attribute();
+            attr.linkageAttribute = linkage;
+
+            auto new_decl = new std.d.ast.Declaration();
+            new_decl.attributes ~= [attr];
+            mod.declarations ~= [new_decl];
+
+            namespaces[namespace] = new_decl;
+            new_decl.declarations ~= [decl];
+        }
+    }
 }
 
 static this()
