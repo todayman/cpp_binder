@@ -14,7 +14,7 @@
     ]
     , "lflags": [
         "-Lbuild"
-      , "-L/usr/lib/llvm-3.5/lib"
+      , "-L/usr/lib/llvm-3.6/lib"
     ]
     , "libs": [
         "cpp_binder"
@@ -30,7 +30,7 @@
       , "clangSerialization"
       , "clangBasic"
       , "clang"
-      , "LLVM-3.5"
+      , "LLVM-3.6"
       , "boost_filesystem"
       , "boost_system"
       , "stdc++"
