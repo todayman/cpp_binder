@@ -38,7 +38,6 @@ private std.d.ast.Type[void*] translated_types;
 private std.d.ast.Type[string] types_by_name;
 package DeferredSymbolConcatenation[void*] symbolForType;
 package unknown.Declaration[DeferredSymbol] unresolvedSymbols;
-package string [const std.d.ast.Symbol] symbolModules;
 package DeferredTemplateInstantiation[const std.d.ast.Symbol] deferredTemplates;
 
 package void determineStrategy(unknown.Type cppType)
@@ -182,20 +181,6 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
             result.type2.symbol = new std.d.ast.Symbol();
             result.type2.symbol.identifierOrTemplateChain = makeIdentifierOrTemplateChain!"."(replacement_name);
             assert(result.type2.symbol.identifierOrTemplateChain !is null);
-
-            unknown.Declaration decl = cppType.getDeclaration();
-            if (decl !is null)
-            {
-                symbolModules[result.type2.symbol] = binder.toDString(decl.getTargetModule());
-            }
-            else
-            {
-                auto target_module = cppType.getReplacementModule();
-                if (target_module !is null && target_module.size > 0)
-                {
-                    symbolModules[result.type2.symbol] = binder.toDString(target_module);
-                }
-            }
         }
 
         return result;
@@ -873,7 +858,7 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
 }
 
 package DeferredSymbolConcatenation makeSymbolForTypeDecl
-    (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+    (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, DeferredSymbol internal_path, string namespace_path)
 {
     import std.array : join;
     import std.algorithm : map;
@@ -907,13 +892,13 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
     if (original_components.length == 0)
     {
         symbol.components = [];
-        if (internal_path is null && package_name !is null)
+        if (internal_path is null)
             // Internal path is now a fully qualifed deferred symbol, so
             // it obseletes the package name.
             // FIXME the name "internal_path", since it's not internal anymore
-            // Package can be null for things like template arguments
         {
-            symbol.components ~= [new ActuallyNotDeferredSymbol(package_name)];
+            // FIXME get rid of this case?
+            // symbol.components ~= [new ActuallyNotDeferredSymbol(package_name)];
         }
         if (internal_path !is null) // internal_path is null at the top level inside a module
         {
@@ -930,34 +915,24 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
 
     assert (symbol.components.length > 0);
 
-    // Used for computing imports
-    if (package_name && package_name.identifiers.length > 0)
-    {
-        symbolModules[symbol.answer] = join(package_name.identifiers.map!(a => a.text), ".");
-    }
-    else
-    {
-        symbolModules[symbol.answer] = "";
-    }
-
     return symbol;
 }
 
 package DeferredSymbolConcatenation makeSymbolForTypeDecl
     (SourceDeclaration)
-    (SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+    (SourceDeclaration cppDecl, Token targetName, DeferredSymbol internal_path, string namespace_path)
 {
     auto inst = new std.d.ast.IdentifierOrTemplateInstance();
     inst.identifier = targetName;
-    return makeSymbolForTypeDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+    return makeSymbolForTypeDecl(cppDecl, inst, internal_path, namespace_path);
 }
 package DeferredSymbolConcatenation makeSymbolForTypeDecl
     (SourceDeclaration)
-    (SourceDeclaration cppDecl, TemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+    (SourceDeclaration cppDecl, TemplateInstance targetName, DeferredSymbol internal_path, string namespace_path)
 {
     auto inst = new std.d.ast.IdentifierOrTemplateInstance();
     inst.templateInstance = targetName;
-    return makeSymbolForTypeDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+    return makeSymbolForTypeDecl(cppDecl, inst, internal_path, namespace_path);
 }
 
 // These won't be neccesary when I have a proper AST

@@ -84,7 +84,7 @@ int main(string[] argv)
     }
 
     try {
-        populateDAST();
+        populateDAST(args.output_module);
     }
     catch (Exception exc)
     {
@@ -92,10 +92,7 @@ int main(string[] argv)
         return -1;
     }
 
-    if (args.output_dir.length == 0)
-        produceOutputForPackage(rootPackage, ".");
-    else
-        produceOutputForPackage(rootPackage, args.output_dir);
+    produceOutputForPackage(rootPackage, ".");
 
     return 0;
 }

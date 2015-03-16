@@ -34,7 +34,7 @@ import translate.types;
 import translate.expr;
 
 private std.d.ast.Declaration[void*] translated;
-private std.d.ast.Module[std.d.ast.Declaration] placedDeclarations;
+private int[std.d.ast.Declaration] placedDeclarations;
 package DeferredExpression[void*] exprForDecl;
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
@@ -166,7 +166,6 @@ class OverloadedOperatorError : Exception
 
 private class TranslatorVisitor : unknown.DeclarationVisitor
 {
-    IdentifierChain parent_package_name;
     string namespace_path;
     DeferredSymbol[] package_internal_path;
 
@@ -176,15 +175,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     public:
     this()
     {
-        parent_package_name = new IdentifierChain();
         namespace_path = "";
         package_internal_path = [];
         last_result = null;
     }
 
-    this(IdentifierChain parent, string nsp, DeferredSymbol pip)
+    this(string nsp, DeferredSymbol pip)
     {
-        parent_package_name = parent;
         namespace_path = nsp;
         package_internal_path = [pip];
         last_result = null;
@@ -254,49 +251,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dlang_decls.Module translateNamespace(unknown.NamespaceDeclaration cppDecl)
+    void translateNamespace(unknown.NamespaceDeclaration cppDecl)
     {
-        import std.algorithm : join, map;
-        // TODO I probably shouldn't even be doing this,
-        // just looping over all of the items in the namespace and setting the
-        // target_module attribute (if it's not already set),
-        // and then visiting those nodes.  Then the modules / packages get
-        // created when something goes in them.
-        dlang_decls.Module mod;
-        if (cast(void*)cppDecl in translated)
-        {
-            std.d.ast.Declaration search = translated[cast(void*)cppDecl];
-            // This cast failing means that we previously translated this
-            // namespace as something other than a module, which is a really
-            // bad logic error.
-            mod = cast(dlang_decls.Module)(search);
-            if (!mod)
-            {
-                throw new Error("Translated a namespace to something other than a module.");
-            }
-        }
-        else
-        {
-            string name = binder.toDString(cppDecl.getTargetName());
-            mod = dlang_decls.rootPackage.getOrCreateModulePath(name);
-        }
-
-        IdentifierChain this_package_name = mod.moduleDeclaration.moduleName;
-        string package_name_string = this_package_name.identifiers.map!(t => t.text).join(".");
-
-        foreach (child; cppDecl.getChildren())
-        {
-            // If child can't be bound and I didn't generate metadata for it,
-            // then it comes through as null
-            if (child && !child.isTargetModuleSet())
-            {
-                // FIXME someday, use an IdentifierChain here
-                child.setTargetModule(binder.toBinderString(package_name_string));
-            }
-        }
-
-        // This is the translated name, but really I want the C++ name
-        string this_namespace_path = namespace_path ~ "::" ~ this_package_name.identifiers[$-1].text;
+        // This needs to be source name because the namespace path dictates the mangling
+        string this_namespace_path = namespace_path ~ "::" ~ binder.toDString(cppDecl.getSourceName());
         // visit and translate all of the children
         foreach (child; cppDecl.getChildren())
         {
@@ -305,12 +263,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
             }
             try {
-                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_package_name, this_namespace_path, null);
+                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_namespace_path, null);
                 subpackage_visitor.visit(child);
 
                 if (subpackage_visitor.last_result && child.shouldEmit)
                 {
-                    placeIntoTargetModule(child, subpackage_visitor.last_result);
+                    placeIntoTargetModule(child, subpackage_visitor.last_result, this_namespace_path);
                 }
             }
             catch (RefTypeException exc)
@@ -331,7 +289,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
         }
 
-        return mod;
     }
 
     extern(C++) override
@@ -514,7 +471,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                         continue;
                     }
                 }
-                auto visitor = new SubdeclarationVisitor(parent_package_name, namespace_path, package_internal_path[$-1]);
+                auto visitor = new SubdeclarationVisitor(namespace_path, package_internal_path[$-1]);
                 unknown.Declaration decl = child;
                 try {
                     visitor.visit(decl);
@@ -660,7 +617,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
         Token name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -679,7 +636,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
 
         {
-            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, parent_package_name, package_internal_path[$-1], namespace_path);
+            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_internal_path[$-1], namespace_path);
             package_internal_path ~= [symbol];
             scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -718,7 +675,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         template_inst.identifier = nameFromDecl(cppDecl);
         template_inst.templateArguments = translateTemplateArguments(cppDecl);
 
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, template_inst, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, template_inst, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -737,7 +694,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         initializer.name = nameFromDecl(cppDecl);
         initializer.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
         result.initializers ~= [initializer];
-        makeSymbolForTypeDecl(cppDecl, initializer.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        makeSymbolForTypeDecl(cppDecl, initializer.name, package_internal_path[$-1], namespace_path);
 
         return result;
     }
@@ -757,7 +714,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.enumBody = new EnumBody();
 
         result.name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
@@ -863,7 +820,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
 
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
@@ -1040,7 +997,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         declarator.name = nameFromDecl(cppDecl);
         var.declarators ~= [declarator];
 
-        makeExprForDecl(cppDecl, declarator.name, parent_package_name, package_internal_path[$-1], namespace_path);
+        makeExprForDecl(cppDecl, declarator.name, package_internal_path[$-1], namespace_path);
 
         var.storageClasses ~= [makeStorageClass(translateLinkage(cppDecl, namespace_path))];
 
@@ -1073,7 +1030,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = new std.d.ast.TemplateTypeParameter();
         result.identifier = nameFromDecl(cppDecl);
         // TODO default values
-        makeSymbolForTypeDecl(cppDecl, result.identifier, null, null, "");
+        makeSymbolForTypeDecl(cppDecl, result.identifier, null, "");
         return result;
     }
 
@@ -1088,7 +1045,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
         result.identifier = nameFromDecl(cppDecl);
         // TODO default values
-        makeExprForDecl(cppDecl, result.identifier, null, null, "");
+        makeExprForDecl(cppDecl, result.identifier, null, "");
         return result;
     }
     extern(C++) override void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
@@ -1180,9 +1137,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 // But for now, the cost of moving to that is too high.
 class InterfaceBodyTranslator : TranslatorVisitor
 {
-    this(IdentifierChain parent, string nsp, DeferredSymbol pip)
+    this(string nsp, DeferredSymbol pip)
     {
-        super(parent, nsp, pip);
+        super(nsp, pip);
     }
 
     extern(C++) override void visitField(unknown.FieldDeclaration)
@@ -1226,30 +1183,35 @@ private std.d.ast.Module findTargetModule(unknown.Declaration declaration)
     }
     return dlang_decls.rootPackage.getOrCreateModulePath(target_module);
 }
-private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.Declaration translation)
+
+private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.Declaration translation, string namespace_path)
 {
     // FIXME sometimes this gets called multiple times on the same declaration,
     // so it will get output multiple times, which is clearly wrong
     // It happens because there are multiple declarations of the same type
     // (e.g. forward and normal), that have the same translation
-    if (translation in placedDeclarations)
-    {
-        return;
-    }
     if (translation)
     {
-        std.d.ast.Module mod = findTargetModule(declaration);
-        mod.declarations ~= [translation];
-        placedDeclarations[translation] = mod;
+        if (translation in placedDeclarations)
+        {
+            return;
+        }
+
+        destination.addDeclaration(translation, namespace_path);
+        placedDeclarations[translation] = 1;
     }
 }
 
-void populateDAST()
+dlang_decls.ModuleWithNamespaces destination;
+
+void populateDAST(string output_module_name)
 {
     // May cause problems because root package won't check for empty path.
     size_t array_len = 0;
     unknown.Declaration* freeDeclarations = null;
     unknown.arrayOfFreeDeclarations(&array_len, &freeDeclarations);
+
+    destination = new dlang_decls.ModuleWithNamespaces(output_module_name);
 
     for (size_t i = 0; i < array_len; ++i)
     {
@@ -1266,7 +1228,7 @@ void populateDAST()
             moduleName = mod.moduleDeclaration.moduleName;
         }
 
-        auto visitor = new TranslatorVisitor(moduleName, "", null);
+        auto visitor = new TranslatorVisitor("", null);
         try {
             std.d.ast.Declaration translation;
             if (cast(void*)declaration !in translated)
@@ -1283,7 +1245,7 @@ void populateDAST()
             // visiting them just translates their children and puts them in modules
             if (translation && declaration.shouldEmit)
             {
-                placeIntoTargetModule(declaration, translation);
+                placeIntoTargetModule(declaration, translation, "");
             }
         }
         catch(RefTypeException exc)
@@ -1318,11 +1280,6 @@ void populateDAST()
     foreach (DeferredTemplateInstantiation temp; deferredTemplates.values())
     {
         temp.resolve();
-    }
-
-    foreach (path, mod; rootPackage.children)
-    {
-        //computeImports(mod);
     }
 }
 
@@ -1402,74 +1359,11 @@ string makeString(const std.d.ast.Symbol sym)
     return dest.data.idup;
 }
 
-private class SymbolFinder : std.d.ast.ASTVisitor
-{
-    public int[string] modules;
-    // Since I'm overriding a particular overload of visit, alias them all in
-    alias visit = ASTVisitor.visit;
-
-    override
-    void visit(const std.d.ast.Symbol sym)
-    {
-        if (auto pmod = sym in symbolModules)
-        {
-            string mod = *pmod;
-            if (mod == "." || mod == "")
-            {
-                // indicates global scope, no import necessary
-                return;
-            }
-            int* counter = (mod in modules);
-            if (counter is null)
-            {
-                modules[mod] = 0;
-            }
-            else
-            {
-                (*counter) += 1;
-            }
-        }
-        else if ((sym in deferredTemplates) is null)
-        {
-            string symbol_name = makeString(sym);
-            // FIXME this is always a false positive on template arguments.
-            stderr.writeln("WARNING: Could not find the module containing \"", symbol_name, "\", there may be undefined symbols in the generated code.");
-        }
-    }
-}
-
-void computeImports(Module mod)
-{
-    auto sf = new SymbolFinder();
-    sf.visit(mod);
-    Declaration imports = new Declaration();
-    imports.importDeclaration = new ImportDeclaration();
-
-    // Don't need to import ourselves
-    string my_name = makeString(mod.moduleDeclaration.moduleName);
-    if (my_name in sf.modules)
-    {
-        sf.modules.remove(my_name);
-    }
-
-    foreach (name, count; sf.modules)
-    {
-        SingleImport currentImport = new SingleImport();
-        currentImport.identifierChain = makeIdentifierChain(name);
-        imports.importDeclaration.singleImports ~= [currentImport];
-    }
-
-    if (sf.modules.length > 0)
-    {
-        mod.declarations = [imports] ~ mod.declarations;
-    }
-}
-
 // Only call this on declarations that DO NOT declare a type!
 // TODO Type vs. non-type should be reflected by the inheritance hierarchy of
 // the unknown.Declaration types.
 package DeferredExpression makeExprForDecl
-    (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+    (unknown.Declaration cppDecl, IdentifierOrTemplateInstance targetName, DeferredSymbol internal_path, string namespace_path)
 {
     import std.array : join;
     import std.algorithm : map;
@@ -1500,13 +1394,13 @@ package DeferredExpression makeExprForDecl
 
     if (symbol.length == 0)
     {
-        if (internal_path is null && package_name !is null)
+        if (internal_path is null)
             // Internal path is now a fully qualifed deferred symbol, so
             // it obseletes the package name.
             // FIXME the name "internal_path", since it's not internal anymore
             // Package can be null for things like template arguments
         {
-            symbol.append(package_name);
+            // FIXME get rid of this case?
         }
         if (internal_path !is null) // internal_path is null at the top level inside a module
         {
@@ -1522,33 +1416,22 @@ package DeferredExpression makeExprForDecl
     }
 
     assert (symbol.length > 0);
-
-    // Used for computing imports
-    if (package_name && package_name.identifiers.length > 0)
-    {
-        symbolModules[symbol.answer] = join(package_name.identifiers.map!(a => a.text), ".");
-    }
-    else
-    {
-        symbolModules[symbol.answer] = "";
-    }
-
     return expression;
 }
 
 package DeferredExpression makeExprForDecl
     (SourceDeclaration)
-    (SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+    (SourceDeclaration cppDecl, Token targetName, DeferredSymbol internal_path, string namespace_path)
 {
     auto inst = new std.d.ast.IdentifierOrTemplateInstance();
     inst.identifier = targetName;
-    return makeExprForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+    return makeExprForDecl(cppDecl, inst, internal_path, namespace_path);
 }
 package DeferredExpression makeExprForDecl
     (SourceDeclaration)
-    (SourceDeclaration cppDecl, TemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
+    (SourceDeclaration cppDecl, TemplateInstance targetName, DeferredSymbol internal_path, string namespace_path)
 {
     auto inst = new std.d.ast.IdentifierOrTemplateInstance();
     inst.templateInstance = targetName;
-    return makeExprForDecl(cppDecl, inst, package_name, internal_path, namespace_path);
+    return makeExprForDecl(cppDecl, inst, internal_path, namespace_path);
 }

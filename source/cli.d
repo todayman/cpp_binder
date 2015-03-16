@@ -24,7 +24,7 @@ struct CLIArguments
 {
     string[] config_files;
     string[] header_files;
-    string output_dir;
+    string output_module;
 }
 
 bool parse_args(string[] argv, out CLIArguments args)
@@ -70,10 +70,10 @@ bool parse_args(string[] argv, out CLIArguments args)
             cur_arg_idx += 1;
             if (cur_arg_idx == argv.length)
             {
-                stderr.writeln("ERROR: Expected path to output directory after ", arg_str, ".");
+                stderr.writeln("ERROR: Expected path to output module after ", arg_str, ".");
                 return false;
             }
-            args.output_dir = argv[cur_arg_idx];
+            args.output_module = argv[cur_arg_idx];
             setOutput = true;
         }
         else
