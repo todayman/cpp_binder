@@ -765,7 +765,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         // FIXME, not the right types
         constant.primary = Token(tok!"longLiteral", to!string(cppDecl.getLLValue), 0, 0, 0);
-        result.assignExpression.ternaryExpression = constant;
+        result.assignExpression = constant;
 
         return result;
     }
@@ -1114,11 +1114,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     current.assignExpression = new std.d.ast.AssignExpression();
                     auto constant = new std.d.ast.PrimaryExpression();
                     constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
-                    current.assignExpression.ternaryExpression = constant;
+                    current.assignExpression = constant;
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
                     current.assignExpression = new std.d.ast.AssignExpression();
-                    current.assignExpression.ternaryExpression = translateExpression(iter.getExpression());
+                    current.assignExpression = translateExpression(iter.getExpression());
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                     iter.dumpPackInfo();

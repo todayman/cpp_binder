@@ -488,11 +488,11 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
                 current.assignExpression = new std.d.ast.AssignExpression();
                 auto constant = new std.d.ast.PrimaryExpression();
                 constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
-                current.assignExpression.ternaryExpression = constant;
+                current.assignExpression = constant;
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
                 current.assignExpression = new std.d.ast.AssignExpression();
-                current.assignExpression.ternaryExpression = translateExpression(iter.getExpression());
+                current.assignExpression = translateExpression(iter.getExpression());
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                 throw new Exception("Cannot resolve template argument that is a Pack (...)");
@@ -753,7 +753,7 @@ private std.d.ast.Type replaceArray(unknown.ArrayType cppType, QualifierSet qual
         arraySuffix.low = new std.d.ast.AssignExpression();
         if (cppType.isDependentLength())
         {
-            arraySuffix.low.ternaryExpression = translateExpression(cppType.getLengthExpression());
+            arraySuffix.low = translateExpression(cppType.getLengthExpression());
         }
         else
         {
@@ -761,7 +761,7 @@ private std.d.ast.Type replaceArray(unknown.ArrayType cppType, QualifierSet qual
             auto constant = new std.d.ast.PrimaryExpression();
 
             constant.primary = Token(tok!"longLiteral", to!string(cppType.getLength()), 0, 0, 0);
-            arraySuffix.low.ternaryExpression = constant;
+            arraySuffix.low = constant;
         }
         result.typeSuffixes = [arraySuffix];
     }
