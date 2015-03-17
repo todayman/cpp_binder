@@ -24,12 +24,14 @@ struct CLIArguments
 {
     string[] config_files;
     string[] header_files;
+    string output_directory;
     string output_module;
 }
 
 bool parse_args(string[] argv, out CLIArguments args)
 {
-    bool setOutput = false;
+    bool setOutputModule = false;
+    bool setOutputDirectory = false;
 
     if (argv.length == 3 && argv[1] == "--")
     {
@@ -61,7 +63,24 @@ bool parse_args(string[] argv, out CLIArguments args)
         }
         else if (arg_str == "--output" || arg_str == "-o")
         {
-            if (setOutput)
+            if (setOutputModule)
+            {
+                stderr.writeln("ERROR: Only one output module may be specified.");
+                return false;
+            }
+
+            cur_arg_idx += 1;
+            if (cur_arg_idx == argv.length)
+            {
+                stderr.writeln("ERROR: Expected name for the output module after ", arg_str, ".");
+                return false;
+            }
+            args.output_module = argv[cur_arg_idx];
+            setOutputModule = true;
+        }
+        else if (arg_str == "--output-directory" || arg_str == "-od")
+        {
+            if (setOutputDirectory)
             {
                 stderr.writeln("ERROR: Only one output directory may be specified.");
                 return false;
@@ -70,11 +89,11 @@ bool parse_args(string[] argv, out CLIArguments args)
             cur_arg_idx += 1;
             if (cur_arg_idx == argv.length)
             {
-                stderr.writeln("ERROR: Expected path to output module after ", arg_str, ".");
+                stderr.writeln("ERROR: Expected path to output directory after ", arg_str, ".");
                 return false;
             }
-            args.output_module = argv[cur_arg_idx];
-            setOutput = true;
+            args.output_directory = argv[cur_arg_idx];
+            setOutputDirectory = true;
         }
         else
         {

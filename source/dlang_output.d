@@ -36,8 +36,9 @@ void visitModule(const Module mod, string path_prefix)
     }
 
     Appender!string path_appender;
+    const(Token)[] identifiers = mod.moduleDeclaration.moduleName.identifiers;
     path_appender.put(path_prefix);
-    foreach (Token t; mod.moduleDeclaration.moduleName.identifiers)
+    foreach (Token t; identifiers)
     {
         path_appender.put(dirSeparator);
         path_appender.put(t.text);
@@ -47,10 +48,7 @@ void visitModule(const Module mod, string path_prefix)
     format(delegate (string s) => (outputFile.write(s)), mod);
 }
 
-void produceOutputForPackage(Package pack, string path_prefix)
+void produceOutputForModule(std.d.ast.Module mod, string path_prefix)
 {
-    foreach (const Module mod; pack.children.byValue)
-    {
-        visitModule(mod, path_prefix);
-    }
+    visitModule(mod, path_prefix);
 }

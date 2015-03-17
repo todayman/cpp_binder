@@ -10,3 +10,4 @@ dub.selections.json
 
 tests/test_runner
 cpp_binder
+source/tags

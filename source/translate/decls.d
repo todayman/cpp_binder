@@ -1197,6 +1197,8 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
             return;
         }
 
+        stderr.writeln("Placing declaration:");
+        declaration.dump();
         destination.addDeclaration(translation, namespace_path);
         placedDeclarations[translation] = 1;
     }
@@ -1204,7 +1206,7 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
 
 dlang_decls.ModuleWithNamespaces destination;
 
-void populateDAST(string output_module_name)
+std.d.ast.Module populateDAST(string output_module_name)
 {
     // May cause problems because root package won't check for empty path.
     size_t array_len = 0;
@@ -1281,6 +1283,8 @@ void populateDAST(string output_module_name)
     {
         temp.resolve();
     }
+
+    return destination.getModule();
 }
 
 void determineRecordStrategy(unknown.RecordType cppType)

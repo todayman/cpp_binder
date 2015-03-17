@@ -83,8 +83,9 @@ int main(string[] argv)
         return -1;
     }
 
+    std.d.ast.Module mod;
     try {
-        populateDAST(args.output_module);
+        mod = populateDAST(args.output_module);
     }
     catch (Exception exc)
     {
@@ -92,7 +93,18 @@ int main(string[] argv)
         return -1;
     }
 
-    produceOutputForPackage(rootPackage, ".");
+    // FIXME take a couple options that say:
+    // 1) The folder the output should go in
+    // 2) The package the output goes in
+    // 3) The module the output goes in
+    if (args.output_directory.length == 0)
+    {
+        produceOutputForModule(mod, ".");
+    }
+    else
+    {
+        produceOutputForModule(mod, args.output_directory);
+    }
 
     return 0;
 }

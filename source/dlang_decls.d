@@ -134,6 +134,8 @@ class ModuleWithNamespaces
     this(string path)
     {
         mod = new std.d.ast.Module();
+        mod.moduleDeclaration = new std.d.ast.ModuleDeclaration();
+        mod.moduleDeclaration.moduleName = makeIdentifierChain(path);
     }
 
     void addDeclaration(std.d.ast.Declaration decl, string namespace)
@@ -164,6 +166,11 @@ class ModuleWithNamespaces
             namespaces[namespace] = new_decl;
             new_decl.declarations ~= [decl];
         }
+    }
+
+    std.d.ast.Module getModule()
+    {
+        return mod;
     }
 }
 
