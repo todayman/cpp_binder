@@ -78,6 +78,7 @@ struct TestCase
     string[] inputFiles;
     string[] expectedOutputFiles;
     string[] relativeOutputFiles;
+    string output_module;
     string cmd;
 
     void configure(string directory)
@@ -122,7 +123,22 @@ struct TestCase
 
         try
         {
-            addPathOrArray!"output"(expectedOutputFiles, json, &relativeOutputFiles);
+            addPathOrArray!"output_directory"(expectedOutputFiles, json, &relativeOutputFiles);
+        }
+        catch (RangeError)
+        {
+            fail("You must specify output files for " ~ directory);
+        }
+
+        try
+        {
+
+            JSONValue outputString = json["output_module"];
+            if (outputString.type != JSON_TYPE.STRING)
+            {
+                fail("The output_module must be a string.");
+            }
+            output_module = outputString.str;
         }
         catch (RangeError)
         {
@@ -169,15 +185,16 @@ struct TestCase
         // tmps/directory should be unique, so create it here without checking
         mkdir(runTmp);
         Appender!(string[]) options;
-        // 1 for executable, "-c" config file, each input file, and "--output" output
-        options.reserve(1 + 2 * configurationFiles.length + inputFiles.length + 2);
+        // 1 for executable, "-c" config file, each input file, "--output" output, and "--output-directory" out_dir
+        options.reserve(1 + 2 * configurationFiles.length + inputFiles.length + 4);
         options.put([executable]);
         foreach (config; configurationFiles)
             put(options, ["-c", config]);
         foreach (input; inputFiles)
             put(options, input);
+        options.put(["-o", output_module]);
         cmd = join(options.data, " ");
-        options.put(["-o", runTmp]);
+        options.put(["-od", runTmp]);
         execute(options.data);
         return runTmp;
     }

@@ -1,5 +1,6 @@
 {
     "config": "../../config/builtin_types.json",
     "input": "input",
-    "output": "output"
+    "output_directory": "output",
+    "output_module": "unknown"
 }
