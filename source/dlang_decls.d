@@ -124,6 +124,29 @@ void append(IdentifierOrTemplateChain chain, Token identifier)
     chain.identifiersOrTemplateInstances ~= [instance];
 }
 
+void stripExternCpp(std.d.ast.Declaration decl)
+{
+    foreach (uint idx, attr; decl.attributes)
+    {
+        if (attr.linkageAttribute !is null)
+        {
+            std.d.ast.LinkageAttribute linkage = attr.linkageAttribute;
+            // FIXME for some reason, just comparing
+            // linkage.identifier != Token(tok!"identifier", "C", 0, 0, 0)
+            // caused a compiler error
+            if (linkage.identifier.type != tok!"identifier"
+              || linkage.identifier.text != "C"
+              || linkage.hasPlusPlus == false)
+            {
+                continue;
+            }
+
+            decl.attributes = decl.attributes[0 .. idx] ~ decl.attributes[idx+1 .. $];
+            break;
+        }
+    }
+}
+
 class ModuleWithNamespaces
 {
     protected:
@@ -166,6 +189,8 @@ class ModuleWithNamespaces
             namespaces[namespace] = new_decl;
             new_decl.declarations ~= [decl];
         }
+        // TODO this isn't really the right place for this, is it?
+        stripExternCpp(decl);
     }
 
     std.d.ast.Module getModule()

@@ -60,7 +60,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
     {
         result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.hasPlusPlus = true;
-        result.identifierChain = makeIdentifierChain(namespace_path);
+        result.identifierChain = makeIdentifierChain!"::"(namespace_path);
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.NoLanguageLinkage)
     {
