@@ -5,8 +5,6 @@ import
     manual_types, 
     binder;
 
-extern (C++) interface ConfigurationException : std.runtime_error {}
-
 extern (C++) interface DeclarationAttributes
 {
 
@@ -36,8 +34,6 @@ extern (C++) interface TypeAttributes
 }
 
 extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* astunit, const unknown.DeclarationAttributes decl_attributes, const unknown.TypeAttributes type_attributes);
-
-extern (C++) void parseAndApplyConfiguration(size_t config_count, const(char)** config_files, clang.ASTUnit* astunit);
 
 extern (C++) interface NotWrappableException : std.runtime_error {}
 
