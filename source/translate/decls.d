@@ -1197,8 +1197,6 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
             return;
         }
 
-        stderr.writeln("Placing declaration:");
-        declaration.dump();
         destination.addDeclaration(translation, namespace_path);
         placedDeclarations[translation] = 1;
     }
