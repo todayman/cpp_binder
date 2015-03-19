@@ -5,4 +5,4 @@ extern(C++) interface Interface
     public void aFunc();
 }
 
-extern(C++) extern Interface global;
+extern(C++) extern unknown.Interface global;

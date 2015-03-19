@@ -2,38 +2,38 @@ module unknown;
 
 
 import 
-    manual_types, 
-    binder;
+    manual_types;
+static import binder;
 
 extern (C++) interface DeclarationAttributes
 {
 
-    static public DeclarationAttributes make();
+    static public unknown.DeclarationAttributes make();
 
     final public void setBound(bool value);
 
-    final public void setTargetModule(binder.string value);
+    final public void setTargetModule(binder.binder.string value);
 
-    final public void setVisibility(Visibility value);
+    final public void setVisibility(unknown.Visibility value);
 
-    final public void setRemovePrefix(binder.string value);
+    final public void setRemovePrefix(binder.binder.string value);
 }
 
 extern (C++) interface TypeAttributes
 {
 
-    static public TypeAttributes make();
+    static public unknown.TypeAttributes make();
 
-    public Strategy getStrategy() const;
+    public unknown.Strategy getStrategy() const;
 
-    public void setStrategy(Strategy s);
+    public void setStrategy(unknown.Strategy s);
 
-    public void setTargetName(binder.string new_target);
+    public void setTargetName(binder.binder.string new_target);
 
-    public void setTargetModule(binder.string new_module);
+    public void setTargetModule(binder.binder.string new_module);
 }
 
-extern (C++) void applyConfigToObject(const binder.string name, clang.ASTUnit* astunit, const DeclarationAttributes decl_attributes, const TypeAttributes type_attributes);
+extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* astunit, const unknown.DeclarationAttributes decl_attributes, const unknown.TypeAttributes type_attributes);
 
 extern (C++) interface NotWrappableException : std.runtime_error {}
 
@@ -53,33 +53,33 @@ extern (C++) interface Type
 
     static public void printTypeNames();
 
-    static public Type get(const(clang.Type)* type, const(clang.PrintingPolicy)* pp);
+    static public unknown.Type get(const(clang.Type)* type, const(clang.PrintingPolicy)* pp);
 
-    static public Type get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
+    static public unknown.Type get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
 
-    final public Type.Kind getKind() const;
+    final public unknown.Type.Kind getKind() const;
 
-    final public void chooseReplaceStrategy(const binder.string replacement);
+    final public void chooseReplaceStrategy(const binder.binder.string replacement);
 
-    final public void setStrategy(Strategy s);
+    final public void setStrategy(unknown.Strategy s);
 
-    final public Strategy getStrategy() const;
+    final public unknown.Strategy getStrategy() const;
 
     public bool isReferenceType() const;
 
-    final public binder.string getReplacement() const;
+    final public binder.binder.string getReplacement() const;
 
-    final public binder.string getReplacementModule() const;
+    final public binder.binder.string getReplacementModule() const;
 
-    final public void setReplacementModule(binder.string mod);
+    final public void setReplacementModule(binder.binder.string mod);
 
-    public Declaration getDeclaration() const;
+    public unknown.Declaration getDeclaration() const;
 
-    public void visit(TypeVisitor visitor);
+    public void visit(unknown.TypeVisitor visitor);
 
     public void dump() const;
 
-    final public void applyAttributes(const TypeAttributes attribs);
+    final public void applyAttributes(const unknown.TypeAttributes attribs);
 
     public bool isWrappable(bool refAllowed);
 
@@ -113,84 +113,84 @@ Delayed = 14
 extern (C++) interface TypeVisitor
 {
 
-    public void visit(InvalidType type);
+    public void visit(unknown.InvalidType type);
 
-    public void visit(BuiltinType type);
+    public void visit(unknown.BuiltinType type);
 
-    public void visit(PointerType type);
+    public void visit(unknown.PointerType type);
 
-    public void visit(ReferenceType type);
+    public void visit(unknown.ReferenceType type);
 
-    public void visit(NonTemplateRecordType type);
+    public void visit(unknown.NonTemplateRecordType type);
 
-    public void visit(TemplateRecordType type);
+    public void visit(unknown.TemplateRecordType type);
 
-    public void visit(UnionType type);
+    public void visit(unknown.UnionType type);
 
-    public void visit(ArrayType type);
+    public void visit(unknown.ArrayType type);
 
-    public void visit(FunctionType type);
+    public void visit(unknown.FunctionType type);
 
-    public void visit(TypedefType type);
+    public void visit(unknown.TypedefType type);
 
-    public void visit(VectorType type);
+    public void visit(unknown.VectorType type);
 
-    public void visit(EnumType type);
+    public void visit(unknown.EnumType type);
 
-    public void visit(QualifiedType type);
+    public void visit(unknown.QualifiedType type);
 
-    public void visit(TemplateArgumentType type);
+    public void visit(unknown.TemplateArgumentType type);
 
-    public void visit(TemplateSpecializationType type);
+    public void visit(unknown.TemplateSpecializationType type);
 
-    public void visit(DelayedType type);
+    public void visit(unknown.DelayedType type);
 }
 
-extern (C++) interface InvalidType : Type {}
+extern (C++) interface InvalidType : unknown.Type {}
 
-extern (C++) interface BuiltinType : Type {}
+extern (C++) interface BuiltinType : unknown.Type {}
 
-extern (C++) interface RecordType : Type
+extern (C++) interface RecordType : unknown.Type
 {
 
-    public RecordDeclaration getRecordDeclaration() const;
+    public unknown.RecordDeclaration getRecordDeclaration() const;
 }
 
-extern (C++) interface NonTemplateRecordType : RecordType {}
+extern (C++) interface NonTemplateRecordType : unknown.RecordType {}
 
-extern (C++) interface TemplateRecordType : RecordType {}
+extern (C++) interface TemplateRecordType : unknown.RecordType {}
 
-extern (C++) interface PointerOrReferenceType : Type
+extern (C++) interface PointerOrReferenceType : unknown.Type
 {
 
-    public Type getPointeeType() const;
+    public unknown.Type getPointeeType() const;
 }
 
-extern (C++) interface PointerType : PointerOrReferenceType {}
+extern (C++) interface PointerType : unknown.PointerOrReferenceType {}
 
-extern (C++) interface ReferenceType : PointerOrReferenceType {}
+extern (C++) interface ReferenceType : unknown.PointerOrReferenceType {}
 
-extern (C++) interface TypedefType : Type
+extern (C++) interface TypedefType : unknown.Type
 {
 
-    final public TypedefDeclaration getTypedefDeclaration() const;
+    final public unknown.TypedefDeclaration getTypedefDeclaration() const;
 
-    final public Type getTargetType() const;
+    final public unknown.Type getTargetType() const;
 }
 
-extern (C++) interface EnumType : Type
+extern (C++) interface EnumType : unknown.Type
 {
 
-    final public EnumDeclaration getEnumDeclaration() const;
+    final public unknown.EnumDeclaration getEnumDeclaration() const;
 }
 
-extern (C++) interface UnionType : Type
+extern (C++) interface UnionType : unknown.Type
 {
 
-    final public UnionDeclaration getUnionDeclaration() const;
+    final public unknown.UnionDeclaration getUnionDeclaration() const;
 }
 
-extern (C++) interface ArrayType : Type
+extern (C++) interface ArrayType : unknown.Type
 {
 
     public bool isFixedLength();
@@ -199,67 +199,67 @@ extern (C++) interface ArrayType : Type
 
     public long getLength();
 
-    public Expression getLengthExpression();
+    public unknown.Expression getLengthExpression();
 
-    public Type getElementType() const;
+    public unknown.Type getElementType() const;
 }
 
-extern (C++) interface ConstantArrayType : ArrayType {}
+extern (C++) interface ConstantArrayType : unknown.ArrayType {}
 
-extern (C++) interface VariableArrayType : ArrayType {}
+extern (C++) interface VariableArrayType : unknown.ArrayType {}
 
-extern (C++) interface DependentLengthArrayType : ArrayType {}
+extern (C++) interface DependentLengthArrayType : unknown.ArrayType {}
 
 extern (C++) interface ArgumentTypeRange
 {
 
     public bool empty();
 
-    public Type front();
+    public unknown.Type front();
 
     public void popFront();
 }
 
-extern (C++) interface FunctionType : Type
+extern (C++) interface FunctionType : unknown.Type
 {
 
-    public Type getReturnType();
+    public unknown.Type getReturnType();
 
-    public ArgumentTypeRange getArgumentRange();
+    public unknown.ArgumentTypeRange getArgumentRange();
 }
 
-extern (C++) interface QualifiedType : Type
+extern (C++) interface QualifiedType : unknown.Type
 {
 
-    final public Type unqualifiedType();
+    final public unknown.Type unqualifiedType();
 
-    final public const Type unqualifiedType() const;
+    final public const unknown.Type unqualifiedType() const;
 
     final public bool isConst() const;
 }
 
-extern (C++) interface VectorType : Type {}
+extern (C++) interface VectorType : unknown.Type {}
 
-extern (C++) interface TemplateArgumentType : Type
+extern (C++) interface TemplateArgumentType : unknown.Type
 {
 
-    final public TemplateTypeArgumentDeclaration getTemplateTypeArgumentDeclaration() const;
+    final public unknown.TemplateTypeArgumentDeclaration getTemplateTypeArgumentDeclaration() const;
 
     final public void setTemplateList(clang.TemplateParameterList* tl);
 
-    final public binder.string getIdentifier() const;
+    final public binder.binder.string getIdentifier() const;
 }
 
-extern (C++) interface TemplateSpecializationType : Type
+extern (C++) interface TemplateSpecializationType : unknown.Type
 {
 
-    final public Declaration getTemplateDeclaration() const;
+    final public unknown.Declaration getTemplateDeclaration() const;
 
     final public uint getTemplateArgumentCount() const;
 
-    final public TemplateArgumentInstanceIterator getTemplateArgumentBegin() const;
+    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin() const;
 
-    final public TemplateArgumentInstanceIterator getTemplateArgumentEnd() const;
+    final public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd() const;
 }
 
 extern (C++) interface NestedNameWrapper
@@ -269,21 +269,21 @@ extern (C++) interface NestedNameWrapper
 
     final public bool isIdentifier() const;
 
-    final public NestedNameWrapper getPrefix() const;
+    final public unknown.NestedNameWrapper getPrefix() const;
 
-    final public binder.string getAsIdentifier() const;
+    final public binder.binder.string getAsIdentifier() const;
 
-    final public Type getAsType() const;
+    final public unknown.Type getAsType() const;
 }
 
-extern (C++) interface DelayedType : Type
+extern (C++) interface DelayedType : unknown.Type
 {
 
-    final public Type resolveType() const;
+    final public unknown.Type resolveType() const;
 
-    final public binder.string getIdentifier() const;
+    final public binder.binder.string getIdentifier() const;
 
-    final public NestedNameWrapper getQualifier() const;
+    final public unknown.NestedNameWrapper getQualifier() const;
 }
 
 extern (C++) interface TemplateArgumentInstanceIterator
@@ -291,15 +291,15 @@ extern (C++) interface TemplateArgumentInstanceIterator
 
     public void advance();
 
-    public bool equals(TemplateArgumentInstanceIterator other);
+    public bool equals(unknown.TemplateArgumentInstanceIterator other);
 
-    public TemplateArgumentInstanceIterator.Kind getKind();
+    public unknown.TemplateArgumentInstanceIterator.Kind getKind();
 
-    public Type getType();
+    public unknown.Type getType();
 
     public long getInteger();
 
-    public Expression getExpression();
+    public unknown.Expression getExpression();
 
     public void dumpPackInfo();
 
@@ -313,31 +313,31 @@ Pack = 3
     }
 }
 
-extern (C++) interface FatalTypeNotWrappable : NotWrappableException
+extern (C++) interface FatalTypeNotWrappable : unknown.NotWrappableException
 {
 
     public const(clang.Type)* getType() const;
 }
 
-extern (C++) interface SkipUnwrappableType : NotWrappableException
+extern (C++) interface SkipUnwrappableType : unknown.NotWrappableException
 {
 
     public const(clang.Type)* getType() const;
 }
 
-extern (C++) interface SkipRValueRef : SkipUnwrappableType
+extern (C++) interface SkipRValueRef : unknown.SkipUnwrappableType
 {
 
     public const(char)* what() const;
 }
 
-extern (C++) interface SkipTemplate : SkipUnwrappableType
+extern (C++) interface SkipTemplate : unknown.SkipUnwrappableType
 {
 
     public const(char)* what() const;
 }
 
-extern (C++) interface SkipMemberPointer : SkipUnwrappableType
+extern (C++) interface SkipMemberPointer : unknown.SkipUnwrappableType
 {
 
     public const(char)* what() const;
@@ -354,7 +354,7 @@ PUBLIC = 4,
 EXPORT = 5
 }
 
-extern (C++) Visibility accessSpecToVisibility(clang.AccessSpecifier as);
+extern (C++) unknown.Visibility accessSpecToVisibility(clang.AccessSpecifier as);
 
 extern (C++) bool isCXXRecord(const(clang.Decl)* decl);
 
@@ -363,15 +363,15 @@ extern (C++) bool isTemplateTypeParmDecl(const(clang.Decl)* decl);
 extern (C++) interface Declaration
 {
 
-    protected void setSourceName(binder.string name);
+    protected void setSourceName(binder.binder.string name);
 
     protected void markUnwrappable();
 
     public clang.SourceLocation getSourceLocation() const;
 
-    public binder.string getSourceName() const;
+    public binder.binder.string getSourceName() const;
 
-    public binder.string getTargetName() const;
+    public binder.binder.string getTargetName() const;
 
     public bool isWrappable() const;
 
@@ -379,28 +379,28 @@ extern (C++) interface Declaration
 
     public bool shouldEmit() const;
 
-    public void setTargetModule(binder.string target);
+    public void setTargetModule(binder.binder.string target);
 
     public bool isTargetModuleSet() const;
 
-    public binder.string getTargetModule() const;
+    public binder.binder.string getTargetModule() const;
 
-    public Visibility getVisibility() const;
+    public unknown.Visibility getVisibility() const;
 
-    public void setVisibility(Visibility vis);
+    public void setVisibility(unknown.Visibility vis);
 
-    public void removePrefix(binder.string prefix);
+    public void removePrefix(binder.binder.string prefix);
 
-    public Type getType() const;
+    public unknown.Type getType() const;
 
-    public void visit(DeclarationVisitor visitor);
+    public void visit(unknown.DeclarationVisitor visitor);
 
     public void dump();
 
-    final public void applyAttributes(const DeclarationAttributes attribs);
+    final public void applyAttributes(const unknown.DeclarationAttributes attribs);
 }
 
-extern (C++) void applyAttributesToDeclByName(const DeclarationAttributes attribs, const binder.string declName);
+extern (C++) void applyAttributesToDeclByName(const unknown.DeclarationAttributes attribs, const binder.binder.string declName);
 
 extern (C++) interface NotTypeDecl : std.runtime_error {}
 
@@ -409,7 +409,7 @@ extern (C++) interface DeclarationRange
 
     public bool empty();
 
-    public Declaration front();
+    public unknown.Declaration front();
 
     public void popFront();
 }
@@ -417,80 +417,80 @@ extern (C++) interface DeclarationRange
 extern (C++) interface DeclarationVisitor
 {
 
-    public void visitFunction(FunctionDeclaration node);
+    public void visitFunction(unknown.FunctionDeclaration node);
 
-    public void visitNamespace(NamespaceDeclaration node);
+    public void visitNamespace(unknown.NamespaceDeclaration node);
 
-    public void visitRecord(RecordDeclaration node);
+    public void visitRecord(unknown.RecordDeclaration node);
 
-    public void visitRecordTemplate(RecordTemplateDeclaration node);
+    public void visitRecordTemplate(unknown.RecordTemplateDeclaration node);
 
-    public void visitTypedef(TypedefDeclaration node);
+    public void visitTypedef(unknown.TypedefDeclaration node);
 
-    public void visitEnum(EnumDeclaration node);
+    public void visitEnum(unknown.EnumDeclaration node);
 
-    public void visitField(FieldDeclaration node);
+    public void visitField(unknown.FieldDeclaration node);
 
-    public void visitEnumConstant(EnumConstantDeclaration node);
+    public void visitEnumConstant(unknown.EnumConstantDeclaration node);
 
-    public void visitUnion(UnionDeclaration node);
+    public void visitUnion(unknown.UnionDeclaration node);
 
-    public void visitSpecializedRecord(SpecializedRecordDeclaration node);
+    public void visitSpecializedRecord(unknown.SpecializedRecordDeclaration node);
 
-    public void visitMethod(MethodDeclaration node);
+    public void visitMethod(unknown.MethodDeclaration node);
 
-    public void visitConstructor(ConstructorDeclaration node);
+    public void visitConstructor(unknown.ConstructorDeclaration node);
 
-    public void visitDestructor(DestructorDeclaration node);
+    public void visitDestructor(unknown.DestructorDeclaration node);
 
-    public void visitArgument(ArgumentDeclaration node);
+    public void visitArgument(unknown.ArgumentDeclaration node);
 
-    public void visitVariable(VariableDeclaration node);
+    public void visitVariable(unknown.VariableDeclaration node);
 
-    public void visitTemplateTypeArgument(TemplateTypeArgumentDeclaration node);
+    public void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration node);
 
-    public void visitTemplateNonTypeArgument(TemplateNonTypeArgumentDeclaration node);
+    public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node);
 
-    public void visitUnwrappable(UnwrappableDeclaration node);
+    public void visitUnwrappable(unknown.UnwrappableDeclaration node);
 }
 
-extern (C++) interface ConstructorDeclaration : Declaration {}
+extern (C++) interface ConstructorDeclaration : unknown.Declaration {}
 
-extern (C++) interface DestructorDeclaration : Declaration {}
+extern (C++) interface DestructorDeclaration : unknown.Declaration {}
 
-extern (C++) interface VariableDeclaration : Declaration
+extern (C++) interface VariableDeclaration : unknown.Declaration
 {
 
     public clang.LanguageLinkage getLinkLanguage() const;
 }
 
-extern (C++) interface ArgumentDeclaration : Declaration {}
+extern (C++) interface ArgumentDeclaration : unknown.Declaration {}
 
-extern (C++) interface NamespaceDeclaration : Declaration
+extern (C++) interface NamespaceDeclaration : unknown.Declaration
 {
 
-    public DeclarationRange getChildren();
+    public unknown.DeclarationRange getChildren();
 }
 
-extern (C++) interface TypedefDeclaration : Declaration
+extern (C++) interface TypedefDeclaration : unknown.Declaration
 {
 
-    final public TypedefType getTypedefType() const;
+    final public unknown.TypedefType getTypedefType() const;
 
-    final public Type getTargetType() const;
+    final public unknown.Type getTargetType() const;
 }
 
-extern (C++) interface EnumDeclaration : Declaration
+extern (C++) interface EnumDeclaration : unknown.Declaration
 {
 
-    final public EnumType getEnumType() const;
+    final public unknown.EnumType getEnumType() const;
 
-    public Type getMemberType() const;
+    public unknown.Type getMemberType() const;
 
-    public DeclarationRange getChildren();
+    public unknown.DeclarationRange getChildren();
 }
 
-extern (C++) interface EnumConstantDeclaration : Declaration
+extern (C++) interface EnumConstantDeclaration : unknown.Declaration
 {
 
     public long getLLValue() const;
@@ -499,40 +499,40 @@ extern (C++) interface EnumConstantDeclaration : Declaration
 extern (C++) interface ArgumentIterator
 {
 
-    public ArgumentDeclaration get();
+    public unknown.ArgumentDeclaration get();
 
     public void advance();
 
-    public bool equals(ArgumentIterator other);
+    public bool equals(unknown.ArgumentIterator other);
 }
 
-extern (C++) interface FunctionDeclaration : Declaration
+extern (C++) interface FunctionDeclaration : unknown.Declaration
 {
 
     public clang.LanguageLinkage getLinkLanguage() const;
 
-    public Type getReturnType() const;
+    public unknown.Type getReturnType() const;
 
-    public ArgumentIterator getArgumentBegin();
+    public unknown.ArgumentIterator getArgumentBegin();
 
-    public ArgumentIterator getArgumentEnd();
+    public unknown.ArgumentIterator getArgumentEnd();
 
     public bool isOverloadedOperator() const;
 }
 
-extern (C++) interface FieldDeclaration : Declaration {}
+extern (C++) interface FieldDeclaration : unknown.Declaration {}
 
 extern (C++) interface OverriddenMethodIterator
 {
 
-    public MethodDeclaration get();
+    public unknown.MethodDeclaration get();
 
     public void advance();
 
-    public bool equals(OverriddenMethodIterator other);
+    public bool equals(unknown.OverriddenMethodIterator other);
 }
 
-extern (C++) interface MethodDeclaration : Declaration
+extern (C++) interface MethodDeclaration : unknown.Declaration
 {
 
     public bool isConst() const;
@@ -543,21 +543,21 @@ extern (C++) interface MethodDeclaration : Declaration
 
     public bool isOverloadedOperator() const;
 
-    public Type getReturnType() const;
+    public unknown.Type getReturnType() const;
 
-    public ArgumentIterator getArgumentBegin();
+    public unknown.ArgumentIterator getArgumentBegin();
 
-    public ArgumentIterator getArgumentEnd();
+    public unknown.ArgumentIterator getArgumentEnd();
 
-    public OverriddenMethodIterator getOverriddenBegin();
+    public unknown.OverriddenMethodIterator getOverriddenBegin();
 
-    public OverriddenMethodIterator getOverriddenEnd();
+    public unknown.OverriddenMethodIterator getOverriddenEnd();
 }
 
 extern (C++) interface FieldRange
 {
 
-    public FieldDeclaration front();
+    public unknown.FieldDeclaration front();
 
     public void popFront();
 
@@ -569,7 +569,7 @@ extern (C++) interface MethodRange
 
     public bool empty();
 
-    public MethodDeclaration front();
+    public unknown.MethodDeclaration front();
 
     public void popFront();
 }
@@ -579,43 +579,43 @@ extern (C++) struct Superclass
 
     public bool isVirtual;
 
-    public Visibility visibility;
+    public unknown.Visibility visibility;
 
-    public Type base;
+    public unknown.Type base;
 }
 
 extern (C++) interface SuperclassIterator
 {
 
-    public Superclass* get();
+    public unknown.Superclass* get();
 
     public void advance();
 
-    public bool equals(SuperclassIterator other);
+    public bool equals(unknown.SuperclassIterator other);
 }
 
-extern (C++) interface RecordDeclaration : Declaration
+extern (C++) interface RecordDeclaration : unknown.Declaration
 {
 
     final protected const(clang.RecordDecl)* definitionOrThis() const;
 
-    final public RecordType getRecordType() const;
+    final public unknown.RecordType getRecordType() const;
 
-    public FieldRange getFieldRange() const;
+    public unknown.FieldRange getFieldRange() const;
 
-    public DeclarationRange getChildren() const;
+    public unknown.DeclarationRange getChildren() const;
 
-    public MethodRange getMethodRange();
+    public unknown.MethodRange getMethodRange();
 
-    public SuperclassIterator getSuperclassBegin();
+    public unknown.SuperclassIterator getSuperclassBegin();
 
-    public SuperclassIterator getSuperclassEnd();
+    public unknown.SuperclassIterator getSuperclassEnd();
 
     public bool isCXXRecord() const;
 
     public bool hasDefinition() const;
 
-    public const RecordDeclaration getDefinition() const;
+    public const unknown.RecordDeclaration getDefinition() const;
 
     public bool isDynamicClass() const;
 
@@ -624,14 +624,14 @@ extern (C++) interface RecordDeclaration : Declaration
     public uint getTemplateArgumentCount() const;
 }
 
-extern (C++) interface UnionDeclaration : Declaration
+extern (C++) interface UnionDeclaration : unknown.Declaration
 {
 
-    final public UnionType getUnionType() const;
+    final public unknown.UnionType getUnionType() const;
 
-    public FieldRange getFieldRange();
+    public unknown.FieldRange getFieldRange();
 
-    public DeclarationRange getChildren();
+    public unknown.DeclarationRange getChildren();
 
     public uint getTemplateArgumentCount() const;
 }
@@ -641,15 +641,15 @@ extern (C++) interface TemplateArgumentIterator
 
     public void advance();
 
-    public bool equals(TemplateArgumentIterator other);
+    public bool equals(unknown.TemplateArgumentIterator other);
 
-    public TemplateArgumentIterator.Kind getKind();
+    public unknown.TemplateArgumentIterator.Kind getKind();
 
     public bool isPack();
 
-    public TemplateTypeArgumentDeclaration getType();
+    public unknown.TemplateTypeArgumentDeclaration getType();
 
-    public TemplateNonTypeArgumentDeclaration getNonType();
+    public unknown.TemplateNonTypeArgumentDeclaration getNonType();
 
     enum Kind : uint 
 
@@ -664,81 +664,81 @@ extern (C++) interface TemplateDeclaration
 
     public uint getTemplateArgumentCount() const;
 
-    public TemplateArgumentIterator getTemplateArgumentBegin();
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
 
-    public TemplateArgumentIterator getTemplateArgumentEnd();
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
 }
 
-extern (C++) interface SpecializedRecordDeclaration : RecordDeclaration
+extern (C++) interface SpecializedRecordDeclaration : unknown.RecordDeclaration
 {
 
-    public TemplateArgumentInstanceIterator getTemplateArgumentBegin();
+    public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
 
-    public TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+    public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
 }
 
 extern (C++) interface SpecializedRecordRange
 {
 
-    public SpecializedRecordDeclaration front();
+    public unknown.SpecializedRecordDeclaration front();
 
     public void popFront();
 
     public bool empty() const;
 }
 
-extern (C++) interface RecordTemplateDeclaration : RecordDeclaration
+extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
 {
 
     final public bool isVariadic() const;
 
-    public TemplateArgumentIterator getTemplateArgumentBegin() const;
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin() const;
 
-    public TemplateArgumentIterator getTemplateArgumentEnd() const;
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
 
-    public SpecializedRecordRange getSpecializationRange();
+    public unknown.SpecializedRecordRange getSpecializationRange();
 }
 
-extern (C++) interface UnionTemplateDeclaration : UnionDeclaration
+extern (C++) interface UnionTemplateDeclaration : unknown.UnionDeclaration
 {
 
-    public TemplateArgumentIterator getTemplateArgumentBegin();
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
 
-    public TemplateArgumentIterator getTemplateArgumentEnd();
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
 }
 
-extern (C++) interface TemplateTypeArgumentDeclaration : Declaration
+extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration
 {
 
-    final public TemplateArgumentType getTemplateArgumentType() const;
+    final public unknown.TemplateArgumentType getTemplateArgumentType() const;
 }
 
-extern (C++) interface TemplateNonTypeArgumentDeclaration : Declaration {}
+extern (C++) interface TemplateNonTypeArgumentDeclaration : unknown.Declaration {}
 
-extern (C++) interface UnwrappableDeclaration : Declaration {}
+extern (C++) interface UnwrappableDeclaration : unknown.Declaration {}
 
 extern (C++) void traverseDeclsInAST(clang.ASTUnit* ast);
 
 extern (C++) void enableDeclarationsInFiles(size_t count, char** filenames);
 
-extern (C++) void arrayOfFreeDeclarations(size_t* count, Declaration** array);
+extern (C++) void arrayOfFreeDeclarations(size_t* count, unknown.Declaration** array);
 
-extern (C++) Declaration getDeclaration(const(clang.Decl)* decl);
+extern (C++) unknown.Declaration getDeclaration(const(clang.Decl)* decl);
 
-extern (C++) interface SkipUnwrappableDeclaration : NotWrappableException {}
+extern (C++) interface SkipUnwrappableDeclaration : unknown.NotWrappableException {}
 
 extern (C++) extern const(clang.SourceManager)* source_manager;
 
 extern (C++) interface ExpressionVisitor
 {
 
-    public void visit(IntegerLiteralExpression expr);
+    public void visit(unknown.IntegerLiteralExpression expr);
 
-    public void visit(DeclaredExpression expr);
+    public void visit(unknown.DeclaredExpression expr);
 
-    public void visit(DelayedExpression expr);
+    public void visit(unknown.DelayedExpression expr);
 
-    public void visit(UnwrappableExpression expr);
+    public void visit(unknown.UnwrappableExpression expr);
 }
 
 extern (C++) interface Expression
@@ -746,27 +746,27 @@ extern (C++) interface Expression
 
     public void dump() const;
 
-    public void visit(ExpressionVisitor visitor);
+    public void visit(unknown.ExpressionVisitor visitor);
 }
 
-extern (C++) interface IntegerLiteralExpression : Expression
+extern (C++) interface IntegerLiteralExpression : unknown.Expression
 {
 
     final public long getValue() const;
 }
 
-extern (C++) interface DeclaredExpression : Expression
+extern (C++) interface DeclaredExpression : unknown.Expression
 {
 
-    final public Declaration getDeclaration() const;
+    final public unknown.Declaration getDeclaration() const;
 }
 
-extern (C++) interface DelayedExpression : Expression
+extern (C++) interface DelayedExpression : unknown.Expression
 {
 
-    final public Declaration getDeclaration() const;
+    final public unknown.Declaration getDeclaration() const;
 }
 
-extern (C++) interface UnwrappableExpression : Expression {}
+extern (C++) interface UnwrappableExpression : unknown.Expression {}
 
 extern (C++) clang.ASTUnit* buildAST(char* contents, size_t arg_len, char** raw_args, char* filename);

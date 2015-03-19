@@ -164,6 +164,18 @@ class OverloadedOperatorError : Exception
     }
 };
 
+private std.d.ast.IdentifierChain moduleForDeclaration(unknown.Declaration cppDecl)
+{
+    if (cppDecl.shouldEmit)
+    {
+        return destination.getModule().moduleDeclaration.moduleName;
+    }
+    else
+    {
+        return makeIdentifierChain(binder.toDString(cppDecl.getTargetModule()));
+    }
+}
+
 private class TranslatorVisitor : unknown.DeclarationVisitor
 {
     string namespace_path;
@@ -617,7 +629,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
         Token name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_internal_path[$-1], namespace_path);
+        IdentifierChain package_name = moduleForDeclaration(cppDecl);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -636,7 +649,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
 
         {
-            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_internal_path[$-1], namespace_path);
+            IdentifierChain package_name = moduleForDeclaration(cppDecl);
+            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_name, package_internal_path[$-1], namespace_path);
             package_internal_path ~= [symbol];
             scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -675,7 +689,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         template_inst.identifier = nameFromDecl(cppDecl);
         template_inst.templateArguments = translateTemplateArguments(cppDecl);
 
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, template_inst, package_internal_path[$-1], namespace_path);
+        IdentifierChain package_name = moduleForDeclaration(cppDecl);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, template_inst, package_name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
@@ -694,7 +709,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         initializer.name = nameFromDecl(cppDecl);
         initializer.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
         result.initializers ~= [initializer];
-        makeSymbolForTypeDecl(cppDecl, initializer.name, package_internal_path[$-1], namespace_path);
+        IdentifierChain package_name = moduleForDeclaration(cppDecl);
+        makeSymbolForTypeDecl(cppDecl, initializer.name, package_name, package_internal_path[$-1], namespace_path);
 
         return result;
     }
@@ -713,8 +729,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = registerDeclaration!(std.d.ast.EnumDeclaration)(cppDecl);
         result.enumBody = new EnumBody();
 
+        IdentifierChain package_name = moduleForDeclaration(cppDecl);
         result.name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_internal_path[$-1], namespace_path);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
@@ -820,7 +837,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.name = nameFromDecl(cppDecl);
         result.structBody = new StructBody();
 
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_internal_path[$-1], namespace_path);
+        IdentifierChain package_name = moduleForDeclaration(cppDecl);
+        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];
         scope(exit) package_internal_path = package_internal_path[0 .. $-1];
@@ -1030,7 +1048,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = new std.d.ast.TemplateTypeParameter();
         result.identifier = nameFromDecl(cppDecl);
         // TODO default values
-        makeSymbolForTypeDecl(cppDecl, result.identifier, null, "");
+        makeSymbolForTypeDecl(cppDecl, result.identifier, null, null, "");
         return result;
     }
 
