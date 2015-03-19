@@ -4,7 +4,7 @@
         , "c++"
         , "-std=c++11"
         , "-resource-dir"
-        , "/usr/lib/clang/3.5.1"
+        , "/usr/lib/clang/3.6.0"
     ],
 
     "binding_attributes": {
