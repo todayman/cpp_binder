@@ -177,5 +177,12 @@
                 "name": "interface"
             }
         }
+        , "binder::string": {
+            "strategy": {
+                "name": "interface"
+            }
+            , "target_module":"binder"
+            , "bound": 0
+        }
     }
 }
