@@ -23,6 +23,6 @@ Someday, when this is a real tool, I'll ship a configuration file in `/etc/cpp_b
 
 *   dmd 2.066 or higher
 *   dub
-*   clang 3.5 (dev packages)
+*   clang 3.6 (dev packages).  clang 3.5 can be used by replacing the references in: CMakeLists.txt, dub.json, and (optionally) config/cpp_binder.json
 *   boost filesystem (and boost system)
 *   C++11 compiler
