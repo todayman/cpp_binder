@@ -985,6 +985,8 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
     Declaration* maybe_emits;
     std::set<boost::filesystem::path> filenames;
 
+    typedef clang::RecursiveASTVisitor<FilenameVisitor> Super;
+
     template<typename ConstIterator>
     FilenameVisitor(ConstIterator firstFile, ConstIterator lastFile)
         : filenames(firstFile, lastFile)
@@ -1003,11 +1005,22 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
                 if( boost::filesystem::equivalent(name, this_filename) )
                 {
                     maybe_emits->shouldEmit(true);
+                    std::cout << "Emitting " << cppDecl->getNameAsString() << " from " << this_filename << "\n";
                 }
             }
         }
 
         return false;
+    }
+
+    bool WalkUpFromTagDecl(clang::TagDecl* cppDecl)
+    {
+        if (cppDecl->getDefinition() != cppDecl)
+        {
+            return false;
+        }
+        
+        return Super::WalkUpFromTagDecl(cppDecl);
     }
 
     bool WalkUpFromDecl(clang::Decl*)
