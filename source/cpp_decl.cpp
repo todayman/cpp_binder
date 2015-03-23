@@ -1005,7 +1005,6 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
                 if( boost::filesystem::equivalent(name, this_filename) )
                 {
                     maybe_emits->shouldEmit(true);
-                    std::cout << "Emitting " << cppDecl->getNameAsString() << " from " << this_filename << "\n";
                 }
             }
         }
