@@ -426,7 +426,7 @@ MethodDeclaration* OverriddenMethodIterator::operator*()
 }
 //template<>
 //Superclass* Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass>::operator*()
-Superclass* SuperclassIterator::operator*()
+Superclass* SuperclassRange::front()
 {
     const clang::CXXBaseSpecifier * base = cpp_iter;
     Superclass * result = new Superclass;

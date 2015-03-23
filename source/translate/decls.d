@@ -520,12 +520,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto baseClassList = new BaseClassList();
         bool hasBaseClass = false;
-        for (unknown.SuperclassIterator iter = cppDecl.getSuperclassBegin(),
-                finish = cppDecl.getSuperclassEnd();
-             !iter.equals(finish);
-             iter.advance())
+        foreach (superclass; cppDecl.getSuperclassRange())
         {
-            unknown.Superclass* superclass = iter.get();
             if (superclass.visibility != unknown.Visibility.PUBLIC)
             {
                 throw new Exception("Don't know how to translate non-public inheritance of interfaces.");

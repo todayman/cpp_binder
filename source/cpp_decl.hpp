@@ -350,7 +350,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        virtual Type* getType() const
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -932,47 +932,34 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         Type * base;
     };
 
-    class SuperclassIterator
+    class SuperclassRange
     {
+        public:
+        typedef clang::CXXRecordDecl::base_class_const_iterator iterator_t;
+        typedef clang::CXXRecordDecl::base_class_const_range range_t;
+
         private:
-        clang::CXXRecordDecl::base_class_const_iterator cpp_iter;
+        iterator_t cpp_iter;
+        iterator_t end;
 
         public:
-        explicit SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator i)
-            : cpp_iter(i)
+        SuperclassRange()
+            : cpp_iter(), end()
+        { }
+        explicit SuperclassRange(range_t r)
+            : cpp_iter(r.begin()), end(r.end())
         { }
 
-        void operator++() {
-            cpp_iter++;
-        }
+        Superclass* front();
 
-        bool operator==(const SuperclassIterator& other) {
-            return cpp_iter == other.cpp_iter;
-        }
-
-        bool operator!=(const SuperclassIterator& other) {
-            return cpp_iter != other.cpp_iter;
-        }
-
-        Superclass* operator*();
-        Superclass* operator->()
-        {
-            return operator*();
-        }
-
-        virtual Superclass* get()
-        {
-            return operator*();
-        }
-
-        virtual void advance()
+        virtual void popFront()
         {
             cpp_iter++;
         }
 
-        virtual bool equals(SuperclassIterator* other)
+        virtual bool empty() const
         {
-            return (*this) == (*other);
+            return cpp_iter == end;
         }
     };
     //typedef Iterator<clang::CXXRecordDecl::base_class_const_iterator, Superclass> SuperclassIterator;
@@ -1044,28 +1031,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
         }
 
-        virtual SuperclassIterator * getSuperclassBegin()
+        virtual SuperclassRange * getSuperclassRange()
         {
             if( !isCXXRecord() )
             {
-                return new SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
+                return new SuperclassRange();
             }
             else
             {
                 const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis());
-                return new SuperclassIterator(record->bases_begin());
-            }
-        }
-        virtual SuperclassIterator * getSuperclassEnd()
-        {
-            if( !isCXXRecord() )
-            {
-                return new SuperclassIterator(clang::CXXRecordDecl::base_class_const_iterator());
-            }
-            else
-            {
-                const clang::CXXRecordDecl * record = reinterpret_cast<const clang::CXXRecordDecl*>(definitionOrThis());
-                return new SuperclassIterator(record->bases_end());
+                return new SuperclassRange(record->bases());
             }
         }
 

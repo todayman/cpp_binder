@@ -584,14 +584,14 @@ extern (C++) struct Superclass
     public unknown.Type base;
 }
 
-extern (C++) interface SuperclassIterator
+extern (C++) interface SuperclassRange
 {
 
-    public unknown.Superclass* get();
+    final public unknown.Superclass* front();
 
-    public void advance();
+    final public void popFront();
 
-    public bool equals(unknown.SuperclassIterator other);
+    final public bool empty() const;
 }
 
 extern (C++) interface RecordDeclaration : unknown.Declaration
@@ -607,9 +607,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public unknown.MethodRange getMethodRange();
 
-    public unknown.SuperclassIterator getSuperclassBegin();
-
-    public unknown.SuperclassIterator getSuperclassEnd();
+    public unknown.SuperclassRange getSuperclassRange();
 
     public bool isCXXRecord() const;
 
