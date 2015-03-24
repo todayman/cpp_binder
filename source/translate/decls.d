@@ -556,6 +556,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
+
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
         result.name = name;
@@ -567,6 +568,52 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         addCppLinkageAttribute(outerDeclaration);
 
         result.structBody = new StructBody();
+
+        /*
+         * I need to create a field, then "alias this field",
+         * FIXME But, I need to make sure the field doesn't collide with anything.
+         */
+        unknown.SuperclassRange all_superclasses = cppDecl.getSuperclassRange();
+        if (!all_superclasses.empty())
+        {
+            unknown.Superclass* superclass = all_superclasses.front();
+            if (superclass.visibility != unknown.Visibility.PUBLIC)
+            {
+                throw new Exception("Don't know how to translate non-public inheritance of structs.");
+            }
+            if (superclass.isVirtual)
+            {
+                throw new Exception("Don't know how to translate virtual inheritance of structs.");
+            }
+            std.d.ast.Type superType = translateType(superclass.base, QualifierSet.init);
+            if (superclass.base.getStrategy() != unknown.Strategy.STRUCT)
+            {
+                throw new Exception("Superclass of a struct (" ~ binder.toDString(cppDecl.getSourceName()) ~ ") is not a struct.");
+            }
+
+            auto fieldDeclaration = new std.d.ast.VariableDeclaration();
+            fieldDeclaration.type = superType;
+            auto declarator = new std.d.ast.Declarator();
+            declarator.name = Token(tok!"identifier", "_superclass", 0, 0, 0);
+            fieldDeclaration.declarators ~= [declarator];
+            auto fieldOuterDeclaration = new std.d.ast.Declaration();
+            fieldOuterDeclaration.variableDeclaration = fieldDeclaration;
+            result.structBody.declarations ~= [fieldOuterDeclaration];
+
+            auto baseAlias = new std.d.ast.AliasThisDeclaration();
+            baseAlias.identifier = Token(tok!"identifier", "_superclass", 0, 0, 0);
+            auto baseDecl = new std.d.ast.Declaration();
+            baseDecl.aliasThisDeclaration = baseAlias;
+            result.structBody.declarations ~= [baseDecl];
+
+            all_superclasses.popFront();
+            if (!all_superclasses.empty())
+            {
+                throw new Exception("Cannot translate multiple inheritance of structs without multiple alias this.");
+                // FIXME now, I could just put all the components in as fields and generate
+                // methods that call out to those as a workaround for now.
+            }
+        }
 
         translateAllFields(cppDecl, result);
         translateAllMethods!(VirtualBehavior.FORBIDDEN)(cppDecl, result);
