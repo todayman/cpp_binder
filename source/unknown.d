@@ -233,7 +233,7 @@ extern (C++) interface QualifiedType : unknown.Type
 
     final public unknown.Type unqualifiedType();
 
-    final public const unknown.Type unqualifiedType() const;
+    final public const(unknown.Type) unqualifiedType() const;
 
     final public bool isConst() const;
 }
@@ -613,7 +613,7 @@ extern (C++) interface RecordDeclaration : unknown.Declaration
 
     public bool hasDefinition() const;
 
-    public const unknown.RecordDeclaration getDefinition() const;
+    public const(unknown.RecordDeclaration) getDefinition() const;
 
     public bool isDynamicClass() const;
 
