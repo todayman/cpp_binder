@@ -692,7 +692,11 @@ private std.d.ast.Type resolveOrDeferType
     // Apply qualifiers that ...?
     if (cppType.isConst() && !qualifiersAlreadApplied.const_)
     {
-        result.typeConstructors ~= [tok!"const"];
+        auto outer = new std.d.ast.Type();
+        outer.type2 = new std.d.ast.Type2();
+        outer.type2.typeConstructor = tok!"const";
+        outer.type2.type = result;
+        result = outer;
     }
 
     return result;
