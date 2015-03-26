@@ -561,7 +561,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
         result.name = name;
@@ -654,7 +653,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     void buildRecord(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
-        if (cppDecl.getDefinition() !is cppDecl && cppDecl.getDefinition() !is null)
+        if (cppDecl.getDefinition() !is cppDecl)
             return;
         determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
