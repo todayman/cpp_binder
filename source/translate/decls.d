@@ -70,8 +70,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
         result.identifierChain = makeIdentifierChain!"::"(namespace_path);
     }
     else {
-        stderr.writeln("Didn't recognize linkage");
-        assert(0);
+        throw new Exception("Didn't recognize linkage");
     }
     return result;
 }
