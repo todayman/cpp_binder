@@ -67,7 +67,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
         stderr.writeln("WARNING: \"", namespace_path, "::", binder.toDString(cppDecl.getSourceName()), "\" has no language linkage.  Assuming C++.");
         result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.hasPlusPlus = true;
-        result.identifierChain = makeIdentifierChain(namespace_path);
+        result.identifierChain = makeIdentifierChain!"::"(namespace_path);
     }
     else {
         stderr.writeln("Didn't recognize linkage");
@@ -316,7 +316,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto linkageAttribute = new LinkageAttribute();
         linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         linkageAttribute.hasPlusPlus = true;
-        linkageAttribute.identifierChain = makeIdentifierChain(namespace_path);
+        linkageAttribute.identifierChain = makeIdentifierChain!"::"(namespace_path);
         declaration.attributes ~= [makeAttribute(linkageAttribute)];
     }
 
