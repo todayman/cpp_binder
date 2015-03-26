@@ -1055,7 +1055,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
-        auto var = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl);
+
+        std.d.ast.Declaration outerDeclaration;
+        auto var = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
 
         auto declarator = new Declarator();
         declarator.name = nameFromDecl(cppDecl);
@@ -1063,7 +1065,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         makeExprForDecl(cppDecl, declarator.name, package_internal_path[$-1], namespace_path);
 
-        var.storageClasses ~= [makeStorageClass(translateLinkage(cppDecl, namespace_path))];
+        addCppLinkageAttribute(outerDeclaration);
 
         // TODO is this the best way to see if this is a top level, global variable?
         if (package_internal_path.length == 0 || package_internal_path[$-1] is null)
