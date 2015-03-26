@@ -391,7 +391,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        virtual Type* getType() const
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -553,7 +553,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->getLocation();
         }
 
-        virtual Type* getType() const
+        virtual Type* getType() const override
         {
             return Type::get(_decl->getType());
         }
@@ -1210,7 +1210,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             visitor.visitSpecializedRecord(*this);
         }
 
-        virtual unsigned getTemplateArgumentCount() const;
+        virtual unsigned getTemplateArgumentCount() const override;
         virtual TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
         virtual TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
     };

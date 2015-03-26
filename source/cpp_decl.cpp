@@ -287,7 +287,7 @@ bool RecordTemplateDeclaration::isWrappable() const
 
     return RecordDeclaration::isWrappable();
 }
-virtual const RecordDeclaration* RecordTemplateDeclaration::getDefinition() const
+const RecordDeclaration* RecordTemplateDeclaration::getDefinition() const
 {
     for (clang::RedeclarableTemplateDecl* other_decl : outer_decl->redecls())
     {

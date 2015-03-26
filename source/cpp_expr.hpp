@@ -62,7 +62,7 @@ class IntegerLiteralExpression : public Expression
 
     virtual void dump() const override;
 
-    virtual void visit(ExpressionVisitor& visitor)
+    virtual void visit(ExpressionVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -83,7 +83,7 @@ class DeclaredExpression : public Expression
 
     virtual void dump() const override;
 
-    virtual void visit(ExpressionVisitor& visitor)
+    virtual void visit(ExpressionVisitor& visitor) override
     {
         visitor.visit(*this);
     }
@@ -99,10 +99,10 @@ class DelayedExpression : public Expression
     explicit DelayedExpression(const clang::DependentScopeDeclRefExpr* e)
         : expr(e)
     { }
-    
+
     virtual void dump() const override;
 
-    virtual void visit(ExpressionVisitor& visitor)
+    virtual void visit(ExpressionVisitor& visitor) override
     {
         visitor.visit(*this);
     }
