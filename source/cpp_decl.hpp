@@ -193,6 +193,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
     };
 
     void applyAttributesToDeclByName(const DeclarationAttributes* attribs, const string* declName);
+    Declaration * getDeclaration(const clang::Decl* decl);
 
     struct NotTypeDecl : public std::runtime_error
     {
@@ -1259,23 +1260,19 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return outer_decl->getLocation();
         }
 
-        virtual void visit(DeclarationVisitor& visitor)
+        virtual void visit(DeclarationVisitor& visitor) override
         {
             visitor.visitRecordTemplate(*this);
         }
 
         virtual bool hasDefinition() const override
         {
-            // TODO I don't know what forward declared templates look like
-            return true;
+            return _decl->getDefinition() != nullptr;
         }
 
         virtual bool isWrappable() const override;
 
-        virtual const RecordDeclaration* getDefinition() const override
-        {
-            return this;
-        }
+        virtual const RecordDeclaration* getDefinition() const override;
 
         virtual unsigned getTemplateArgumentCount() const override
         {
@@ -1593,7 +1590,6 @@ namespace clang
     void traverseDeclsInAST(clang::ASTUnit* ast);
     void enableDeclarationsInFiles(size_t count, char ** filenames);
     void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
-    Declaration * getDeclaration(const clang::Decl* decl);
 
     class SkipUnwrappableDeclaration : public NotWrappableException
     {

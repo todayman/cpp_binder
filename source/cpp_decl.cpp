@@ -287,6 +287,18 @@ bool RecordTemplateDeclaration::isWrappable() const
 
     return RecordDeclaration::isWrappable();
 }
+virtual const RecordDeclaration* RecordTemplateDeclaration::getDefinition() const
+{
+    for (clang::RedeclarableTemplateDecl* other_decl : outer_decl->redecls())
+    {
+        clang::ClassTemplateDecl* otherTemplate = dynamic_cast<clang::ClassTemplateDecl*>(other_decl);
+        if (otherTemplate && otherTemplate->getTemplatedDecl()->getDefinition() == otherTemplate->getTemplatedDecl())
+        {
+            return dynamic_cast<RecordDeclaration*>(::getDeclaration(otherTemplate));
+        }
+    }
+    return nullptr;
+}
 
 SpecializedRecordRange* RecordTemplateDeclaration::getSpecializationRange()
 {
@@ -1018,7 +1030,7 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
         {
             return false;
         }
-        
+
         return Super::WalkUpFromTagDecl(cppDecl);
     }
 
