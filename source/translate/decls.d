@@ -495,6 +495,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 }
                 if (visitor.last_result && child.shouldEmit())
                 {
+                    // Already in an extern(C++, ns) context, so no need for
+                    // the linkage attribute, but we needed to hold on to
+                    // the namespace_path so we could generate the right
+                    // qualified symbol for this thing (as applicable).
+                    stripExternCpp(visitor.last_result);
                     result.structBody.declarations ~= [visitor.last_result];
                 }
             }
