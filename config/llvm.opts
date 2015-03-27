@@ -2,3 +2,5 @@
 -c config/llvm.json
 
 /usr/include/llvm/ADT/APInt.h
+
+-o llvm
