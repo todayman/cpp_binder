@@ -167,6 +167,12 @@
         , "SpecializedRecordRange::iterator_t": {
             "bound": 0
         }
+        , "SuperclassRange::range_t": {
+            "bound": 0
+        }
+        , "SuperclassRange::iterator_t": {
+            "bound": 0
+        }
         , "DeclarationAttributes": {
             "strategy": {
                 "name": "interface"
