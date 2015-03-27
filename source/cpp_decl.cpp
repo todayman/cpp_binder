@@ -198,12 +198,12 @@ bool isTemplateNonTypeParmDecl(const clang::Decl* decl)
 std::unordered_map<const clang::Decl*, Declaration*> DeclVisitor::declarations;
 std::unordered_set<Declaration*> DeclVisitor::free_declarations;
 
-void printPresumedLocation(const clang::NamedDecl* Declaration)
+void printPresumedLocation(const clang::NamedDecl* Declaration, std::ostream& out = std::cout)
 {
     clang::SourceLocation source_loc = Declaration->getLocation();
     clang::PresumedLoc presumed = source_manager->getPresumedLoc(source_loc);
 
-    std::cout << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
+    out << Declaration->getNameAsString() << " at " << presumed.getFilename() << ":" << presumed.getLine() << "\n";
 }
 
 const RecordDeclaration* RecordDeclaration::getDefinition() const
@@ -1009,12 +1009,12 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
         clang::SourceLocation source_loc = cppDecl->getLocation();
         clang::PresumedLoc presumed = source_manager->getPresumedLoc(source_loc);
 
-        if( presumed.getFilename() )
+        if (presumed.getFilename())
         {
             std::string this_filename = presumed.getFilename();
-            for( auto name : filenames )
+            for (auto name : filenames)
             {
-                if( boost::filesystem::equivalent(name, this_filename) )
+                if (boost::filesystem::equivalent(name, this_filename))
                 {
                     maybe_emits->shouldEmit(true);
                 }
@@ -1032,6 +1032,17 @@ class FilenameVisitor : public clang::RecursiveASTVisitor<FilenameVisitor>
         }
 
         return Super::WalkUpFromTagDecl(cppDecl);
+    }
+
+    // Apparently these aren't tag decls
+    bool WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
+    {
+        if (!cppDecl->isThisDeclarationADefinition())
+        {
+            return false;
+        }
+
+        return Super::WalkUpFromClassTemplateDecl(cppDecl);
     }
 
     bool WalkUpFromDecl(clang::Decl*)
@@ -1070,7 +1081,7 @@ void DeclVisitor::enableDeclarationsInFiles(const std::vector<std::string>& file
     {
         const clang::Decl * cppDecl = decl_pair.first;
         visitor.maybe_emits = decl_pair.second;
-        if( visitor.maybe_emits )
+        if (visitor.maybe_emits)
         {
             // const cast is safe becuase the traversal doesn't modify
             // the declarations anyway, just looks them up in the dict
