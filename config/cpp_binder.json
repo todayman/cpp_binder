@@ -190,5 +190,8 @@
             , "target_module":"binder"
             , "bound": 0
         }
+        , "binder::toBinderString": {
+              "bound": 0
+        }
     }
 }
