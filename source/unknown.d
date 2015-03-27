@@ -634,6 +634,8 @@ extern (C++) interface UnionDeclaration : unknown.Declaration
     public unknown.DeclarationRange getChildren();
 
     public uint getTemplateArgumentCount() const;
+
+    public bool isAnonymous() const;
 }
 
 extern (C++) interface TemplateArgumentIterator

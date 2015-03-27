@@ -880,10 +880,17 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.UnionDeclaration)(cppDecl, outerDeclaration);
-        result.name = nameFromDecl(cppDecl);
+        if (!cppDecl.isAnonymous)
+        {
+            result.name = nameFromDecl(cppDecl);
+        }
         result.structBody = new StructBody();
 
         IdentifierChain package_name = moduleForDeclaration(cppDecl);
+        // If the union is anonymous, then there are not any references to it
+        // in C++, so it's OK to produce a symbol that doesn't make total
+        // sense, since it will never be used for that purpose.  It may be used
+        // to refer to members, however, so we do need it.
         DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_name, package_internal_path[$-1], namespace_path);
 
         package_internal_path ~= [symbol];

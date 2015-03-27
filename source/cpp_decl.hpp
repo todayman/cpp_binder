@@ -1139,6 +1139,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return 0;
         }
+
+        virtual bool isAnonymous() const
+        {
+            return _decl->isAnonymousStructOrUnion();
+        }
     };
 
     class TemplateArgumentIterator

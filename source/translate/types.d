@@ -913,7 +913,12 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
         {
             symbol.append(namespace_chain);
         }
-        symbol.append(targetName);
+
+        // The name can be null for things like anonymous unions
+        if (targetName !is null)
+        {
+            symbol.append(targetName);
+        }
     }
 
     assert (symbol.components.length > 0);
