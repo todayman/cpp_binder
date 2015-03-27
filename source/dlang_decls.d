@@ -174,20 +174,52 @@ class ModuleWithNamespaces
             dest.declarations ~= [decl];
         }
         else {
-            auto linkage = new std.d.ast.LinkageAttribute();
-            linkage.identifier = Token(tok!"identifier", "C", 0, 0, 0);
-            linkage.hasPlusPlus = true;
-            linkage.identifierChain = makeIdentifierChain!"::"(namespace);
+            import std.exception : assumeUnique;
+            import std.array : appender;
+            immutable(string[]) namespace_chain = namespace.splitter("::").filter!(a => a.length != 0).array.assumeUnique;
+            auto accumulated_name = appender!string();
 
-            auto attr = new std.d.ast.Attribute();
-            attr.linkageAttribute = linkage;
+            std.d.ast.Declaration parent_namespace = null;
+            foreach (ns; namespace_chain)
+            {
+                string parent_name = accumulated_name.data[];
+                accumulated_name.put("::");
+                accumulated_name.put(ns);
+                string current_name = accumulated_name.data[];
 
-            auto new_decl = new std.d.ast.Declaration();
-            new_decl.attributes ~= [attr];
-            mod.declarations ~= [new_decl];
+                if (auto nsptr = current_name in namespaces)
+                {
+                    parent_namespace = *nsptr;
+                }
+                else
+                {
+                    auto linkage = new std.d.ast.LinkageAttribute();
+                    linkage.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+                    linkage.hasPlusPlus = true;
+                    linkage.identifierChain = makeIdentifierChain!"::"(ns);
 
-            namespaces[namespace] = new_decl;
-            new_decl.declarations ~= [decl];
+                    auto attr = new std.d.ast.Attribute();
+                    attr.linkageAttribute = linkage;
+
+                    auto next_namespace = new std.d.ast.Declaration();
+                    namespaces[current_name] = next_namespace;
+                    next_namespace.attributes ~= [attr];
+
+                    // FIXME I'm not a huge fan of conditions that only apply
+                    // once at the beginning inside of loops
+                    if (parent_namespace is null)
+                    {
+                        mod.declarations ~= [next_namespace];
+                    }
+                    else
+                    {
+                        parent_namespace.declarations ~= [next_namespace];
+                    }
+                    parent_namespace = next_namespace;
+                }
+            }
+
+            parent_namespace.declarations ~= [decl];
         }
         // TODO this isn't really the right place for this, is it?
         stripExternCpp(decl);
