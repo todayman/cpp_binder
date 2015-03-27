@@ -951,7 +951,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : cpp_iter(r.begin()), end(r.end())
         { }
 
-        Superclass* front();
+        virtual Superclass* front();
 
         virtual void popFront()
         {

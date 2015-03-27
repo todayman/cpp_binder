@@ -587,11 +587,11 @@ extern (C++) struct Superclass
 extern (C++) interface SuperclassRange
 {
 
-    final public unknown.Superclass* front();
+    public unknown.Superclass* front();
 
-    final public void popFront();
+    public void popFront();
 
-    final public bool empty() const;
+    public bool empty() const;
 }
 
 extern (C++) interface RecordDeclaration : unknown.Declaration
