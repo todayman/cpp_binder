@@ -33,7 +33,7 @@ extern (C++) interface TypeAttributes
     public void setTargetModule(binder.binder.string new_module);
 }
 
-extern (C++) void applyConfigToObject(const binder.binder.string name, clang.ASTUnit* astunit, const unknown.DeclarationAttributes decl_attributes, const unknown.TypeAttributes type_attributes);
+extern (C++) void applyConfigToObject(const(binder.binder.string) name, clang.ASTUnit* astunit, const(unknown.DeclarationAttributes) decl_attributes, const(unknown.TypeAttributes) type_attributes);
 
 extern (C++) interface NotWrappableException : std.runtime_error {}
 
@@ -55,11 +55,11 @@ extern (C++) interface Type
 
     static public unknown.Type get(const(clang.Type)* type, const(clang.PrintingPolicy)* pp);
 
-    static public unknown.Type get(const ref clang.QualType qType, const(clang.PrintingPolicy)* pp);
+    static public unknown.Type get(ref const(clang.QualType) qType, const(clang.PrintingPolicy)* pp);
 
     final public unknown.Type.Kind getKind() const;
 
-    final public void chooseReplaceStrategy(const binder.binder.string replacement);
+    final public void chooseReplaceStrategy(const(binder.binder.string) replacement);
 
     final public void setStrategy(unknown.Strategy s);
 
@@ -79,7 +79,7 @@ extern (C++) interface Type
 
     public void dump() const;
 
-    final public void applyAttributes(const unknown.TypeAttributes attribs);
+    final public void applyAttributes(const(unknown.TypeAttributes) attribs);
 
     public bool isWrappable(bool refAllowed);
 
@@ -103,11 +103,11 @@ TemplateSpecialization = 13,
 Delayed = 14
     }
 
-    extern (C++) interface DontSetUnknown : std.runtime_error {}
+    interface DontSetUnknown : std.runtime_error {}
 
-    extern (C++) interface UseReplaceMethod : std.runtime_error {}
+    interface UseReplaceMethod : std.runtime_error {}
 
-    extern (C++) interface WrongStrategy : std.runtime_error {}
+    interface WrongStrategy : std.runtime_error {}
 }
 
 extern (C++) interface TypeVisitor
@@ -397,10 +397,12 @@ extern (C++) interface Declaration
 
     public void dump();
 
-    final public void applyAttributes(const unknown.DeclarationAttributes attribs);
+    final public void applyAttributes(const(unknown.DeclarationAttributes) attribs);
 }
 
-extern (C++) void applyAttributesToDeclByName(const unknown.DeclarationAttributes attribs, const binder.binder.string declName);
+extern (C++) void applyAttributesToDeclByName(const(unknown.DeclarationAttributes) attribs, const(binder.binder.string) declName);
+
+extern (C++) unknown.Declaration getDeclaration(const(clang.Decl)* decl);
 
 extern (C++) interface NotTypeDecl : std.runtime_error {}
 
@@ -720,8 +722,6 @@ extern (C++) void traverseDeclsInAST(clang.ASTUnit* ast);
 extern (C++) void enableDeclarationsInFiles(size_t count, char** filenames);
 
 extern (C++) void arrayOfFreeDeclarations(size_t* count, unknown.Declaration** array);
-
-extern (C++) unknown.Declaration getDeclaration(const(clang.Decl)* decl);
 
 extern (C++) interface SkipUnwrappableDeclaration : unknown.NotWrappableException {}
 
