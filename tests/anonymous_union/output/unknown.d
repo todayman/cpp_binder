@@ -2,7 +2,7 @@ module unknown;
 
 extern (C++) struct Simple
 {
-    union
+    public union
     {
         public int a;
         public float c;

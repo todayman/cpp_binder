@@ -443,6 +443,19 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     // the namespace_path so we could generate the right
                     // qualified symbol for this thing (as applicable).
                     stripExternCpp(visitor.last_result);
+
+                    std.d.ast.Attribute vis;
+                    try {
+                        vis = translateVisibility(child);
+                    }
+                    catch (Exception e)
+                    {
+                        // catch when visibility is unset.
+                        // FIXME is this the right thing?
+                        vis = new Attribute();
+                        vis.attribute = Token(tok!"public", "", 0, 0, 0);
+                    }
+                    visitor.last_result.attributes ~= [vis];
                     result.structBody.declarations ~= [visitor.last_result];
                 }
             }
@@ -726,16 +739,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         unknown.Type cppType = cppDecl.getMemberType();
         result.type = translateType(cppType, QualifierSet.init);
 
-        // TODO bring this block back in
-        //try {
-        //    result.visibility = translateVisibility(cppDecl.getVisibility());
-        //}
-        //catch (Exception e)  // FIXME also catches thing that were logic error
-        //{
-        //    // catch when visibility is unset.
-        //    // FIXME is this the right thing?
-        //    result.visibility = dlang_decls.Visibility.PUBLIC;
-        //}
 
         // visit and translate all of the constants
         foreach (child; cppDecl.getChildren())
@@ -1107,7 +1110,6 @@ class StructBodyTranslator
         {
             cppDecl.dump();
         }
-        outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
 
         result.parameters = new Parameters();
         for (unknown.ArgumentIterator arg_iter = cppDecl.getArgumentBegin(),
@@ -1175,8 +1177,6 @@ class StructBodyTranslator
                 auto declarator = new Declarator();
                 declarator.name = nameFromDecl(cppDecl);
                 result.declarators = [declarator];
-
-                outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
 
                 return outerDeclaration;
             }
