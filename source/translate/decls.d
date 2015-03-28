@@ -21,6 +21,7 @@ module translate.decls;
 import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
+import std.typecons : Flag;
 
 import std.d.ast;
 import std.d.formatter : format;
@@ -175,6 +176,11 @@ private std.d.ast.IdentifierChain moduleForDeclaration(unknown.Declaration cppDe
     }
 }
 
+enum VirtualBehavior {
+    ALLOWED,
+    REQUIRED,
+    FORBIDDEN,
+}
 private class TranslatorVisitor : unknown.DeclarationVisitor
 {
     string namespace_path;
@@ -309,7 +315,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-
     private void addCppLinkageAttribute(std.d.ast.Declaration declaration)
     {
         auto linkageAttribute = new LinkageAttribute();
@@ -317,67 +322,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         linkageAttribute.hasPlusPlus = true;
         linkageAttribute.identifierChain = makeIdentifierChain!"::"(namespace_path);
         declaration.attributes ~= [makeAttribute(linkageAttribute)];
-    }
-
-    private void translateAllFields(unknown.RecordDeclaration cppDecl, std.d.ast.StructDeclaration result)
-    {
-        foreach (unknown.FieldDeclaration cppField; cppDecl.getFieldRange())
-        {
-            Declaration field = translateField(cppField);
-            result.structBody.declarations ~= [field];
-        }
-    }
-
-    private void translateAllMethods
-        (VirtualBehavior virtualPolicy, Record)
-        (unknown.RecordDeclaration cppDecl, Record result)
-    {
-        foreach (unknown.MethodDeclaration cpp_method; cppDecl.getMethodRange())
-        {
-            // sometimes, e.g. for implicit destructors, the lookup from clang
-            // type to my types fails.  So we should skip those.
-            if (!cpp_method || !cpp_method.isWrappable())
-                continue;
-
-            try {
-                std.d.ast.Declaration method = translateMethod!virtualPolicy(cpp_method);
-
-                bool shouldInsert = true;
-                static if (virtualPolicy != VirtualBehavior.FORBIDDEN)
-                {
-                    bool no_bound_overrides = true;
-                    for (unknown.OverriddenMethodIterator override_iter = cpp_method.getOverriddenBegin(),
-                            override_finish = cpp_method.getOverriddenEnd();
-                         !override_iter.equals(override_finish) && no_bound_overrides;
-                         override_iter.advance() )
-                    {
-                        unknown.MethodDeclaration superMethod = override_iter.get();
-                        if (superMethod.shouldEmit())
-                        {
-                            no_bound_overrides = false;
-                        }
-                    }
-                    shouldInsert = no_bound_overrides;
-                }
-                shouldInsert = shouldInsert && cpp_method.shouldEmit();
-
-                if (shouldInsert)
-                {
-                    result.structBody.declarations ~= [method];
-                }
-            }
-            catch (OverloadedOperatorError exc)
-            {
-                stderr.writeln("ERROR: ", exc.msg);
-                continue;
-            }
-            catch (Exception exc)
-            {
-                stderr.writeln("ERROR: Cannot translate method ", binder.toDString(cppDecl.getSourceName()), "::", binder.toDString(cpp_method.getSourceName()), ", skipping it");
-                stderr.writeln("\t", exc.msg);
-                continue;
-            }
-        }
     }
 
     class IsRecord : unknown.DeclarationVisitor
@@ -618,9 +562,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
         }
 
-        translateAllFields(cppDecl, result);
-        translateAllMethods!(VirtualBehavior.FORBIDDEN)(cppDecl, result);
-        translateStructBody!TranslatorVisitor(cppDecl, result);
+        translateStructBody!(StructBodyTranslator!(VirtualBehavior.FORBIDDEN, Flag!"fields".yes))(cppDecl, result);
 
         return result;
     }
@@ -644,8 +586,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         translateAllBaseClasses(cppDecl, result);
 
         result.structBody = new StructBody();
-        translateAllMethods!(VirtualBehavior.ALLOWED)(cppDecl, result);
-        translateStructBody!InterfaceBodyTranslator(cppDecl, result);
+        translateStructBody!(StructBodyTranslator!(VirtualBehavior.ALLOWED, Flag!"fields".no))(cppDecl, result);
 
         return result;
     }
@@ -840,31 +781,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Error("Attempted to translate an enum constant directly, instead of via an enum.");
     }
 
-    std.d.ast.Declaration translateField(unknown.FieldDeclaration cppDecl)
-    {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
-
-        try {
-            std.d.ast.Declaration outerDeclaration;
-            // FIXME this type needs to correspond with the CHECK_FOR_DECL
-            auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
-            result.type = translateType(cppDecl.getType(), QualifierSet.init);
-
-            auto declarator = new Declarator();
-            declarator.name = nameFromDecl(cppDecl);
-            result.declarators = [declarator];
-
-            outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
-
-            return outerDeclaration;
-        }
-        catch (RefTypeException e)
-        {
-            e.declaration = cppDecl;
-            throw e;
-        }
-    }
     extern(C++) override void visitField(unknown.FieldDeclaration)
     {
         // Getting here means that there is a field declaration
@@ -906,14 +822,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result.templateParameters = translateTemplateParameters(templateDecl);
         }
 
-        foreach (unknown.FieldDeclaration cppField; cppDecl.getFieldRange())
-        {
-            std.d.ast.Declaration field = translateField(cppField);
-            result.structBody.declarations ~= [field];
-        }
-
-        translateStructBody!TranslatorVisitor(cppDecl, result);
-        // TODO static methods and other things?
+        translateStructBody!(StructBodyTranslator!(VirtualBehavior.FORBIDDEN, Flag!"fields".yes))(cppDecl, result);
         return result;
     }
     extern(C++) override void visitUnion(unknown.UnionDeclaration cppDecl)
@@ -922,90 +831,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = translated[cast(void*)cppDecl];
     }
 
-    enum VirtualBehavior {
-        ALLOWED,
-        REQUIRED,
-        FORBIDDEN,
-    }
-    std.d.ast.Declaration translateMethod(VirtualBehavior vBehavior)(unknown.MethodDeclaration cppDecl)
-    {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
-
-        if (cppDecl.isOverloadedOperator())
-        {
-            throw new OverloadedOperatorError();
-        }
-
-        std.d.ast.Declaration outerDeclaration;
-        auto result = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl, outerDeclaration);
-
-        if (cppDecl.isStatic())
-        {
-            auto attrib = new Attribute();
-            attrib.attribute = Token(tok!"static", "static", 0, 0, 0);
-            outerDeclaration.attributes ~= [attrib];
-        }
-        else
-        {
-            if (cppDecl.isConst())
-            {
-                auto attrib = new std.d.ast.MemberFunctionAttribute();
-                attrib.tokenType = tok!"const";
-                result.memberFunctionAttributes ~= [attrib];
-            }
-
-            if (cppDecl.isVirtual())
-            {
-                static if (vBehavior == VirtualBehavior.FORBIDDEN)
-                {
-                    throw new Exception("Methods on structs cannot be virtual!");
-                    // FIXME this message may not always be correct
-                }
-                // virtual is implied by context i.e. must be in class, interface,
-                // then it's by default, so no attribute here
-            }
-            else {
-                static if (vBehavior == VirtualBehavior.REQUIRED)
-                {
-                    // FIXME this message may not always be correct
-                    throw new Exception("Methods on interfaces must be virtual!");
-                }
-                else
-                {
-                    auto attrib = new Attribute();
-                    attrib.attribute = Token(tok!"final", "final", 0, 0, 0);
-                    outerDeclaration.attributes ~= [attrib];
-                }
-            }
-        }
-
-        if (cppDecl.getTargetName().size())
-        {
-            result.name = nameFromDecl(cppDecl);
-        }
-        else
-        {
-            throw new Exception("Method declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
-        }
-
-        result.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
-        if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
-        {
-            cppDecl.dump();
-        }
-        outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
-
-        result.parameters = new Parameters();
-        for (unknown.ArgumentIterator arg_iter = cppDecl.getArgumentBegin(),
-                arg_end = cppDecl.getArgumentEnd();
-             !arg_iter.equals(arg_end);
-             arg_iter.advance() )
-        {
-            result.parameters.parameters ~= [translateArgument(arg_iter.get())];
-        }
-        return outerDeclaration;
-    }
 
     extern(C++) override void visitMethod(unknown.MethodDeclaration)
     {
@@ -1204,35 +1029,175 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
 }
 
-// FIXME this is a kludge to deal with the fact that interfaces cannot have
-// fields.  I've thought about adding a subclass of DeclarationVisitor for
-// each different kind of context and mixing in the methods that it supports.
-// But for now, the cost of moving to that is too high.
-class InterfaceBodyTranslator : TranslatorVisitor
+class StructBodyTranslator
+    // I want to use a Flag!"fields" instead of a bool here, but
+    // that causes an ICE that I can't easily reduce.
+      (VirtualBehavior vBehavior, bool fieldsAllowed)
+    : TranslatorVisitor
 {
     this(string nsp, DeferredSymbol pip)
     {
         super(nsp, pip);
     }
 
-    extern(C++) override void visitField(unknown.FieldDeclaration)
+    std.d.ast.Declaration translateMethod(unknown.MethodDeclaration cppDecl)
     {
-        last_result = null;
-    }
+        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
+        if (short_circuit !is null) return short_circuit;
 
-    extern(C++) override void visitMethod(unknown.MethodDeclaration cppDecl)
-    {
-        // We need to skip methods that won't be wrapped, because otherwise
-        // the superclass will complain that we are trying to emit a method
-        // from an invalid context.  Not that visitMethod is not called for
-        // methods that have already been translated.
         if (cppDecl.isOverloadedOperator())
         {
-            return;
+            throw new OverloadedOperatorError();
+        }
+
+        std.d.ast.Declaration outerDeclaration;
+        auto result = registerDeclaration!(std.d.ast.FunctionDeclaration)(cppDecl, outerDeclaration);
+
+        if (cppDecl.isStatic())
+        {
+            auto attrib = new Attribute();
+            attrib.attribute = Token(tok!"static", "static", 0, 0, 0);
+            outerDeclaration.attributes ~= [attrib];
         }
         else
         {
-            super.visitMethod(cppDecl);
+            if (cppDecl.isConst())
+            {
+                auto attrib = new std.d.ast.MemberFunctionAttribute();
+                attrib.tokenType = tok!"const";
+                result.memberFunctionAttributes ~= [attrib];
+            }
+
+            if (cppDecl.isVirtual())
+            {
+                static if (vBehavior == VirtualBehavior.FORBIDDEN)
+                {
+                    throw new Exception("Methods on structs cannot be virtual!");
+                    // FIXME this message may not always be correct
+                }
+                // virtual is implied by context i.e. must be in class, interface,
+                // then it's by default, so no attribute here
+            }
+            else {
+                static if (vBehavior == VirtualBehavior.REQUIRED)
+                {
+                    // FIXME this message may not always be correct
+                    throw new Exception("Methods on interfaces must be virtual!");
+                }
+                else
+                {
+                    auto attrib = new Attribute();
+                    attrib.attribute = Token(tok!"final", "final", 0, 0, 0);
+                    outerDeclaration.attributes ~= [attrib];
+                }
+            }
+        }
+
+        if (cppDecl.getTargetName().size())
+        {
+            result.name = nameFromDecl(cppDecl);
+        }
+        else
+        {
+            throw new Exception("Method declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
+        }
+
+        result.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
+        if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
+        {
+            cppDecl.dump();
+        }
+        outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
+
+        result.parameters = new Parameters();
+        for (unknown.ArgumentIterator arg_iter = cppDecl.getArgumentBegin(),
+                arg_end = cppDecl.getArgumentEnd();
+             !arg_iter.equals(arg_end);
+             arg_iter.advance() )
+        {
+            result.parameters.parameters ~= [translateArgument(arg_iter.get())];
+        }
+        return outerDeclaration;
+    }
+
+    extern(C++) override void visitMethod(unknown.MethodDeclaration cpp_method)
+    {
+        if (!cpp_method || !cpp_method.isWrappable())
+        {
+            last_result = null;
+            return;
+        }
+
+        std.d.ast.Declaration method = translateMethod(cpp_method);
+
+        bool shouldInsert = true;
+        static if (vBehavior != VirtualBehavior.FORBIDDEN)
+        {
+            bool no_bound_overrides = true;
+            for (unknown.OverriddenMethodIterator override_iter = cpp_method.getOverriddenBegin(),
+                    override_finish = cpp_method.getOverriddenEnd();
+                 !override_iter.equals(override_finish) && no_bound_overrides;
+                 override_iter.advance() )
+            {
+                unknown.MethodDeclaration superMethod = override_iter.get();
+                if (superMethod.shouldEmit())
+                {
+                    no_bound_overrides = false;
+                }
+            }
+            shouldInsert = no_bound_overrides;
+        }
+        shouldInsert = shouldInsert && cpp_method.shouldEmit();
+
+        if (shouldInsert)
+        {
+            last_result = method;
+        }
+        else
+        {
+            last_result = null;
+        }
+    }
+
+    static if (fieldsAllowed)
+    {
+        std.d.ast.Declaration translateField(unknown.FieldDeclaration cppDecl)
+        {
+            auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Declaration)(cppDecl);
+            if (short_circuit !is null) return short_circuit;
+
+            try {
+                std.d.ast.Declaration outerDeclaration;
+                // FIXME this type needs to correspond with the CHECK_FOR_DECL
+                auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
+                result.type = translateType(cppDecl.getType(), QualifierSet.init);
+
+                auto declarator = new Declarator();
+                declarator.name = nameFromDecl(cppDecl);
+                result.declarators = [declarator];
+
+                outerDeclaration.attributes ~= [translateVisibility(cppDecl)];
+
+                return outerDeclaration;
+            }
+            catch (RefTypeException e)
+            {
+                e.declaration = cppDecl;
+                throw e;
+            }
+        }
+
+        extern(C++) override void visitField(unknown.FieldDeclaration cppDecl)
+        {
+            translateField(cppDecl);
+            last_result = translated[cast(void*)cppDecl];
+        }
+    }
+    else
+    {
+        extern(C++) override void visitField(unknown.FieldDeclaration cppDecl)
+        {
+            // We're an interface, so skip fields.
         }
     }
 }
@@ -1314,7 +1279,7 @@ std.d.ast.Module populateDAST(string output_module_name)
                 translation = translated[cast(void*)declaration];
             }
 
-            // some items, such as namespaces, don't need to be placed into a module
+            // some items, such as namespaces, don't need to be placed into a module.
             // visiting them just translates their children and puts them in modules
             if (translation && declaration.shouldEmit)
             {
