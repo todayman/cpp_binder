@@ -907,11 +907,14 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
         {
             symbol.components ~= [internal_path];
         }
-        auto namespace_chain = makeIdentifierOrTemplateChain!"::"(namespace_path);
-        if (namespace_chain.identifiersOrTemplateInstances.length > 0)
-            // Things like template arguments aren't really in a namespace
+        else
         {
-            symbol.append(namespace_chain);
+            auto namespace_chain = makeIdentifierOrTemplateChain!"::"(namespace_path);
+            if (namespace_chain.identifiersOrTemplateInstances.length > 0)
+                // Things like template arguments aren't really in a namespace
+            {
+                symbol.append(namespace_chain);
+            }
         }
 
         // The name can be null for things like anonymous unions
