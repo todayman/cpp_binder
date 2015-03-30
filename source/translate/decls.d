@@ -730,11 +730,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         result.enumBody = new EnumBody();
 
         IdentifierChain package_name = moduleForDeclaration(cppDecl);
-        result.name = nameFromDecl(cppDecl);
-        DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_name, package_internal_path[$-1], namespace_path);
+        Token name = nameFromDecl(cppDecl);
+        if (result.name.text.length > 0)
+        {
+            result.name = nameFromDecl(cppDecl);
+            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_name, package_internal_path[$-1], namespace_path);
 
-        package_internal_path ~= [symbol];
-        scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+            package_internal_path ~= [symbol];
+            scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+        }
 
         unknown.Type cppType = cppDecl.getMemberType();
         result.type = translateType(cppType, QualifierSet.init);
