@@ -87,7 +87,8 @@ Declaration* DelayedExpression::getDeclaration() const
             std::cerr << "namespace: " << container->getAsNamespace() << "\n";
             std::cerr << "namespace alias: " << container->getAsNamespaceAlias() << "\n";
             std::cerr << "type: " << container->getAsType() << "\n";*/
-            throw std::logic_error("Nested name kind is identifier");
+            //throw std::logic_error("Nested name kind is identifier");
+            return nullptr;
             break;
         }
         case clang::NestedNameSpecifier::TypeSpec:
@@ -95,7 +96,16 @@ Declaration* DelayedExpression::getDeclaration() const
             const clang::Type* container_type = container->getAsType();
             NestedNameResolver<InnerDeclResolver> visitor(expr->getDeclName());
             visitor.TraverseType(clang::QualType(container_type, 0));
-            result = ::getDeclaration(visitor.result);
+            if (visitor.result)
+            {
+                result = ::getDeclaration(visitor.result);
+            }
+            else
+            {
+                std::cerr << "Could not find result for ";
+                container_type->dump();
+                return nullptr;
+            }
             break;
         }
         default:
