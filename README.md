@@ -8,7 +8,7 @@ It is licensed under the GNU GPLv3.
 ## Usage
 
 ```
-cpp_binder --config-file base_types.json --config-file project_info.json header.h -o output_dir
+cpp_binder --config-file base_types.json --config-file project_info.json header.h -o output_module
 ```
 
 The configuration files are described in [doc/design.md].
@@ -21,7 +21,7 @@ Someday, when this is a real tool, I'll ship a configuration file in `/etc/cpp_b
 
 ## Dependencies
 
-*   dmd 2.066 or higher
+*   dmd 2.067 or higher
 *   dub
 *   clang 3.6 (dev packages).  clang 3.5 can be used by replacing the references in: CMakeLists.txt, dub.json, and (optionally) config/cpp_binder.json
 *   boost filesystem (and boost system)

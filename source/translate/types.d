@@ -22,6 +22,7 @@ import std.conv : to;
 import std.range : retro;
 import std.stdio : stderr;
 import std.typecons : Flag;
+import std.experimental.logger;
 
 import std.d.ast;
 import std.d.lexer;
@@ -29,6 +30,7 @@ import std.d.lexer;
 static import binder;
 static import unknown;
 
+import log_controls;
 import translate.expr;
 import translate.decls : exprForDecl;
 
@@ -54,7 +56,7 @@ package void determineStrategy(unknown.Type cppType)
         public:
         override extern(C++) void visit(unknown.InvalidType cppType)
         {
-            cppType.dump();
+            if (dumpBeforeThrowing) cppType.dump();
             throw new Exception("Attempting to determine strategy for invalid type (cppType=" ~ to!string(cast(void*)cppType)~ ").");
         }
 
@@ -401,7 +403,7 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
         {
             if (!cppDecl.isWrappable())
             {
-                cppDecl.dump();
+                if (dumpBeforeThrowing) cppDecl.dump();
                 throw new Exception("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~"~" ~to!string(cast(void*)cppDecl.getType()) ~") is not wrappable.");
             }
             // cppDecl.getType() can be different than cppType
@@ -414,7 +416,7 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
             // path, namely the translateReference path.
             if (!cppType.isWrappable(false))
             {
-                cppDecl.dump();
+                if (dumpBeforeThrowing) cppDecl.dump();
                 throw new Exception("This type is not wrappable.");
             }
             result = new DeferredSymbolConcatenation();
@@ -1028,10 +1030,9 @@ class DeferredTemplateInstantiation : DeferredSymbol
         templateName.resolve();
         if (templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances.length == 0)
         {
-            stderr.writeln("Never filled in template name ", cast(void*)templateName);
-            stderr.writeln("For instantiation ", cast(void*)this);
+            warning(logEmptyDeferredSymbols, "Never filled in template name ", cast(void*)templateName);
+            warning(logEmptyDeferredSymbols, "For instantiation ", cast(void*)this);
             return;
-            //assert(templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances.length > 0);
         }
 
         chain.identifiersOrTemplateInstances = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[0 .. $-1];
@@ -1099,7 +1100,7 @@ class DeferredSymbolConcatenation : DeferredSymbol
 
         if (components.length == 0)
         {
-            stderr.writeln("Never filled in symbol concatenation ", cast(void*)this);
+            warning(logEmptyDeferredSymbols, "Never filled in symbol concatenation ", cast(void*)this);
         }
         // TODO make sure all the components are resolved
         foreach (DeferredSymbol dependency; components)

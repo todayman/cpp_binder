@@ -19,6 +19,7 @@
 module main;
 
 import std.stdio;
+import std.experimental.logger;
 
 import cli;
 import configuration;
@@ -32,6 +33,7 @@ extern(C++) __gshared const(clang.SourceManager)* source_manager = null;
 
 int main(string[] argv)
 {
+    sharedLog.logLevel = LogLevel.warning;
     CLIArguments args;
     if (!parse_args(argv, args))
     {

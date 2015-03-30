@@ -94,7 +94,7 @@ Type* Type::get(const clang::QualType& qType, const clang::PrintingPolicy* print
     // TODO understand why this happens
     if (qType.getTypePtrOrNull() == nullptr)
     {
-        std::cerr << "WARNING: Attempted to look up a QualType that has a null Type pointer\n";
+        //std::cerr << "WARNING: Attempted to look up a QualType that has a null Type pointer\n";
         return nullptr;
     }
 
@@ -816,8 +816,8 @@ bool ClangTypeVisitor::TraverseType(clang::QualType type)
     }
     else if (!type.getLocalQualifiers().empty())
     {
-        std::cerr << "ERROR: Unrecognized qualifiers (\"" << type.getLocalQualifiers().getAsString() << "\") for type ";
-        type.dump();
+        //std::cerr << "ERROR: Unrecognized qualifiers (\"" << type.getLocalQualifiers().getAsString() << "\") for type ";
+        //type.dump();
         allocateInvalidType(type);
         result = true;
     }

@@ -22,6 +22,7 @@ import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
 import std.typecons : Flag;
+import std.experimental.logger;
 
 import std.d.ast;
 import std.d.formatter : format;
@@ -30,6 +31,7 @@ import std.d.lexer;
 static import binder;
 import dlang_decls;
 static import unknown;
+import log_controls;
 import manual_types;
 import translate.types;
 import translate.expr;
@@ -65,7 +67,7 @@ private LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.NoLanguageLinkage)
     {
-        stderr.writeln("WARNING: \"", namespace_path, "::", binder.toDString(cppDecl.getSourceName()), "\" has no language linkage.  Assuming C++.");
+        warning(warnIfNoLinkage, "WARNING: \"", namespace_path, "::", binder.toDString(cppDecl.getSourceName()), "\" has no language linkage.  Assuming C++.");
         result.identifier = Token(tok!"identifier", "C", 0, 0, 0);
         result.hasPlusPlus = true;
         result.identifierChain = makeIdentifierChain!"::"(namespace_path);
@@ -275,6 +277,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // visit and translate all of the children
         foreach (child; cppDecl.getChildren())
         {
+            LogLevel old_level = sharedLog.logLevel;
+            scope(exit) sharedLog.logLevel = old_level;
             if (child is null)
             {
                 continue;
@@ -290,22 +294,22 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             catch (RefTypeException exc)
             {
-                child.dump();
-                stderr.writeln("ERROR: (namespace) ", exc.msg);
-                if (exc.declaration)
-                {
-                    stderr.writeln("    ref:");
-                    exc.declaration.dump();
-                }
-                stderr.writeln(exc.toString());
+                //child.dump();
+                //stderr.writeln("ERROR: (namespace) ", exc.msg);
+                //if (exc.declaration)
+                //{
+                //    stderr.writeln("    ref:");
+                //    exc.declaration.dump();
+                //}
+                //stderr.writeln(exc.toString());
             }
             catch (Exception exc)
             {
-                child.dump();
-                stderr.writeln("ERROR: ", exc.msg);
+                //child.dump();
+                //stderr.writeln("ERROR: ", exc.msg);
             }
         }
-
+        trace("Exiting translateNamespace");
     }
 
     extern(C++) override
@@ -459,20 +463,21 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     result.structBody.declarations ~= [visitor.last_result];
                 }
             }
-            catch (RefTypeException e)
+            catch (RefTypeException exc)
             {
-                child.dump();
-                stderr.writeln("ERROR: (ref in struct body) ", e.msg);
-                if (e.declaration)
-                {
-                    stderr.writeln("    ref:");
-                    e.declaration.dump();
-                }
+                //child.dump();
+                //stderr.writeln("ERROR: (namespace) ", exc.msg);
+                //if (exc.declaration)
+                //{
+                //    stderr.writeln("    ref:");
+                //    exc.declaration.dump();
+                //}
+                //stderr.writeln(exc.toString());
             }
-            catch (Exception e)
+            catch (Exception exc)
             {
-                child.dump();
-                stderr.writeln("ERROR: ", e.msg);
+                //child.dump();
+                //stderr.writeln("ERROR: ", exc.msg);
             }
         }
     }
@@ -514,8 +519,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     std.d.ast.StructDeclaration buildStruct(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
+        trace("Entering");
+        scope(exit) trace("Exiting");
+
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        if (short_circuit !is null)
+        {
+            info("Short-circuiting building the struct for ", name.text, ".");
+            return short_circuit;
+        }
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
@@ -576,6 +588,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
         translateStructBody!(StructBodyTranslator!(VirtualBehavior.FORBIDDEN, Flag!"fields".yes))(cppDecl, result);
+        info("Added ", result.structBody.declarations.length, " declarations to the body of ", name.text, '.');
 
         return result;
     }
@@ -606,18 +619,26 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     void buildRecord(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
+        trace("Entering");
+        scope(exit) trace("Exiting");
         if (cppDecl.getDefinition() !is cppDecl)
+        {
+            info("Skipping this cppDecl for ", name.text, " because it is not a definition.");
             return;
+        }
         determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
+                info("Building record using strategy STRUCT.");
                 buildStruct(cppDecl, name, template_params);
                 break;
             case unknown.Strategy.INTERFACE:
+                info("Building record using strategy INTERFACE.");
                 buildInterface(cppDecl, name, template_params);
                 break;
             case unknown.Strategy.REPLACE:
+                info("Skipping build because the strategy is REPLACE.");
                 break;
             default:
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
@@ -628,7 +649,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
+        trace("Entering TranslatorVisitor.visitRecord()");
+        scope(exit) trace("Exiting TranslatorVisitor.visitRecord()");
         Token name = nameFromDecl(cppDecl);
+        info("Translating record named ", name.text);
         IdentifierChain package_name = moduleForDeclaration(cppDecl);
         DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
@@ -673,7 +697,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             catch(Exception e)
             {
-                special.dump();
+                //special.dump();
                 stderr.writeln("ERROR: ", e.msg);
             }
         }
@@ -1112,7 +1136,7 @@ class StructBodyTranslator
         result.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
         if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
         {
-            cppDecl.dump();
+            //cppDecl.dump();
         }
 
         result.parameters = new Parameters();
@@ -1292,14 +1316,14 @@ std.d.ast.Module populateDAST(string output_module_name)
         }
         catch(RefTypeException exc)
         {
-            declaration.dump();
-            stderr.writeln("ERROR: ", exc.msg);
-            stderr.writeln(exc.toString());
+            //declaration.dump();
+            //stderr.writeln("ERROR: ", exc.msg);
+            //stderr.writeln(exc.toString());
         }
         catch (Exception exc)
         {
-            declaration.dump();
-            stderr.writeln("ERROR: ", exc.msg);
+            //declaration.dump();
+            //stderr.writeln("ERROR: ", exc.msg);
         }
 
     }
@@ -1345,8 +1369,8 @@ void determineRecordStrategy(unknown.RecordType cppType)
     unknown.RecordDeclaration cpp_decl = cppType.getRecordDeclaration();
     if (cpp_decl is null)
     {
-        cppType.dump();
-        stderr.writeln("Wrappable: ", cppType.isWrappable(false));
+        //cppType.dump();
+        //stderr.writeln("Wrappable: ", cppType.isWrappable(false));
         throw new Exception("This type isn't wrappable, so I cannot pick a strategy.");
     }
 
