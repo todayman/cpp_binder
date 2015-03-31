@@ -549,10 +549,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (!all_superclasses.empty())
         {
             unknown.Superclass* superclass = all_superclasses.front();
-            if (superclass.visibility != unknown.Visibility.PUBLIC)
-            {
-                throw new Exception("Don't know how to translate non-public inheritance of structs.");
-            }
             if (superclass.isVirtual)
             {
                 throw new Exception("Don't know how to translate virtual inheritance of structs.");
@@ -572,11 +568,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             fieldOuterDeclaration.variableDeclaration = fieldDeclaration;
             result.structBody.declarations ~= [fieldOuterDeclaration];
 
-            auto baseAlias = new std.d.ast.AliasThisDeclaration();
-            baseAlias.identifier = Token(tok!"identifier", "_superclass", 0, 0, 0);
-            auto baseDecl = new std.d.ast.Declaration();
-            baseDecl.aliasThisDeclaration = baseAlias;
-            result.structBody.declarations ~= [baseDecl];
+            if (superclass.visibility == unknown.Visibility.PUBLIC)
+            {
+                auto baseAlias = new std.d.ast.AliasThisDeclaration();
+                baseAlias.identifier = Token(tok!"identifier", "_superclass", 0, 0, 0);
+                auto baseDecl = new std.d.ast.Declaration();
+                baseDecl.aliasThisDeclaration = baseAlias;
+                result.structBody.declarations ~= [baseDecl];
+            }
 
             all_superclasses.popFront();
             if (!all_superclasses.empty())
