@@ -713,6 +713,10 @@ extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration
 {
 
     final public unknown.TemplateArgumentType getTemplateArgumentType() const;
+
+    final bool hasDefaultType() const;
+
+    final unknown.Type getDefaultType() const;
 }
 
 extern (C++) interface TemplateNonTypeArgumentDeclaration : unknown.Declaration {}

@@ -1366,6 +1366,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
         }*/
 
+        bool hasDefaultType() const;
+        Type* getDefaultType() const;
+
         virtual void dump() override
         {
             _decl->dump();

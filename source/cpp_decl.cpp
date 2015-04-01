@@ -530,6 +530,15 @@ SpecializedRecordDeclaration* SpecializedRecordRange::front()
     return result;
 }
 
+bool TemplateTypeArgumentDeclaration::hasDefaultType() const
+{
+    return _decl->hasDefaultArgument();
+}
+
+Type* TemplateTypeArgumentDeclaration::getDefaultType() const
+{
+    return Type::get(_decl->getDefaultArgument());
+}
 
 DeclarationRange* NamespaceDeclaration::getChildren()
 {
@@ -917,6 +926,11 @@ bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl
     assert(template_list != nullptr);
     TemplateArgumentType * t = dynamic_cast<TemplateArgumentType*>(Type::get(clang::QualType(cppDecl->getTypeForDecl(), 0), print_policy));
     t->setTemplateList(template_list);
+
+    if (cppDecl->hasDefaultArgument())
+    {
+        TraverseType(cppDecl->getDefaultArgument());
+    }
 
     return true;
 }

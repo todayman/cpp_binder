@@ -957,7 +957,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         auto result = new std.d.ast.TemplateTypeParameter();
         result.identifier = nameFromDecl(cppDecl);
-        // TODO default values
+
+        if (cppDecl.hasDefaultType())
+        {
+            result.assignType = translateType(cppDecl.getDefaultType(), QualifierSet.init);
+        }
+
         makeSymbolForTypeDecl(cppDecl, result.identifier, null, null, "");
         return result;
     }
