@@ -273,7 +273,7 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                     else
                     {
                         // DECIDED TO DO IT LIVE
-                        string[] identifier_stack;
+                        string[] identifier_stack = [binder.toDString(type.getIdentifier())];
                         unknown.NestedNameWrapper current_name;
                         for (current_name = type.getQualifier(); current_name.isIdentifier(); current_name = current_name.getPrefix())
                         {
@@ -291,7 +291,7 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
 
                         foreach (string name; identifier_stack.retro)
                         {
-                            std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(binder.toDString(type.getIdentifier()));
+                            std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(name);
                             deferred.append(instance);
                         }
                         result = new std.d.ast.Type();
