@@ -551,13 +551,22 @@ bool TemplateSpecializationType::isWrappable(bool)
     // TODO check the template arguments
     if (!getTemplateDeclaration()->isWrappable()) return false;
 
-    /*TemplateArgumentInstanceIterator* end = getTemplateArgumentEnd();
+    TemplateArgumentInstanceIterator* end = getTemplateArgumentEnd();
     for (TemplateArgumentInstanceIterator* iter = getTemplateArgumentBegin();
             !iter->equals(end);
             iter->advance())
     {
-        if (iter->isPack()
-    }*/
+        switch (iter->getKind())
+        {
+            case TemplateArgumentInstanceIterator::Type:
+                if (!iter->getType()->isWrappable(false)) return false;
+            case TemplateArgumentInstanceIterator::Pack:
+                //return false;
+            case TemplateArgumentInstanceIterator::Integer:
+            case TemplateArgumentInstanceIterator::Expression:
+                break;
+        }
+    }
     return true;
 }
 
