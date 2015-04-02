@@ -1269,3 +1269,53 @@ body {
     result.components = [first, second];
     return result;
 }
+
+unknown.Type handleReferenceType(unknown.Type startingPoint)
+{
+    class RefHandler : unknown.TypeVisitor
+    {
+        unknown.Type result;
+        extern(C++) override void visit(unknown.InvalidType) { }
+        extern(C++) override void visit(unknown.BuiltinType) { }
+        extern(C++) override void visit(unknown.PointerType) { }
+        extern(C++) override void visit(unknown.TemplateRecordType) { }
+        extern(C++) override void visit(unknown.NonTemplateRecordType) { }
+        extern(C++) override void visit(unknown.UnionType) { }
+        extern(C++) override void visit(unknown.ArrayType) { }
+        extern(C++) override void visit(unknown.FunctionType) { }
+        extern(C++) override void visit(unknown.VectorType) { }
+        extern(C++) override void visit(unknown.EnumType) { }
+        extern(C++) override void visit(unknown.TemplateArgumentType) { }
+        extern(C++) override void visit(unknown.TemplateSpecializationType) { }
+
+        extern(C++) override void visit(unknown.ReferenceType type)
+        {
+            result = type.getPointeeType();
+        }
+
+        extern(C++) override void visit(unknown.TypedefType type)
+        {
+            type.getTargetType().visit(this);
+        }
+
+        extern(C++) override void visit(unknown.DelayedType type)
+        {
+            unknown.Type r = type.resolveType();
+            if (r)
+            {
+                r.visit(this);
+            }
+        }
+
+        extern(C++) override void visit(unknown.QualifiedType)
+        {
+            // TODO I could do something here, but I need to move the qualifier
+            // inside the ref
+        }
+    }
+
+    auto visitor = new RefHandler();
+    startingPoint.visit(visitor);
+
+    return visitor.result;
+}

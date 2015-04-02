@@ -247,16 +247,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
         catch (RefTypeException e)
         {
-            // Make sure that this isn't a ref farther down, since the ref
-            // modifier can only be applied to the parameter
-            if (e.type != cppDecl.getReturnType())
+            unknown.Type targetType = handleReferenceType(cppDecl.getReturnType());
+            if (targetType)
+            {
+                d_decl.returnType = translateType(targetType, QualifierSet.init).clone;
+                d_decl.returnType.typeConstructors ~= [tok!"ref"];
+            }
+            else
             {
                 throw e;
             }
-
-            unknown.Type targetType = (cast(unknown.ReferenceType)cppDecl.getReturnType()).getPointeeType();
-            d_decl.returnType = translateType(targetType, QualifierSet.init).clone;
-            d_decl.returnType.typeConstructors ~= [tok!"ref"];
         }
 
         d_decl.parameters = new Parameters();
@@ -909,16 +909,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
         catch (RefTypeException e)
         {
-            // Make sure that this isn't a ref farther down, since the ref
-            // modifier can only be applied to the parameter
-            if (e.type != cppType)
+            unknown.Type targetType = handleReferenceType(cppType);
+            if (targetType)
+            {
+                arg.type = translateType(targetType, QualifierSet.init).clone;
+                arg.type.typeConstructors ~= [tok!"ref"];
+            }
+            else
             {
                 throw e;
             }
-
-            unknown.Type targetType = (cast(unknown.ReferenceType)cppType).getPointeeType();
-            arg.type = translateType(targetType, QualifierSet.init).clone;
-            arg.type.typeConstructors ~= [tok!"ref"];
         }
 
         return arg;
@@ -1152,7 +1152,25 @@ class StructBodyTranslator
             throw new Exception("Method declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
-        result.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
+        try {
+            result.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
+        }
+        catch (RefTypeException e)
+        {
+            // Make sure that this isn't a ref farther down, since the ref
+            // modifier can only be applied to the parameter
+            unknown.Type targetType = handleReferenceType(cppDecl.getReturnType());
+
+            if (targetType)
+            {
+                result.returnType = translateType(targetType, QualifierSet.init).clone;
+                result.returnType.typeConstructors ~= [tok!"ref"];
+            }
+            else
+            {
+                throw e;
+            }
+        }
         if (cppDecl.getVisibility() == unknown.Visibility.UNSET)
         {
             //cppDecl.dump();
