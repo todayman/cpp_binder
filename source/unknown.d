@@ -517,9 +517,9 @@ extern (C++) interface FunctionDeclaration : unknown.Declaration
 
     public unknown.Type getReturnType() const;
 
-    public unknown.ArgumentIterator getArgumentBegin();
+    public unknown.ArgumentIterator getArgumentBegin() const;
 
-    public unknown.ArgumentIterator getArgumentEnd();
+    public unknown.ArgumentIterator getArgumentEnd() const;
 
     public bool isOverloadedOperator() const;
 }
@@ -549,9 +549,9 @@ extern (C++) interface MethodDeclaration : unknown.Declaration
 
     public unknown.Type getReturnType() const;
 
-    public unknown.ArgumentIterator getArgumentBegin();
+    public unknown.ArgumentIterator getArgumentBegin() const;
 
-    public unknown.ArgumentIterator getArgumentEnd();
+    public unknown.ArgumentIterator getArgumentEnd() const;
 
     public unknown.OverriddenMethodIterator getOverriddenBegin();
 

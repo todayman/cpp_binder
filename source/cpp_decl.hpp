@@ -667,12 +667,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(_decl->getReturnType());
         }
 
-        virtual ArgumentIterator * getArgumentBegin()
+        virtual ArgumentIterator * getArgumentBegin() const
         {
             return new ArgumentIterator(_decl->param_begin());
         }
 
-        virtual ArgumentIterator * getArgumentEnd()
+        virtual ArgumentIterator * getArgumentEnd() const
         {
             return new ArgumentIterator(_decl->param_end());
         }
@@ -841,11 +841,11 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return Type::get(_decl->getReturnType());
         }
 
-        virtual ArgumentIterator * getArgumentBegin()
+        virtual ArgumentIterator * getArgumentBegin() const
         {
             return new ArgumentIterator(_decl->param_begin());
         }
-        virtual ArgumentIterator * getArgumentEnd()
+        virtual ArgumentIterator * getArgumentEnd() const
         {
             return new ArgumentIterator(_decl->param_end());
         }
