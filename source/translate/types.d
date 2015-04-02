@@ -297,6 +297,8 @@ private std.d.ast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers
                         result = new std.d.ast.Type();
                         result.type2 = new std.d.ast.Type2();
                         result.type2.symbol = deferred.answer;
+
+                        qualifier.addDependency(deferred);
                     }
                 }
             }
@@ -1018,6 +1020,7 @@ class DeferredSymbol : Resolvable
     abstract void resolve();
 
     abstract IdentifierOrTemplateInstance[] getChain();
+    abstract void addDependency(Resolvable dep);
 }
 
 // Bad idea
@@ -1047,6 +1050,11 @@ class ActuallyNotDeferredSymbol : DeferredSymbol
     {
         return answer.identifierOrTemplateChain.identifiersOrTemplateInstances[];
     }
+
+    override void addDependency(Resolvable dep)
+    {
+        dep.resolve();
+    }
 }
 
 // We need this because we cannot compute the beginning of template
@@ -1059,6 +1067,7 @@ class ActuallyNotDeferredSymbol : DeferredSymbol
 class DeferredTemplateInstantiation : DeferredSymbol
 {
     bool resolved;
+    Resolvable[] dependencies;
     public:
     DeferredSymbol templateName;
     // TODO non-type arguments
@@ -1102,6 +1111,12 @@ class DeferredTemplateInstantiation : DeferredSymbol
 
         temp_arg_list.items[] = arguments[];
         resolved = true;
+
+        foreach (d; dependencies)
+        {
+            d.resolve();
+        }
+        dependencies = [];
     }
 
     override IdentifierOrTemplateInstance[] getChain()
@@ -1111,12 +1126,26 @@ class DeferredTemplateInstantiation : DeferredSymbol
     body {
         return answer.identifierOrTemplateChain.identifiersOrTemplateInstances[];
     }
+
+    override void addDependency(Resolvable dep)
+    {
+        if (resolved)
+        {
+            dep.resolve();
+        }
+        else
+        {
+            dependencies ~= [dep];
+        }
+    }
 }
 
 class DeferredSymbolConcatenation : DeferredSymbol
 {
     private DeferredSymbol[] components;
     private bool resolved;
+
+    private Resolvable[] dependencies;
 
     public:
     this() pure
@@ -1161,6 +1190,11 @@ class DeferredSymbolConcatenation : DeferredSymbol
             chain.identifiersOrTemplateInstances ~= sub_chain.identifiersOrTemplateInstances;
         }
         resolved = true;
+
+        foreach (d; dependencies)
+        {
+            d.resolve();
+        }
     }
 
     DeferredSymbolConcatenation append(DeferredSymbol end) pure
@@ -1209,6 +1243,18 @@ class DeferredSymbolConcatenation : DeferredSymbol
     }
     body {
         return answer.identifierOrTemplateChain.identifiersOrTemplateInstances[];
+    }
+
+    override void addDependency(Resolvable dep)
+    {
+        if (resolved)
+        {
+            dep.resolve();
+        }
+        else
+        {
+            dependencies ~= [dep];
+        }
     }
 }
 
