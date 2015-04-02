@@ -450,6 +450,20 @@ Superclass* SuperclassRange::front()
     return result;
 }
 
+bool MethodDeclaration::isWrappable() const
+{
+    if (isOverloadedOperator()) return false;
+    if (!getReturnType()->isWrappable(true)) return false;
+
+    auto finish = getArgumentEnd();
+    for (auto iter = getArgumentBegin(); !iter->equals(finish); iter->advance())
+    {
+        if (!iter->get()->isWrappable()) return false;
+    }
+
+    return Declaration::isWrappable();
+}
+
 bool FunctionDeclaration::isWrappable() const
 {
     return Declaration::isWrappable();

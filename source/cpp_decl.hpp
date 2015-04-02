@@ -827,14 +827,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             return _decl->isOverloadedOperator();
         }
 
-        virtual bool isWrappable() const override
-        {
-            if (isOverloadedOperator())
-            {
-                return false;
-            }
-            return Declaration::isWrappable();
-        }
+        virtual bool isWrappable() const override;
 
         virtual Type* getReturnType() const
         {
