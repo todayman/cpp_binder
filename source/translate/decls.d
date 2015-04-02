@@ -242,7 +242,22 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             throw new Exception("Function declaration doesn't have a target name.  This implies that it also didn't have a name in the C++ source.  This shouldn't happen.");
         }
 
-        d_decl.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
+        try {
+            d_decl.returnType = translateType(cppDecl.getReturnType(), QualifierSet.init);
+        }
+        catch (RefTypeException e)
+        {
+            // Make sure that this isn't a ref farther down, since the ref
+            // modifier can only be applied to the parameter
+            if (e.type != cppDecl.getReturnType())
+            {
+                throw e;
+            }
+
+            unknown.Type targetType = (cast(unknown.ReferenceType)cppDecl.getReturnType()).getPointeeType();
+            d_decl.returnType = translateType(targetType, QualifierSet.init).clone;
+            d_decl.returnType.typeConstructors ~= [tok!"ref"];
+        }
 
         d_decl.parameters = new Parameters();
         // FIXME obviously not always true
