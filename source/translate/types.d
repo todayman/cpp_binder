@@ -839,43 +839,66 @@ public std.d.ast.Type translateType(unknown.Type cppType, QualifierSet qualifier
     {
         if (!cppType.isWrappable(true))
         {
-            throw new Exception("Type is not wrappable!");
+            // If it is a typedef, try translating the target of the typedef
+            if (cppType.getKind() == unknown.Type.Kind.Typedef)
+            {
+                unknown.Type targetType = (cast(unknown.TypedefType)cppType).getTargetType();
+                return translateType(targetType, qualifiers);
+            }
+            else
+            {
+                throw new UnwrappableType(cppType);
+            }
         }
         std.d.ast.Type result;
-        final switch (cppType.getStrategy())
-        {
-            case unknown.Strategy.UNKNOWN:
-                determineStrategy(cppType);
-
-                // This if is for debugging; we're going to fail an assert
-                // so this re-plays the logic that got us there
-                if (cppType.getStrategy() == unknown.Strategy.UNKNOWN)
-                {
+        try {
+            final switch (cppType.getStrategy())
+            {
+                case unknown.Strategy.UNKNOWN:
                     determineStrategy(cppType);
-                    assert(cppType.getStrategy != unknown.Strategy.UNKNOWN);
-                }
-                result = translateType(cppType, qualifiers);
-                break;
-            case unknown.Strategy.REPLACE:
-                result = replaceType(cppType, qualifiers);
-                break;
-            case unknown.Strategy.STRUCT:
-                // TODO maybe this whole function should change?
-                // In principle, the Struct strategy should only be used on record types
-                result = translateStruct(cppType, qualifiers);
-                break;
-            case unknown.Strategy.INTERFACE:
-                // TODO I should check what the code paths into here are,
-                // because you shouldn't translate to interfaces directly,
-                // you should translate a pointer or ref to an interface into
-                // an interface
-                // See Struct case
-                result = translateInterface(cppType, qualifiers);
-                break;
-            case unknown.Strategy.CLASS:
-                break;
-            case unknown.Strategy.OPAQUE_CLASS:
-                break;
+
+                    // This if is for debugging; we're going to fail an assert
+                    // so this re-plays the logic that got us there
+                    if (cppType.getStrategy() == unknown.Strategy.UNKNOWN)
+                    {
+                        determineStrategy(cppType);
+                        assert(cppType.getStrategy != unknown.Strategy.UNKNOWN);
+                    }
+                    result = translateType(cppType, qualifiers);
+                    break;
+                case unknown.Strategy.REPLACE:
+                    result = replaceType(cppType, qualifiers);
+                    break;
+                case unknown.Strategy.STRUCT:
+                    // TODO maybe this whole function should change?
+                    // In principle, the Struct strategy should only be used on record types
+                    result = translateStruct(cppType, qualifiers);
+                    break;
+                case unknown.Strategy.INTERFACE:
+                    // TODO I should check what the code paths into here are,
+                    // because you shouldn't translate to interfaces directly,
+                    // you should translate a pointer or ref to an interface into
+                    // an interface
+                    // See Struct case
+                    result = translateInterface(cppType, qualifiers);
+                    break;
+                case unknown.Strategy.CLASS:
+                    break;
+                case unknown.Strategy.OPAQUE_CLASS:
+                    break;
+            }
+        }
+        catch (UnwrappableTypeDeclaration e)
+        {
+            if (cppType.getKind() == unknown.Type.Kind.Typedef)
+            {
+                unknown.Type targetType = (cast(unknown.TypedefType)cppType).getTargetType();
+                result = translateType(targetType, qualifiers);
+            }
+            else
+            {
+                throw e;
+            }
         }
 
         if (result !is null)
