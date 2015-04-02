@@ -210,6 +210,7 @@ class Expression;
         string* getReplacementModule() const;
         void setReplacementModule(string mod);
 
+        virtual bool hasDeclaration() const = 0;
         virtual Declaration * getDeclaration() const
         {
             dump();
@@ -269,6 +270,8 @@ class Expression;
         {
             return false;
         }
+
+        virtual bool hasDeclaration() const override;
     };
 
     class BuiltinType : public Type
@@ -281,10 +284,7 @@ class Expression;
             : Type(Type::Builtin), type(t)
         { }
 
-        virtual Declaration* getDeclaration() const override
-        {
-            return nullptr;
-        }
+        virtual bool hasDeclaration() const override;
 
         virtual bool isReferenceType() const override
         {
@@ -308,6 +308,7 @@ class Expression;
         { }
 
         virtual bool isReferenceType() const override;
+        virtual bool hasDeclaration() const override;
         virtual Declaration* getDeclaration() const override;
         virtual RecordDeclaration * getRecordDeclaration() const = 0;
     };
@@ -357,10 +358,8 @@ class Expression;
             : Type(k)
         { }
 
-        virtual Declaration* getDeclaration() const override
-        {
-            return nullptr;
-        }
+        virtual bool hasDeclaration() const override;
+        virtual Declaration* getDeclaration() const override;
         virtual Type * getPointeeType() const = 0;
     };
 
@@ -422,6 +421,7 @@ class Expression;
         { }
 
         virtual bool isReferenceType() const override;
+        virtual bool hasDeclaration() const override;
         virtual Declaration * getDeclaration() const override;
         TypedefDeclaration * getTypedefDeclaration() const;
 
@@ -451,6 +451,7 @@ class Expression;
             return false;
         }
 
+        virtual bool hasDeclaration() const override;
         virtual Declaration* getDeclaration() const override;
         EnumDeclaration * getEnumDeclaration() const;
 
@@ -480,6 +481,7 @@ class Expression;
             return false;
         }
 
+        virtual bool hasDeclaration() const override;
         virtual Declaration* getDeclaration() const override;
         UnionDeclaration * getUnionDeclaration() const;
 
@@ -523,6 +525,8 @@ class Expression;
         {
             return getElementType()->isWrappable(false);
         }
+
+        virtual bool hasDeclaration() const override;
     };
 
     class ConstantArrayType : public ArrayType
@@ -643,6 +647,8 @@ class Expression;
             // ignores ref return values, invalid args, etc.
             return true;
         }
+
+        virtual bool hasDeclaration() const override;
     };
 
     class QualifiedType : public Type
@@ -670,6 +676,8 @@ class Expression;
         {
             return unqualifiedType()->isWrappable(refAllowed);
         }
+
+        virtual bool hasDeclaration() const override;
     };
 
     class VectorType : public Type
@@ -697,6 +705,8 @@ class Expression;
         {
             return false;
         }
+
+        virtual bool hasDeclaration() const override;
     };
 
     class TemplateArgumentType : public Type
@@ -714,6 +724,7 @@ class Expression;
             : Type(Type::TemplateArgument), type(t), template_list(nullptr)
         { }
 
+        virtual bool hasDeclaration() const override;
         virtual Declaration * getDeclaration() const override;
         TemplateTypeArgumentDeclaration * getTemplateTypeArgumentDeclaration() const;
         void setTemplateList(clang::TemplateParameterList* tl)
@@ -745,6 +756,7 @@ class Expression;
             : Type(Type::TemplateSpecialization), type(t)
         { }
 
+        virtual bool hasDeclaration() const override;
         virtual Declaration* getDeclaration() const override;
         Declaration* getTemplateDeclaration() const;
 
@@ -803,25 +815,9 @@ class Expression;
         binder::string* getIdentifier() const;
         NestedNameWrapper* getQualifier() const;
 
-        virtual bool isWrappable(bool refAllowed) override
-        {
-            Type * r = resolveType();
-            if (wrapping)
-            {
-                return false;
-            }
-            if (r)
-            {
-                wrapping = true;
-                bool result = r->isWrappable(refAllowed);
-                wrapping = false;
-                return result;
-            }
-            else
-            {
-                return false;
-            }
-        }
+        virtual bool isWrappable(bool refAllowed) override;
+
+        virtual bool hasDeclaration() const override;
     };
 
     class TemplateArgumentInstanceIterator

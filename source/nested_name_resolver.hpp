@@ -143,6 +143,7 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
                 }
             }
         }
+
         return false;
     }
 

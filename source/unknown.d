@@ -73,6 +73,8 @@ extern (C++) interface Type
 
     final public void setReplacementModule(binder.binder.string mod);
 
+    public bool hasDeclaration() const;
+
     public unknown.Declaration getDeclaration() const;
 
     public void visit(unknown.TypeVisitor visitor);

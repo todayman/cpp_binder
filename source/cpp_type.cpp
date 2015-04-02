@@ -169,6 +169,11 @@ void Type::applyAttributes(const TypeAttributes* attribs)
     setReplacementModule(attribs->target_module);
 }
 
+bool BuiltinType::hasDeclaration() const
+{
+    return false;
+}
+
 bool BuiltinType::isWrappable(bool)
 {
     return type->getKind() != clang::BuiltinType::Dependent
@@ -202,9 +207,20 @@ const Type * QualifiedType::unqualifiedType() const
     }
 }
 
+bool InvalidType::hasDeclaration() const
+{
+    // TODO this is not always false, but this is the conservative choice
+    return false;
+}
+
 bool QualifiedType::isConst() const
 {
     return type.isLocalConstQualified();
+}
+
+bool QualifiedType::hasDeclaration() const
+{
+    return false;
 }
 
 bool RecordType::isReferenceType() const
@@ -231,6 +247,12 @@ bool RecordType::isReferenceType() const
             throw std::logic_error("Haven't decided strategy for Record yet, so it is not known whether it is a reference type.");
     };
 }
+
+bool RecordType::hasDeclaration() const
+{
+    return true;
+}
+
 Declaration* RecordType::getDeclaration() const
 {
     return getRecordDeclaration();
@@ -269,6 +291,17 @@ bool TemplateRecordType::isWrappable(bool)
     return getRecordDeclaration()->isWrappable();
 }
 
+bool PointerOrReferenceType::hasDeclaration() const
+{
+    return false;
+}
+
+Declaration* PointerOrReferenceType::getDeclaration() const
+{
+    // TODO assert  throw
+    return nullptr;
+}
+
 Type * PointerType::getPointeeType() const
 {
     return Type::get(type->getPointeeType());
@@ -287,6 +320,11 @@ bool ReferenceType::isReferenceType() const
 bool TypedefType::isReferenceType() const
 {
     return Type::get(type->desugar())->isReferenceType();
+}
+
+bool TypedefType::hasDeclaration() const
+{
+    return true;
 }
 
 Declaration* TypedefType::getDeclaration() const
@@ -320,6 +358,11 @@ bool TypedefType::isWrappable(bool refAllowed)
     return result;
 }
 
+bool EnumType::hasDeclaration() const
+{
+    return true;
+}
+
 Declaration* EnumType::getDeclaration() const
 {
     return getEnumDeclaration();
@@ -331,6 +374,11 @@ EnumDeclaration * EnumType::getEnumDeclaration() const
 
     Declaration* cpp_generic_decl = ::getDeclaration(static_cast<clang::Decl*>(clang_decl));
     return dynamic_cast<EnumDeclaration*>(cpp_generic_decl);
+}
+
+bool UnionType::hasDeclaration() const
+{
+    return true;
 }
 
 Declaration* UnionType::getDeclaration() const
@@ -347,6 +395,11 @@ UnionDeclaration * UnionType::getUnionDeclaration() const
 bool UnionType::isWrappable(bool)
 {
     return getUnionDeclaration()->isWrappable();
+}
+
+bool ArrayType::hasDeclaration() const
+{
+    return false;
 }
 
 Type* ConstantArrayType::getElementType() const
@@ -432,6 +485,16 @@ bool QualifiedType::isReferenceType() const
     return unqualifiedType()->isReferenceType();
 }
 
+bool VectorType::hasDeclaration() const
+{
+    return false;
+}
+
+bool TemplateArgumentType::hasDeclaration() const
+{
+    return true;
+}
+
 Declaration* TemplateArgumentType::getDeclaration() const
 {
     return getTemplateTypeArgumentDeclaration();
@@ -450,6 +513,11 @@ binder::string* TemplateArgumentType::getIdentifier() const
 {
     std::string identifier = type->getIdentifier()->getName().str();
     return new binder::string(identifier.data(), identifier.size());
+}
+
+bool TemplateSpecializationType::hasDeclaration() const
+{
+    return true;
 }
 
 Declaration* TemplateSpecializationType::getDeclaration() const
@@ -541,6 +609,11 @@ ArgumentTypeRange* FunctionType::getArgumentRange()
 {
     // See the clang visitor visitFunctionType()
     return new ArgumentTypeRange(type->param_types());
+}
+
+bool FunctionType::hasDeclaration() const
+{
+    return false;
 }
 
 class InnerNameResolver : public clang::RecursiveASTVisitor<InnerNameResolver>
@@ -714,6 +787,35 @@ binder::string* DelayedType::getIdentifier() const
 NestedNameWrapper* DelayedType::getQualifier() const
 {
     return new NestedNameWrapper(type->getQualifier());
+}
+
+bool DelayedType::isWrappable(bool refAllowed)
+{
+    Type * r = resolveType();
+    if (wrapping)
+    {
+        std::cerr << "Delayed type not wrappable because of recursion!\n";
+        return false;
+    }
+    if (r)
+    {
+        wrapping = true;
+        bool result = r->isWrappable(refAllowed);
+        wrapping = false;
+        return result;
+    }
+    else
+    {
+        //std::cerr << "Delayed type is not wrappable because it does not resolve.\n";
+        // WE'LL DO IT LIVE
+        return true;
+    }
+}
+
+bool DelayedType::hasDeclaration() const
+{
+    //TODO This is probably not correct a lot of the time
+    return false;
 }
 
 TemplateArgumentInstanceIterator::Kind TemplateArgumentInstanceIterator::getKind()
