@@ -386,6 +386,16 @@ private std.d.ast.Type translateReference(unknown.ReferenceType cppType, Qualifi
     return translatePointerOrReference!(Flag!"ref".yes)(cppType, qualifiers);
 }
 
+class UnwrappableTypeDeclaration : Exception
+{
+    this(unknown.Type cppType, unknown.Declaration cppDecl)
+    {
+        // This does not support unwrappable declarations
+        //super("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~"~" ~to!string(cast(void*)cppDecl.getType()) ~") is not wrappable.");
+        super("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~") is not wrappable.");
+    }
+}
+
 // TODO Before I made this into a mixin, these checked the kinds of the types
 // passed in to make sure that the correct function was being called.  I.e.
 // check that cppType was a union, enum, etc.
@@ -404,7 +414,7 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
             if (!cppDecl.isWrappable())
             {
                 if (dumpBeforeThrowing) cppDecl.dump();
-                throw new Exception("The declaration ("~to!string(cast(void*)cppDecl) ~") for this type ("~to!string(cast(void*)cppType) ~"~" ~to!string(cast(void*)cppDecl.getType()) ~") is not wrappable.");
+                throw new UnwrappableTypeDeclaration(cppType, cppDecl);
             }
             // cppDecl.getType() can be different than cppType
             // FIXME I need to find a better way to fix this at the source
@@ -797,6 +807,23 @@ private std.d.ast.Type replaceArray(unknown.ArrayType cppType, QualifierSet qual
     }
 
     return result;
+}
+
+class UnwrappableType : Exception
+{
+    public:
+    unknown.Type type;
+
+    this(unknown.Type cppType)
+    {
+        super("Type is not wrappable!");
+        type = cppType;
+        if (type.hasDeclaration())
+        {
+            unknown.Declaration decl = type.getDeclaration();
+            msg = "Type (" ~ binder.toDString(decl.getSourceName()) ~") is not wrappable.";
+        }
+    }
 }
 
 // Qualifiers are the qualifiers that have already been applied to the type.
