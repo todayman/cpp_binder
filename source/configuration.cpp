@@ -77,13 +77,13 @@ void applyConfigToObject(const binder::string* name, clang::ASTUnit* astunit, co
     {
         // TODO finding more than one match should probably
         // be handled more gracefully.
-        for( clang::NamedDecl* cppDecl : lookup_result )
+        for (clang::NamedDecl* cppDecl : lookup_result)
         {
             Declaration* decl;
             try {
                 decl = getDeclaration(cppDecl);
             }
-            catch( std::out_of_range& exc )
+            catch (std::out_of_range& exc)
             {
                 std::cerr << "Could not find declaration for " << name << "\n";
                 continue;
@@ -111,17 +111,22 @@ void applyConfigToObject(const binder::string* name, clang::ASTUnit* astunit, co
     else {
         Type::range_t search_result = Type::getByName(name);
 
-        if( search_result.first == search_result.second )
+        if (search_result.first == search_result.second)
         {
             // FIXME better error handling with stuff like localization
             std::cerr << "WARNING: type " << name->c_str() << " does not appear in the C++ source.\n";
             return;
         }
 
-        for (Type * type = search_result.first->second;
+        for (;
                 search_result.first != search_result.second;
-                type = (++search_result.first)->second)
+                ++search_result.first)
         {
+            // In subsequent iterations of the loop, this assignment to type
+            // needs to happen after the loop check, so it cannot be done
+            // in the increment step of the for as:
+            // type = (++search_result.first)->second
+            Type * type = search_result.first->second;
             type->applyAttributes(type_attributes);
         }
     }
