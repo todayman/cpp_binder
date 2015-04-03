@@ -1558,6 +1558,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
         bool VisitCXXRecordDecl(clang::CXXRecordDecl* cppDecl);
         bool VisitClassTemplateDecl(clang::ClassTemplateDecl* cppDecl);
+        bool VisitClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl);
 
         private:
         static void enableDeclarationsInFiles(const std::vector<std::string>& filenames);

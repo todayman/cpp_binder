@@ -966,6 +966,22 @@ bool DeclVisitor::WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplate
     return Super::WalkUpFromClassTemplateSpecializationDecl(cppDecl);
 }
 
+bool DeclVisitor::VisitClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl)
+{
+    const clang::TemplateArgumentList& arg_list = cppDecl->getTemplateArgs();
+    for (unsigned idx = 0; idx < arg_list.size(); ++idx)
+    {
+        const clang::TemplateArgument& arg = arg_list.get(idx);
+
+        if (arg.getKind() == clang::TemplateArgument::Type)
+        {
+            TraverseType(arg.getAsType());
+        }
+    }
+
+    return true;
+}
+
 UNWRAPPABLE_TRAVERSE(FunctionTemplate)
 UNWRAPPABLE_TRAVERSE(TypeAliasTemplate)
 UNWRAPPABLE_TRAVERSE(TypeAlias)
