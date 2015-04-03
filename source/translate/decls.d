@@ -505,7 +505,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             if (superclass.visibility != unknown.Visibility.PUBLIC)
             {
-                throw new Exception("Don't know how to translate non-public inheritance of interfaces.");
+                // We can safely ignore these since they are not exposed
+                // outside the class I suppose it would be a problem since
+                // sublcasses on the D side cannot see the methods in the
+                // superclass, but that's an acceptable loss for now
+                continue;
             }
             if (superclass.isVirtual)
             {
