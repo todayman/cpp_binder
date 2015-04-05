@@ -1072,9 +1072,44 @@ bool DeclVisitor::VisitClassTemplateSpecializationDecl(clang::ClassTemplateSpeci
     return true;
 }
 
+bool DeclVisitor::TraverseTypeAliasDecl(clang::TypeAliasDecl* cppDecl)
+{
+    if (!WalkUpFromTypeAliasDecl(cppDecl)) return false;
+
+    if (!TraverseType(cppDecl->getUnderlyingType())) return false;
+
+    return true;
+}
+
+bool DeclVisitor::WalkUpFromTypeAliasDecl(clang::TypeAliasDecl* cppDecl)
+{
+    allocateDeclaration<clang::TypeAliasDecl, UsingAliasDeclaration>(cppDecl);
+    return Super::WalkUpFromTypeAliasDecl(cppDecl);
+}
+
+bool DeclVisitor::TraverseTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl* cppDecl)
+{
+    if (!WalkUpFromTypeAliasTemplateDecl(cppDecl)) return false;
+
+    //const clang::TemplateParameterList* arg_list = cppDecl->getTemplateParameters();
+    llvm::ArrayRef<clang::NamedDecl*> arg_list = cppDecl->getTemplateParameters()->asArray();
+    for (unsigned idx = 0; idx < arg_list.size(); ++idx)
+    {
+        clang::NamedDecl* arg = arg_list[idx];
+        if (!registerDeclaration(arg, false, cppDecl->getTemplateParameters())) return false;
+    }
+
+    if (!TraverseDecl(cppDecl->getTemplatedDecl())) return false;
+
+    return true;
+}
+bool DeclVisitor::WalkUpFromTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl* cppDecl)
+{
+    allocateDeclaration<clang::TypeAliasTemplateDecl, UsingAliasTemplateDeclaration>(cppDecl);
+    return Super::WalkUpFromTypeAliasTemplateDecl(cppDecl);
+}
+
 UNWRAPPABLE_TRAVERSE(FunctionTemplate)
-UNWRAPPABLE_TRAVERSE(TypeAliasTemplate)
-UNWRAPPABLE_TRAVERSE(TypeAlias)
 UNWRAPPABLE_TRAVERSE(UnresolvedUsingValue)
 
 // This method is called after WalkUpFromDecl, which

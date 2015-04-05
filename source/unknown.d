@@ -457,7 +457,7 @@ extern (C++) interface DeclarationVisitor
 
     public void visitUsingAlias(unknown.UsingAliasDeclaration node);
 
-    public void visitUsingAliasTemplate(unknown.UsingAliasDeclaration node);
+    public void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration node);
 
     public void visitUnwrappable(unknown.UnwrappableDeclaration node);
 }

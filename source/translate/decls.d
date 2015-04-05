@@ -307,21 +307,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     placeIntoTargetModule(child, subpackage_visitor.last_result, this_namespace_path);
                 }
             }
-            catch (RefTypeException exc)
-            {
-                //child.dump();
-                //stderr.writeln("ERROR: (namespace) ", exc.msg);
-                //if (exc.declaration)
-                //{
-                //    stderr.writeln("    ref:");
-                //    exc.declaration.dump();
-                //}
-                //stderr.writeln(exc.toString());
-            }
             catch (Exception exc)
             {
-                //child.dump();
-                //stderr.writeln("ERROR: ", exc.msg);
+                child.dump();
+                stderr.writeln("ERROR: ", exc.msg);
             }
         }
         trace("Exiting translateNamespace");
@@ -375,6 +364,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         override extern(C++) public void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration node) { }
 
         override extern(C++) public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node) { }
+
+        override extern(C++) public void visitUsingAlias(unknown.UsingAliasDeclaration node) { }
+
+        override extern(C++) public void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration node) { }
         // END BlackHole workaround
 
         public bool result;
@@ -477,17 +470,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     visitor.last_result.attributes ~= [vis];
                     result.structBody.declarations ~= [visitor.last_result];
                 }
-            }
-            catch (RefTypeException exc)
-            {
-                //child.dump();
-                //stderr.writeln("ERROR: (namespace) ", exc.msg);
-                //if (exc.declaration)
-                //{
-                //    stderr.writeln("    ref:");
-                //    exc.declaration.dump();
-                //}
-                //stderr.writeln(exc.toString());
             }
             catch (Exception exc)
             {
@@ -739,7 +721,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         buildRecord(cppDecl, template_inst.identifier, null);
     }
 
-    std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
+    std.d.ast.AliasDeclaration translateTypedef(Declaration)(Declaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
@@ -759,8 +741,37 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        translateTypedef(cppDecl);
+        translateTypedef!(unknown.TypedefDeclaration)(cppDecl);
         last_result = translated[cast(void*)cppDecl];
+    }
+
+    extern(C++) override
+    void visitUsingAlias(unknown.UsingAliasDeclaration cppDecl)
+    {
+        translateTypedef!(unknown.UsingAliasDeclaration)(cppDecl);
+        last_result = translated[cast(void*)cppDecl];
+    }
+
+    // FIXME overlap with visitRecordTemplate
+    extern(C++) override
+    void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration cppDecl)
+    {
+        Token name = nameFromDecl(cppDecl);
+        std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
+
+        {
+            IdentifierChain package_name = moduleForDeclaration(cppDecl);
+            DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_name, package_internal_path[$-1], namespace_path);
+            package_internal_path ~= [symbol];
+            scope(exit) package_internal_path = package_internal_path[0 .. $-1];
+
+            translateTypedef!(unknown.UsingAliasDeclaration)(cppDecl);
+
+            if (auto ptr = cast(void*)cppDecl in translated)
+            {
+                last_result = *ptr;
+            }
+        }
     }
 
     std.d.ast.EnumDeclaration translateEnum(unknown.EnumDeclaration cppDecl)
@@ -1083,6 +1094,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
 }
 
+// TODO Need a way to communicate whether an unwrappable declaration should be
+// ignored (with an error message, obviously) or make the parent unwrappable.
 class StructBodyTranslator
     // I want to use a Flag!"fields" instead of a bool here, but
     // that causes an ICE that I can't easily reduce.

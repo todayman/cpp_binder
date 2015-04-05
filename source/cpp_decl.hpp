@@ -1566,6 +1566,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
         bool TraverseUsingDecl(clang::UsingDecl* cppDecl);
         bool TraverseUsingShadowDecl(clang::UsingShadowDecl* cppDecl);
+        bool TraverseTypeAliasDecl(clang::TypeAliasDecl* cppDecl);
+        bool TraverseTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl* cppDecl);
 
         bool WalkUpFromDecl(clang::Decl* cppDecl);
         bool WalkUpFromTranslationUnitDecl(clang::TranslationUnitDecl* cppDecl);
@@ -1583,12 +1585,12 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
         bool WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl);
         bool WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl);
+        bool WalkUpFromTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl* cppDecl);
+        bool WalkUpFromTypeAliasDecl(clang::TypeAliasDecl* cppDecl);
 
         // Template stuff I can't handle yet
         bool TraverseFunctionTemplateDecl(clang::FunctionTemplateDecl* cppDecl);
-        bool TraverseTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl* cppDecl);
 
-        bool TraverseTypeAliasDecl(clang::TypeAliasDecl* cppDecl);
         bool TraverseUnresolvedUsingValueDecl(clang::UnresolvedUsingValueDecl* cppDecl);
 
         bool VisitDecl(clang::Decl* Declaration);
