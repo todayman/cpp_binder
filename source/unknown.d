@@ -455,6 +455,10 @@ extern (C++) interface DeclarationVisitor
 
     public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node);
 
+    public void visitUsingAlias(unknown.UsingAliasDeclaration node);
+
+    public void visitUsingAliasTemplate(unknown.UsingAliasDeclaration node);
+
     public void visitUnwrappable(unknown.UnwrappableDeclaration node);
 }
 
@@ -722,6 +726,18 @@ extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration
 }
 
 extern (C++) interface TemplateNonTypeArgumentDeclaration : unknown.Declaration {}
+
+extern (C++) interface UsingAliasDeclaration : unknown.Declaration
+{
+    unknown.Type getTargetType() const;
+}
+
+extern (C++) interface UsingAliasTemplateDeclaration : unknown.UsingAliasDeclaration
+{
+    uint getTemplateArgumentCount() const;
+    unknown.TemplateArgumentIterator getTemplateArgumentBegin() const;
+    unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
+}
 
 extern (C++) interface UnwrappableDeclaration : unknown.Declaration {}
 

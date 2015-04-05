@@ -277,6 +277,20 @@ bool RecordTemplateDeclaration::isVariadic() const
     }
     return false;
 }
+bool UsingAliasTemplateDeclaration::isVariadic() const
+{
+    TemplateArgumentIterator * end = getTemplateArgumentEnd();
+    for(TemplateArgumentIterator* iter = getTemplateArgumentBegin();
+            !iter->equals(end);
+            iter->advance())
+    {
+        if (iter->isPack())
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 bool RecordTemplateDeclaration::isWrappable() const
 {
@@ -557,6 +571,82 @@ Type* TemplateTypeArgumentDeclaration::getDefaultType() const
 DeclarationRange* NamespaceDeclaration::getChildren()
 {
     return new RedeclarableContextDeclarationRange<clang::NamespaceDecl>(_decl->redecls());
+}
+
+UsingAliasDeclaration::UsingAliasDeclaration(const clang::TypeAliasDecl* d)
+    : _decl(d)
+{ }
+
+clang::SourceLocation UsingAliasDeclaration::getSourceLocation() const
+{
+    return _decl->getLocation();
+}
+
+bool UsingAliasDeclaration::isWrappable() const
+{
+    return getTargetType()->isWrappable(false);
+}
+
+Type* UsingAliasDeclaration::getType() const
+{
+    return Type::get(_decl->getTypeForDecl());
+}
+
+void UsingAliasDeclaration::visit(DeclarationVisitor& visitor)
+{
+    visitor.visitUsingAlias(*this);
+}
+
+Type* UsingAliasDeclaration::getTargetType()const
+{
+    return Type::get(_decl->getUnderlyingType());
+}
+
+void UsingAliasDeclaration::dump()
+{
+    _decl->dump();
+}
+
+UsingAliasTemplateDeclaration::UsingAliasTemplateDeclaration(const clang::TypeAliasTemplateDecl* d)
+    : UsingAliasDeclaration(d->getTemplatedDecl()), outer_decl(d)
+{ }
+
+clang::SourceLocation UsingAliasTemplateDeclaration::getSourceLocation() const
+{
+    return outer_decl->getLocation();
+}
+
+bool UsingAliasTemplateDeclaration::isWrappable() const
+{
+    if (isVariadic())
+    {
+        return false;
+    }
+
+    return UsingAliasDeclaration::isWrappable();
+}
+
+void UsingAliasTemplateDeclaration::dump()
+{
+    _decl->dump();
+}
+
+void UsingAliasTemplateDeclaration::visit(DeclarationVisitor& visitor)
+{
+    visitor.visitUsingAliasTemplate(*this);
+}
+
+unsigned UsingAliasTemplateDeclaration::getTemplateArgumentCount() const
+{
+    return outer_decl->getTemplateParameters()->size();
+}
+TemplateArgumentIterator * UsingAliasTemplateDeclaration::getTemplateArgumentBegin() const
+{
+    return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
+}
+TemplateArgumentIterator * UsingAliasTemplateDeclaration::getTemplateArgumentEnd() const
+{
+    return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)

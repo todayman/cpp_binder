@@ -283,6 +283,8 @@ func(Argument)                  \
 func(Variable)                  \
 func(TemplateTypeArgument)      \
 func(TemplateNonTypeArgument)   \
+func(UsingAlias)                \
+func(UsingAliasTemplate)        \
 func(Unwrappable)
 
 #define FORWARD_DECL(x) class x##Declaration;
@@ -1401,6 +1403,48 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             _decl->dump();
         }
+    };
+
+    class UsingAliasDeclaration : public Declaration
+    {
+        protected:
+        const clang::TypeAliasDecl * _decl;
+
+        public:
+        UsingAliasDeclaration(const clang::TypeAliasDecl* d);
+
+        virtual clang::SourceLocation getSourceLocation() const override;
+        virtual bool isWrappable() const override;
+
+        virtual Type* getType() const override;
+
+        virtual void visit(DeclarationVisitor& visitor) override;
+
+        Type* getTargetType() const;
+
+        virtual void dump() override;
+    };
+
+    class UsingAliasTemplateDeclaration : public UsingAliasDeclaration
+    {
+        protected:
+        const clang::TypeAliasTemplateDecl* outer_decl;
+
+        public:
+        UsingAliasTemplateDeclaration(const clang::TypeAliasTemplateDecl* d);
+
+        virtual clang::SourceLocation getSourceLocation() const override;
+        virtual bool isWrappable() const override;
+
+        virtual void visit(DeclarationVisitor& visitor) override;
+
+        virtual void dump() override;
+
+        // TODO merge with RecordTemplateDeclaration, but I'm having MI issues
+        bool isVariadic() const;
+        virtual unsigned getTemplateArgumentCount() const;
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin() const;
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd() const;
     };
 
     class UnwrappableDeclaration : public Declaration
