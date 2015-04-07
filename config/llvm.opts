@@ -1,6 +1,7 @@
 -c config/builtin_types.json
 -c config/llvm.json
 
+/usr/include/llvm/ADT/None.h
 /usr/include/llvm/ADT/APInt.h
 
--o llvm
+-o llvmd
