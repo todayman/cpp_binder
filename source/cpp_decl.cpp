@@ -589,7 +589,10 @@ bool UsingAliasDeclaration::isWrappable() const
 
 Type* UsingAliasDeclaration::getType() const
 {
-    return Type::get(_decl->getTypeForDecl());
+    clang::TypeSourceInfo* source_info = _decl->getTypeSourceInfo();
+    clang::QualType info_type = source_info->getType();
+    Type * result = Type::get(info_type);
+    return result;
 }
 
 void UsingAliasDeclaration::visit(DeclarationVisitor& visitor)
