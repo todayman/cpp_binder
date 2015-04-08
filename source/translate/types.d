@@ -823,7 +823,13 @@ class UnwrappableType : Exception
         if (type.hasDeclaration())
         {
             unknown.Declaration decl = type.getDeclaration();
-            msg = "Type (" ~ binder.toDString(decl.getSourceName()) ~") is not wrappable.";
+            string name = binder.toDString(decl.getSourceName());
+            if (name.length == 0)
+            {
+                type.dump();
+                stderr.writeln("^ unwrappable type.");
+            }
+            msg = "Type (" ~ name ~") is not wrappable.";
         }
     }
 }
