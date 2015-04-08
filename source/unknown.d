@@ -729,14 +729,15 @@ extern (C++) interface TemplateNonTypeArgumentDeclaration : unknown.Declaration 
 
 extern (C++) interface UsingAliasDeclaration : unknown.Declaration
 {
-    unknown.Type getTargetType() const;
+    final public unknown.Type getTargetType() const;
 }
 
 extern (C++) interface UsingAliasTemplateDeclaration : unknown.UsingAliasDeclaration
 {
-    uint getTemplateArgumentCount() const;
-    unknown.TemplateArgumentIterator getTemplateArgumentBegin() const;
-    unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
+    final public bool isVariadic() const;
+    public uint getTemplateArgumentCount() const;
+    public unknown.TemplateArgumentIterator getTemplateArgumentBegin() const;
+    public unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
 }
 
 extern (C++) interface UnwrappableDeclaration : unknown.Declaration {}
