@@ -457,6 +457,40 @@ private DeferredSymbol resolveOrDefer(unknown.TemplateArgumentType cppType)
     }
 }
 
+class TemplateArgumentVisitor : unknown.DeclarationVisitor
+{
+    extern(C++) override void visitFunction(unknown.FunctionDeclaration) { }
+    extern(C++) override void visitNamespace(unknown.NamespaceDeclaration) { }
+    extern(C++) override void visitRecord(unknown.RecordDeclaration) { } // FIXME Need to check for template?
+    extern(C++) override void visitTypedef(unknown.TypedefDeclaration) { }
+    extern(C++) override void visitEnum(unknown.EnumDeclaration) { }
+    extern(C++) override void visitEnumConstant(unknown.EnumConstantDeclaration) { }
+    extern(C++) override void visitField(unknown.FieldDeclaration) { }
+    extern(C++) override void visitUnion(unknown.UnionDeclaration) { } // FIXME Need to check for template?
+    extern(C++) override void visitSpecializedRecord(unknown.SpecializedRecordDeclaration) { }
+    extern(C++) override void visitMethod(unknown.MethodDeclaration) { }
+    extern(C++) override void visitConstructor(unknown.ConstructorDeclaration) { }
+    extern(C++) override void visitDestructor(unknown.DestructorDeclaration) { }
+    extern(C++) override void visitArgument(unknown.ArgumentDeclaration) { }
+    extern(C++) override void visitVariable(unknown.VariableDeclaration) { }
+    extern(C++) override void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration) { }
+    extern(C++) override void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration) { }
+    extern(C++) override void visitUsingAlias(unknown.UsingAliasDeclaration) { }
+    extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration) { }
+
+    unknown.TemplateArgumentIterator first;
+    unknown.TemplateArgumentIterator finish;
+
+    void getIterators(Declaration)(Declaration cppDecl)
+    {
+        first = cppDecl.getTemplateArgumentBegin();
+        finish = cppDecl.getTemplateArgumentEnd();
+    }
+
+    extern(C++) override void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl) { getIterators(cppDecl); }
+    extern(C++) override void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration cppDecl) { getIterators(cppDecl); }
+}
+
 // FIXME duplication with TranslatorVisitor.translateTemplateArguments
 package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
@@ -464,10 +498,12 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
     // the fixed-argument-length specialization of a variadic template.
     // TODO implment variadic templates
     unknown.Declaration parent = cppType.getTemplateDeclaration();
-    // FIXME this is a super-bad assumption
-    auto record_parent = cast(unknown.RecordTemplateDeclaration) parent;
-    for (auto iter = record_parent.getTemplateArgumentBegin(),
-            finish = record_parent.getTemplateArgumentEnd();
+    // I can't use inheritance of an interface to stash the template methods,
+    // so we're using a visitor for now.
+    auto visitor = new TemplateArgumentVisitor();
+    parent.visit(visitor);
+    for (auto iter = visitor.first,
+            finish = visitor.finish;
             !iter.equals(finish);
             iter.advance())
     {
