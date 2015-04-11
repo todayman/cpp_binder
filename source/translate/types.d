@@ -453,6 +453,8 @@ private DeferredSymbol resolveOrDefer(unknown.TemplateArgumentType cppType)
         string name = binder.toDString(cppType.getIdentifier());
         auto result = new DeferredSymbolConcatenation(makeInstance(name));
         symbolForType[cast(void*)cppType] = result;
+        // Pretty sure these do not need to be deferred.
+        result.resolve();
         return result;
     }
 }
