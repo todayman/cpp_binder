@@ -1491,7 +1491,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
     {
         private:
         template<class SourceType, class TargetType>
-        void allocateDeclaration(SourceType * decl) {
+        void allocateDeclaration(SourceType * decl)
+        {
             auto search_result = declarations.find(decl->getCanonicalDecl());
             if (search_result == declarations.end())
             {
@@ -1501,8 +1502,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             {
                 decl_in_progress = search_result->second;
             }
-            //decl_in_progress = reinterpret_cast<TargetType*>(calloc(1, sizeof(TargetType)));
-            //new (&decl_in_progress) TargetType(decl);
             declarations.insert(std::make_pair(decl, decl_in_progress));
             bool isCanonical = (decl->getCanonicalDecl() == decl);
             if (!isCanonical)
