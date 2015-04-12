@@ -120,6 +120,9 @@ package void determineStrategy(unknown.Type cppType)
             {
                 throw new Exception("The template for this specialization is not wrappable.");
             }
+            // generic_type is the type represeting the most general template
+            // type itself.  We're assuming that all of the specialization will
+            // be translated to struct or class together.
             unknown.Type generic_type = parent_template.getType();
             determineStrategy(generic_type);
             if (generic_type.getStrategy() == unknown.Strategy.REPLACE)
@@ -451,11 +454,7 @@ private DeferredSymbol resolveOrDefer(unknown.TemplateArgumentType cppType)
     else
     {
         string name = binder.toDString(cppType.getIdentifier());
-        auto result = new DeferredSymbolConcatenation(makeInstance(name));
-        symbolForType[cast(void*)cppType] = result;
-        // Pretty sure these do not need to be deferred.
-        result.resolve();
-        return result;
+        return new ActuallyNotDeferredSymbol(makeInstance(name));
     }
 }
 
@@ -1314,6 +1313,7 @@ body {
     return result;
 }
 
+// FIXME needs a better name
 unknown.Type handleReferenceType(unknown.Type startingPoint)
 {
     class RefHandler : unknown.TypeVisitor
