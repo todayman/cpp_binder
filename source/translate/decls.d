@@ -756,7 +756,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration cppDecl)
     {
+        trace("Entering visitUsingAliasTemplate");
+        scope(exit) trace("Exiting visitUsingAliasTemplate");
+
         Token name = nameFromDecl(cppDecl);
+        trace("Translating UsingAliasTemplateDeclaration: ", name.text);
         std.d.ast.TemplateParameters templateParameters = translateTemplateParameters(cppDecl);
 
         {
