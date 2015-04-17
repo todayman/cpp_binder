@@ -947,12 +947,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Exception("Attempting to translate an argument as if it were top level, but arguments are never top level.");
     }
 
-    std.d.ast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl)
+    std.d.ast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl, out std.d.ast.Declaration outerDeclaration)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit;
 
-        std.d.ast.Declaration outerDeclaration;
         auto var = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
 
         auto declarator = new Declarator();
@@ -977,8 +976,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
     extern(C++) override void visitVariable(unknown.VariableDeclaration cppDecl)
     {
-        translateVariable(cppDecl);
-        last_result = translated[cast(void*)cppDecl];
+        translateVariable(cppDecl, last_result);
     }
     extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration)
     {
@@ -1109,6 +1107,18 @@ class StructBodyTranslator
     this(string nsp, DeferredSymbol pip)
     {
         super(nsp, pip);
+    }
+
+    override
+    std.d.ast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl, out std.d.ast.Declaration outerDeclaration)
+    {
+        auto result = TranslatorVisitor.translateVariable(cppDecl, outerDeclaration);
+
+        auto attrib = new Attribute();
+        attrib.attribute = Token(tok!"static", "static", 0, 0, 0);
+        outerDeclaration.attributes ~= [attrib];
+
+        return result;
     }
 
     std.d.ast.Declaration translateMethod(unknown.MethodDeclaration cppDecl)
