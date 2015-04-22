@@ -1400,10 +1400,6 @@ std.d.ast.Module populateDAST(string output_module_name)
         {
             resolveSymbol(symbol, decl);
         }
-        if (unresolvedSymbols.length > 0)
-        {
-            throw new Exception("Not all types could be resolved.");
-        }
     }
 
     foreach (DeferredTemplateInstantiation temp; deferredTemplates.values())
