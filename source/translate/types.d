@@ -455,6 +455,45 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
     }
 }
 
+private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDecl)
+{
+    unknown.Type cppType = cppDecl.getType();
+
+    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
+    {
+        return (*deferred_ptr);
+    }
+    else
+    {
+        DeferredSymbolConcatenation result = null;
+        if (!cppDecl.isWrappable())
+        {
+            if (dumpBeforeThrowing) cppDecl.dump();
+            throw new UnwrappableTypeDeclaration(cppType, cppDecl);
+        }
+
+        // Don't allow refs here becuase those should go though a different
+        // path, namely the translateReference path.
+        if (!cppType.isWrappable(false))
+        {
+            if (dumpBeforeThrowing) cppDecl.dump();
+            throw new Exception("This type is not wrappable.");
+        }
+        result = new DeferredSymbolConcatenation();
+        // This symbol will be filled in when the declaration is traversed
+        symbolForType[cast(void*)cppDecl.getType()] = result;
+        unresolvedSymbols[result] = cppDecl;
+
+        if (result is null)
+        {
+            stderr.writeln("Could not build DeferredSymbol for ");
+            cppType.dump();
+            assert(result !is null);
+        }
+        return result;
+    }
+}
+
 private DeferredSymbol resolveOrDefer(unknown.TemplateArgumentType cppType)
 {
     if (auto deferred_ptr = cast(void*)cppType in symbolForType)
@@ -529,7 +568,7 @@ package DeferredSymbol resolveTemplateSpecializationTypeSymbol(unknown.TemplateS
     // (the instantiation)
     // TODO template_symbol needs a better name
     auto template_symbol = new DeferredTemplateInstantiation();
-    template_symbol.templateName = resolveOrDefer(cppType.getTemplateDeclaration().getType());
+    template_symbol.templateName = resolveOrDeferDeclaredType(cppType.getTemplateDeclaration());
     assert(template_symbol.templateName !is null);
     template_symbol.arguments.length = cppType.getTemplateArgumentCount();
     uint idx = 0;
