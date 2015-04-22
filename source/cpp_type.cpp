@@ -653,8 +653,8 @@ class IdentifierPathResolver : public clang::RecursiveASTVisitor<IdentifierPathR
 {
     public:
     Type * result;
-    std::stack<const clang::IdentifierInfo*>& identifier_path;
-    IdentifierPathResolver(std::stack<const clang::IdentifierInfo*>& path)
+    std::stack<const clang::IdentifierInfo*>* identifier_path;
+    IdentifierPathResolver(std::stack<const clang::IdentifierInfo*>* path)
         : result(nullptr), identifier_path(path)
     { }
 
@@ -666,14 +666,14 @@ class IdentifierPathResolver : public clang::RecursiveASTVisitor<IdentifierPathR
     bool WalkUpFromTypedefDecl(clang::TypedefDecl* decl)
     {
         clang::QualType underlying_type = decl->getUnderlyingType();
-        if (identifier_path.empty())
+        if (identifier_path->empty())
         {
             result = Type::get(underlying_type);
         }
         else
         {
-            const clang::IdentifierInfo* next_id = identifier_path.top();
-            identifier_path.pop();
+            const clang::IdentifierInfo* next_id = identifier_path->top();
+            identifier_path->pop();
             NestedNameResolver<IdentifierPathResolver> inner(next_id, identifier_path);
             inner.TraverseType(underlying_type);
             result = inner.result;
@@ -768,7 +768,7 @@ Type* DelayedType::resolveType() const
                     const clang::Type* container_type = cur_name->getAsType();
                     const clang::IdentifierInfo* first_id = identifier_path.top();
                     identifier_path.pop();
-                    NestedNameResolver<IdentifierPathResolver> visitor(first_id, identifier_path);
+                    NestedNameResolver<IdentifierPathResolver> visitor(first_id, &identifier_path);
                     visitor.TraverseType(clang::QualType(container_type, 0));
                     result = visitor.result;
                     break;
