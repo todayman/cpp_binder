@@ -1268,6 +1268,7 @@ class StructBodyTranslator
                 std.d.ast.Declaration outerDeclaration;
                 // FIXME this type needs to correspond with the CHECK_FOR_DECL
                 auto result = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
+
                 result.type = translateType(cppDecl.getType(), QualifierSet.init);
 
                 auto declarator = new Declarator();
@@ -1382,16 +1383,10 @@ std.d.ast.Module populateDAST(string output_module_name)
                 placeIntoTargetModule(declaration, translation, "");
             }
         }
-        catch(RefTypeException exc)
-        {
-            //declaration.dump();
-            //stderr.writeln("ERROR: ", exc.msg);
-            //stderr.writeln(exc.toString());
-        }
         catch (Exception exc)
         {
             //declaration.dump();
-            //stderr.writeln("ERROR: ", exc.msg);
+            stderr.writeln("ERROR: ", exc.msg);
         }
 
     }
