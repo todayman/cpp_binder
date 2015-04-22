@@ -759,7 +759,7 @@ private std.d.ast.Type translateStruct(unknown.Type cppType, QualifierSet qualif
         override public extern(C++) void visit(unknown.DelayedType cppType)
         {
             unknown.Type resolved = cppType.resolveType();
-            result = resolveOrDefer(resolved);
+            resolved.visit(this);
         }
     }
     auto visitor = new RecordTranslationVisitor();
