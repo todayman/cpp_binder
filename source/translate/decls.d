@@ -1467,6 +1467,13 @@ package void resolveSymbol(DeferredSymbol symbol, unknown.Declaration cppDecl)
 {
     if (cppDecl !is null && cppDecl.getType() !is null)
     {
+        // FIXME don't generate the DeferredSymbol for these types
+        // and eliminate this check
+        if (!cppDecl.getType().isWrappable(false))
+        {
+            // Hope it's not actually used anywhere...
+            return;
+        }
         determineStrategy(cppDecl.getType());
     }
     symbol.resolve();
