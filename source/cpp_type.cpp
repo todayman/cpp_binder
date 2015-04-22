@@ -355,6 +355,13 @@ Type* TypedefType::getTargetType() const
 bool TypedefType::isWrappable(bool refAllowed)
 {
     bool result = getTargetType()->isWrappable(refAllowed);
+
+    // FIXME duplication with TypedefDecl
+    clang::TypedefNameDecl* clang_decl = type->getDecl();
+    if (clang_decl->isImplicit())
+    {
+        result = false;
+    }
     return result;
 }
 
