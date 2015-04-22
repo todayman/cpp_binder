@@ -118,6 +118,10 @@ package void determineStrategy(unknown.Type cppType)
             unknown.Declaration parent_template = cppType.getTemplateDeclaration();
             if (!parent_template.isWrappable())
             {
+                stderr.writeln("This specialization:");
+                cppType.dump();
+                stderr.writeln("Parent:");
+                parent_template.dump();
                 throw new Exception("The template for this specialization is not wrappable.");
             }
             // generic_type is the type represeting the most general template
@@ -438,6 +442,12 @@ private DeferredSymbol resolveOrDefer(Type)(Type cppType)
             // This symbol will be filled in when the declaration is traversed
             symbolForType[cast(void*)cppDecl.getType()] = result;
             unresolvedSymbols[result] = cppDecl;
+        }
+        if (result is null)
+        {
+            stderr.writeln("Could not build DeferredSymbol for");
+            cppType.dump();
+            assert(result !is null);
         }
         // cppDecl can be null if the type is a builtin type,
         // i.e., when it is not declared in the C++ anywhere
@@ -859,14 +869,18 @@ class UnwrappableType : Exception
         type = cppType;
         if (type.hasDeclaration())
         {
+            // TODO find a way to log that there is no decl
             unknown.Declaration decl = type.getDeclaration();
-            string name = binder.toDString(decl.getSourceName());
-            if (name.length == 0)
+            if (decl !is null)
             {
-                type.dump();
-                stderr.writeln("^ unwrappable type.");
+                string name = binder.toDString(decl.getSourceName());
+                if (name.length == 0)
+                {
+                    type.dump();
+                    stderr.writeln("^ unwrappable type.");
+                }
+                msg = "Type (" ~ name ~") is not wrappable.";
             }
-            msg = "Type (" ~ name ~") is not wrappable.";
         }
     }
 }
