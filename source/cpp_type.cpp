@@ -509,11 +509,21 @@ Declaration* TemplateArgumentType::getDeclaration() const
 
 TemplateTypeArgumentDeclaration * TemplateArgumentType::getTemplateTypeArgumentDeclaration() const
 {
-    assert(template_list != nullptr);
+    assert(type->getDecl() || template_list);
 
-    const clang::NamedDecl* clang_decl = template_list->getParam(type->getIndex());
-    assert(isTemplateTypeParmDecl(clang_decl));
-    return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
+    if (template_list)
+    {
+        const clang::NamedDecl* clang_decl = template_list->getParam(type->getIndex());
+        assert(isTemplateTypeParmDecl(clang_decl));
+        return dynamic_cast<TemplateTypeArgumentDeclaration*>(::getDeclaration(clang_decl));
+    }
+    else
+    {
+        const clang::TemplateTypeParmDecl* cppDecl = type->getDecl();
+        Declaration* decl = ::getDeclaration(cppDecl);
+        TemplateTypeArgumentDeclaration* result = dynamic_cast<TemplateTypeArgumentDeclaration*>(decl);
+        return result;
+    }
 }
 
 binder::string* TemplateArgumentType::getIdentifier() const
