@@ -947,6 +947,7 @@ class Expression;
         bool VisitFunctionType(clang::FunctionType * cppType);
         bool VisitLValueReferenceType(clang::LValueReferenceType* cppType);
         bool VisitTypedefType(clang::TypedefType* cppType);
+        bool VisitTemplateTypeParmType(clang::TemplateTypeParmType* cppType);
     };
 
     // Catching this type directly is probably programmer error -

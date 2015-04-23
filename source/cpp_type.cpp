@@ -1206,6 +1206,20 @@ bool ClangTypeVisitor::WalkUpFromTemplateTypeParmType(clang::TemplateTypeParmTyp
     return Super::WalkUpFromTemplateTypeParmType(type);
 }
 
+bool ClangTypeVisitor::VisitTemplateTypeParmType(clang::TemplateTypeParmType* type)
+{
+    clang::TemplateTypeParmDecl* decl = type->getDecl();
+    if (decl)
+    {
+        DeclVisitor visitor(printPolicy);
+        // TraverseDecl simply returns if this decl has already been reached,
+        // so no need to worry about mutual recursion
+        visitor.TraverseDecl(decl);
+    }
+
+    return Super::VisitTemplateTypeParmType(type);
+}
+
 // A non-instantiated class template
 bool ClangTypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type)
 {
