@@ -573,12 +573,14 @@ bool TemplateSpecializationType::isWrappable(bool)
             !iter->equals(end);
             iter->advance())
     {
+        // Can't return true in here, because all the arguments need to be OK
         switch (iter->getKind())
         {
             case TemplateArgumentInstanceIterator::Type:
                 if (!iter->getType()->isWrappable(false)) return false;
+                break;
             case TemplateArgumentInstanceIterator::Pack:
-                //return false;
+                return false;
             case TemplateArgumentInstanceIterator::Integer:
             case TemplateArgumentInstanceIterator::Expression:
                 break;
@@ -834,7 +836,23 @@ bool DelayedType::isWrappable(bool refAllowed)
     {
         //std::cerr << "Delayed type is not wrappable because it does not resolve.\n";
         // WE'LL DO IT LIVE
-        return true;
+        return false;
+
+        clang::NestedNameSpecifier* container = type->getQualifier();
+
+        clang::NestedNameSpecifier::SpecifierKind kind = container->getKind();
+        switch (kind)
+        {
+            case clang::NestedNameSpecifier::TypeSpec:
+            case clang::NestedNameSpecifier::TypeSpecWithTemplate:
+            {
+                const clang::Type* container_type = container->getAsType();
+                return Type::get(container_type)->isWrappable(false);
+                break;
+            }
+            default:
+                return true;
+        }
     }
 }
 
