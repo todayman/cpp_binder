@@ -835,24 +835,7 @@ bool DelayedType::isWrappable(bool refAllowed)
     else
     {
         //std::cerr << "Delayed type is not wrappable because it does not resolve.\n";
-        // WE'LL DO IT LIVE
         return false;
-
-        clang::NestedNameSpecifier* container = type->getQualifier();
-
-        clang::NestedNameSpecifier::SpecifierKind kind = container->getKind();
-        switch (kind)
-        {
-            case clang::NestedNameSpecifier::TypeSpec:
-            case clang::NestedNameSpecifier::TypeSpecWithTemplate:
-            {
-                const clang::Type* container_type = container->getAsType();
-                return Type::get(container_type)->isWrappable(false);
-                break;
-            }
-            default:
-                return true;
-        }
     }
 }
 
