@@ -788,9 +788,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         IdentifierChain package_name = moduleForDeclaration(cppDecl);
         Token name = nameFromDecl(cppDecl);
-        if (result.name.text.length > 0)
+        if (name.text.length > 0)
         {
-            result.name = nameFromDecl(cppDecl);
+            result.name = name;
             DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, result.name, package_name, package_internal_path[$-1], namespace_path);
 
             package_internal_path ~= [symbol];
