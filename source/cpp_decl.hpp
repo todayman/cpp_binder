@@ -1601,6 +1601,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         bool TraverseUnresolvedUsingValueDecl(clang::UnresolvedUsingValueDecl* cppDecl);
 
+        bool TraverseCXXConversionDecl(clang::CXXConversionDecl* cppDecl);
+
         bool VisitDecl(clang::Decl* Declaration);
         // Also gets cxx method/ctor/dtor
         bool VisitFunctionDecl(clang::FunctionDecl * Declaration);

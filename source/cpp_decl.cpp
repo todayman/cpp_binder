@@ -889,6 +889,7 @@ UNWRAPPABLE_TRAVERSE(Using) // FIXME we can translate these as aliases
 UNWRAPPABLE_TRAVERSE(UsingShadow) // FIXME we can probably translate these as aliases?
 UNWRAPPABLE_TRAVERSE(CXXConstructor) // FIXME maybe do this in the future?
 UNWRAPPABLE_TRAVERSE(CXXDestructor) // FIXME maybe do this in the future?
+UNWRAPPABLE_TRAVERSE(CXXConversion)
 
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {
