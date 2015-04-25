@@ -126,7 +126,7 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         }
         virtual string* getTargetName() const
         {
-            if( _name.size() == 0 )
+            if (_name.size() == 0)
             {
                 return new string(source_name);
             }
@@ -1561,6 +1561,15 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseIndirectFieldDecl(clang::IndirectFieldDecl* cppDecl);
         bool TraverseCXXConstructorDecl(clang::CXXConstructorDecl* cppDecl);
         bool TraverseCXXDestructorDecl(clang::CXXDestructorDecl* cppDecl);
+
+        // Need this so that we can traverse the type separately from the var
+        // decl.  The type may contain decls (i.e. function pointer with param
+        // decls), and this prevents those names from being confused with the
+        // variable name
+        bool TraverseVarDecl(clang::VarDecl* cppDecl);
+        bool TraverseTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl);
+        bool TraverseNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl);
+
         // FIXME I have no idea what this is.
         bool TraverseEmptyDecl(clang::EmptyDecl* cppDecl);
         bool TraverseUsingDecl(clang::UsingDecl* cppDecl);

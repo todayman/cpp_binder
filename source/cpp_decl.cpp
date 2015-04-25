@@ -898,6 +898,11 @@ bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
     return Super::WalkUpFromFunctionDecl(cppDecl);
 }
 
+bool DeclVisitor::TraverseVarDecl(clang::VarDecl* cppDecl)
+{
+    return WalkUpFromVarDecl(cppDecl);
+}
+
 bool DeclVisitor::WalkUpFromVarDecl(clang::VarDecl* cppDecl)
 {
     // This could be an instance variable or a global
@@ -1022,6 +1027,11 @@ bool DeclVisitor::WalkUpFromClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
     return true;
 }
 
+bool DeclVisitor::TraverseTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
+{
+    return WalkUpFromTemplateTypeParmDecl(cppDecl);
+}
+
 bool DeclVisitor::WalkUpFromTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl)
 {
     allocateDeclaration<clang::TemplateTypeParmDecl, TemplateTypeArgumentDeclaration>(cppDecl);
@@ -1042,6 +1052,11 @@ bool DeclVisitor::VisitTemplateTypeParmDecl(clang::TemplateTypeParmDecl* cppDecl
     }
 
     return true;
+}
+
+bool DeclVisitor::TraverseNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl)
+{
+    return WalkUpFromNonTypeTemplateParmDecl(cppDecl);
 }
 
 bool DeclVisitor::WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl)

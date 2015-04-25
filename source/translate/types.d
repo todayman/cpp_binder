@@ -357,12 +357,19 @@ private std.d.ast.Type translatePointerOrReference
         }
         else
         {
+            std.d.ast.Type translatedTargetType = translateType(target_type, qualifiers).clone;
+            // Function pointers don't need the '*'
+            if (target_type.getKind() == unknown.Type.Kind.Function)
+            {
+                result = translatedTargetType;
+                return result;
+            }
+
             result = new std.d.ast.Type();
             TypeSuffix pointerSuffix = new TypeSuffix();
             pointerSuffix.star = Token(tok!"*", "", 0, 0, 0);
             result.typeSuffixes = [pointerSuffix];
 
-            std.d.ast.Type translatedTargetType = translateType(target_type, qualifiers).clone;
             if (translatedTargetType.typeConstructors.length > 0)
             {
                 result.type2 = new Type2();
@@ -811,6 +818,7 @@ private std.d.ast.Type replaceFunction(unknown.FunctionType cppType)
     returnType.typeSuffixes ~= [suffix];
 
     auto parameters = new std.d.ast.Parameters();
+    suffix.parameters = parameters;
     // TODO handle varargs case
     parameters.hasVarargs = false;
     foreach (unknown.Type arg_type; cppType.getArgumentRange())
