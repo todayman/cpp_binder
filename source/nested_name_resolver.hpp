@@ -170,6 +170,13 @@ class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<
         // TODO
         return false;
     }
+    bool WalkUpFromTypeAliasTemplateDecl(clang::TypeAliasTemplateDecl*)
+    {
+        // I could probably do a better effort on these, e.g. find the
+        // target Decl and look there...
+        // TODO
+        return false;
+    }
 
     bool TraverseElaboratedType(clang::ElaboratedType* type)
     {
