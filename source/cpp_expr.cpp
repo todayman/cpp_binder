@@ -115,6 +115,30 @@ Declaration* DelayedExpression::getDeclaration() const
     return result;
 }
 
+CastExpression::CastExpression(clang::CastExpr* e)
+    : expr(e)
+{ }
+
+void CastExpression::dump() const
+{
+    expr->dump();
+}
+
+void CastExpression::visit(ExpressionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+Type* CastExpression::getType()
+{
+    return Type::get(expr->getType());
+}
+
+Expression * CastExpression::getSubExpression()
+{
+    return wrapClangExpression(expr->getSubExpr());
+}
+
 void UnwrappableExpression::dump() const
 {
     expr->dump();
@@ -161,6 +185,13 @@ class ClangExpressionVisitor : public clang::RecursiveASTVisitor<ClangExpression
     bool WalkUpFromDependentScopeDeclRefExpr(clang::DependentScopeDeclRefExpr* expr)
     {
         result = new DelayedExpression(expr);
+
+        return false;
+    }
+
+    bool WalkUpFromCastExpr(clang::CastExpr* expr)
+    {
+        result = new CastExpression(expr);
 
         return false;
     }

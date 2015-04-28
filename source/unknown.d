@@ -766,6 +766,8 @@ extern (C++) interface ExpressionVisitor
 
     public void visit(unknown.DelayedExpression expr);
 
+    public void visit(unknown.CastExpression expr);
+
     public void visit(unknown.UnwrappableExpression expr);
 }
 
@@ -793,6 +795,13 @@ extern (C++) interface DelayedExpression : unknown.Expression
 {
 
     final public unknown.Declaration getDeclaration() const;
+}
+
+extern (C++) interface CastExpression : unknown.Expression
+{
+    final public unknown.Type getType();
+
+    final public unknown.Expression getSubExpression();
 }
 
 extern (C++) interface UnwrappableExpression : unknown.Expression {}

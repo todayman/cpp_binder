@@ -74,6 +74,22 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     }
 
     extern(C++) override
+    void visit(unknown.CastExpression expr)
+    {
+        auto unaryResult = new std.d.ast.UnaryExpression();
+        unaryResult.castExpression = new std.d.ast.CastExpression();
+        unaryResult.castExpression.type = translateType(expr.getType(), QualifierSet.init);
+        unaryResult.castExpression.unaryExpression = new std.d.ast.UnaryExpression();
+        unaryResult.castExpression.unaryExpression.primaryExpression = new std.d.ast.PrimaryExpression();
+        unaryResult.castExpression.unaryExpression.primaryExpression.expression = new std.d.ast.Expression();
+
+        auto visitor = new ExpressionTranslator();
+        expr.getSubExpression().visit(visitor);
+        unaryResult.castExpression.unaryExpression.primaryExpression.expression.items = [visitor.result];
+        result = unaryResult;
+    }
+
+    extern(C++) override
     void visit(unknown.UnwrappableExpression expr)
     {
     }

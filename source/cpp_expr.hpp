@@ -21,6 +21,7 @@
 
 namespace clang
 {
+    class CastExpr;
     class Expr;
     class DeclRefExpr;
     class IntegerLiteral;
@@ -32,8 +33,10 @@ class Expression;
 class ExpressionVisitor;
 class IntegerLiteralExpression;
 class DeclaredExpression;
+class CastExpression;
 class UnwrappableExpression;
 class DelayedExpression;
+class Type;
 
 class ExpressionVisitor
 {
@@ -41,6 +44,7 @@ class ExpressionVisitor
     virtual void visit(IntegerLiteralExpression& expr) = 0;
     virtual void visit(DeclaredExpression& expr) = 0;
     virtual void visit(DelayedExpression& expr) = 0;
+    virtual void visit(CastExpression& expr) = 0;
     virtual void visit(UnwrappableExpression& expr) = 0;
 };
 
@@ -108,6 +112,22 @@ class DelayedExpression : public Expression
     }
 
     Declaration* getDeclaration() const;
+};
+
+class CastExpression : public Expression
+{
+    clang::CastExpr* expr;
+
+    public:
+    explicit CastExpression(clang::CastExpr* e);
+
+    virtual void dump() const override;
+
+    virtual void visit(ExpressionVisitor& visitor) override;
+
+    Type* getType();
+
+    Expression * getSubExpression();
 };
 
 class UnwrappableExpression : public Expression
