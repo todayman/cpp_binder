@@ -34,6 +34,14 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     std.d.ast.ExpressionNode result;
 
     extern(C++) override
+    void visit(unknown.BoolLiteralExpression expr)
+    {
+        auto primary = new std.d.ast.PrimaryExpression();
+        primary.primary = Token(tok!"longLiteral", to!string(expr.getValue()), 0, 0, 0);
+        result = primary;
+    }
+
+    extern(C++) override
     void visit(unknown.IntegerLiteralExpression expr)
     {
         auto primary = new std.d.ast.PrimaryExpression();

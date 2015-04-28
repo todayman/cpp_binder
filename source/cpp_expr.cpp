@@ -33,6 +33,25 @@ long long IntegerLiteralExpression::getValue() const
     return value->getValue().getSExtValue();
 }
 
+BoolLiteralExpression::BoolLiteralExpression(const clang::CXXBoolLiteralExpr* e)
+    : value(e)
+{ }
+
+void BoolLiteralExpression::visit(ExpressionVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+void BoolLiteralExpression::dump() const
+{
+    value->dump();
+}
+
+bool BoolLiteralExpression::getValue() const
+{
+    return value->getValue();
+}
+
 void DeclaredExpression::dump() const
 {
     expr->dump();
@@ -159,6 +178,12 @@ class ClangExpressionVisitor : public clang::RecursiveASTVisitor<ClangExpression
     {
         result = new IntegerLiteralExpression(expr);
 
+        return false;
+    }
+
+    bool WalkUpFromCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr* expr)
+    {
+        result = new BoolLiteralExpression(expr);
         return false;
     }
 

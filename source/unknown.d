@@ -759,14 +759,15 @@ extern (C++) extern const(clang.SourceManager)* source_manager;
 
 extern (C++) interface ExpressionVisitor
 {
+    public void visit(unknown.BoolLiteralExpression expr);
 
-    public void visit(unknown.IntegerLiteralExpression expr);
+    public void visit(unknown.CastExpression expr);
 
     public void visit(unknown.DeclaredExpression expr);
 
     public void visit(unknown.DelayedExpression expr);
 
-    public void visit(unknown.CastExpression expr);
+    public void visit(unknown.IntegerLiteralExpression expr);
 
     public void visit(unknown.UnwrappableExpression expr);
 }
@@ -783,6 +784,11 @@ extern (C++) interface IntegerLiteralExpression : unknown.Expression
 {
 
     final public long getValue() const;
+}
+
+extern (C++) interface BoolLiteralExpression : unknown.Expression
+{
+    final public bool getValue() const;
 }
 
 extern (C++) interface DeclaredExpression : unknown.Expression
