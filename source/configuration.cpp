@@ -50,7 +50,7 @@ static clang::DeclContextLookupResult lookupDeclName(const binder::string& binde
         std::string remaining_name = std::string(scope_start + 2, end(name));
         if( result.size() == 0 )
         {
-            throw std::runtime_error("Looking for a decl contained by another decl, but the outer decl does not contain the inner decl.");
+            throw std::runtime_error(std::string("Looking for a decl (")+ name + ") contained by another decl, but the outer decl does not contain the inner decl.");
         }
         else if( result.size() > 1 )
         {
