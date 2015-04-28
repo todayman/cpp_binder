@@ -1403,6 +1403,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             _decl->dump();
         }
+
+        virtual bool hasDefaultArgument() const;
+        virtual Expression* getDefaultArgument() const;
     };
 
     class UsingAliasDeclaration : public Declaration

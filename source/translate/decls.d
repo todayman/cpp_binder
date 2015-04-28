@@ -1009,7 +1009,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto result = new std.d.ast.TemplateValueParameter();
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
         result.identifier = nameFromDecl(cppDecl);
-        // TODO default values
+
+        if (cppDecl.hasDefaultArgument())
+        {
+            unknown.Expression expr = cppDecl.getDefaultArgument();
+            result.templateValueParameterDefault = new std.d.ast.TemplateValueParameterDefault();
+            result.templateValueParameterDefault.assignExpression = translateExpression(expr);
+        }
+
         makeExprForDecl(cppDecl, result.identifier, null, "");
         return result;
     }

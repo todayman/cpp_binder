@@ -22,14 +22,14 @@
 
 #include <boost/filesystem.hpp>
 
+#include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/ASTUnit.h"
 
 #include "cpp_type.hpp"
 #include "cpp_decl.hpp"
-
-#include "clang/AST/Decl.h"
+#include "cpp_expr.hpp"
 
 DeclarationAttributes* DeclarationAttributes::make()
 {
@@ -566,6 +566,16 @@ bool TemplateTypeArgumentDeclaration::hasDefaultType() const
 Type* TemplateTypeArgumentDeclaration::getDefaultType() const
 {
     return Type::get(_decl->getDefaultArgument());
+}
+
+bool TemplateNonTypeArgumentDeclaration::hasDefaultArgument() const
+{
+    return _decl->hasDefaultArgument();
+}
+
+Expression* TemplateNonTypeArgumentDeclaration::getDefaultArgument() const
+{
+    return wrapClangExpression(_decl->getDefaultArgument());
 }
 
 DeclarationRange* NamespaceDeclaration::getChildren()
