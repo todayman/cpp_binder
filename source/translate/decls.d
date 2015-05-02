@@ -1017,7 +1017,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result.templateValueParameterDefault.assignExpression = translateExpression(expr);
         }
 
-        makeExprForDecl(cppDecl, result.identifier, null, "");
+        DeferredExpression deferred = makeExprForDecl(cppDecl, result.identifier, null, "");
+        // These can be resolved immediately, since the resulting symbol
+        // consists only of the name of the decl
+        deferred.resolve();
         return result;
     }
     extern(C++) override void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
