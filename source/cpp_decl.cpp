@@ -1076,6 +1076,11 @@ bool DeclVisitor::WalkUpFromNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDe
     return Super::WalkUpFromNonTypeTemplateParmDecl(cppDecl);
 }
 
+bool DeclVisitor::VisitNonTypeTemplateParmDecl(clang::NonTypeTemplateParmDecl* cppDecl)
+{
+    return TraverseType(cppDecl->getType());
+}
+
 bool DeclVisitor::WalkUpFromClassTemplateSpecializationDecl(clang::ClassTemplateSpecializationDecl* cppDecl)
 {
     if (isTemplateVariadic(cppDecl->getSpecializedTemplate()))
