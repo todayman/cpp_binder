@@ -418,8 +418,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         foreach (child; cppDecl.getChildren())
         {
-            if (cast(void*)child in translated)
+            if (auto ptr = cast(void*)child in translated)
             {
+                result.structBody.declarations ~= [*ptr];
                 continue;
             }
             try {
