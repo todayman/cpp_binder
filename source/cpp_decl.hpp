@@ -1507,7 +1507,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             }
             declarations.insert(std::make_pair(decl, decl_in_progress));
             bool isCanonical = (decl->getCanonicalDecl() == decl);
-            if (!isCanonical)
+            if (!isCanonical && declarations.find(decl->getCanonicalDecl()) == declarations.end())
             {
                 declarations.insert(std::make_pair(decl->getCanonicalDecl(), decl_in_progress));
             }
