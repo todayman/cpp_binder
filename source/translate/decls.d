@@ -40,12 +40,13 @@ private std.d.ast.Declaration[void*] translated;
 private int[std.d.ast.Declaration] placedDeclarations;
 package DeferredExpression[void*] exprForDecl;
 
-Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
+std.d.ast.Declaration CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
     if (cast(void*)cppDecl in translated)
     {
-        return cast(Result)translated[cast(void*)cppDecl];
+        return translated[cast(void*)cppDecl];
         // ^ This cast failing is a huge internal programmer error
+        // ^ This cast was cast(Result) and would always fail
     }
     return null;
 }
@@ -526,14 +527,23 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.StructDeclaration)(cppDecl);
         if (short_circuit !is null)
         {
-            info("Short-circuiting building the struct for ", name.text, ".");
-            return short_circuit;
+            info("Short-circuiting building the struct for ", name.text, " @0x", cast(void*)cppDecl, ".");
+            return short_circuit.structDeclaration;
         }
+        info("Long-circuiting building the struct for ", name.text, " @0x", cast(void*)cppDecl, ".");
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.StructDeclaration)(cppDecl, outerDeclaration);
         result.name = name;
         result.templateParameters = template_params;
+        if (cast(void*)cppDecl in translated)
+        {
+            info("inserted the declaration into the translated AA");
+        }
+        else
+        {
+            info("DID NOT insert the declaration into the translated AA");
+        }
 
         // Set the linkage attributes for this struct
         // This only matters for methods
@@ -596,7 +606,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     std.d.ast.InterfaceDeclaration buildInterface(unknown.RecordDeclaration cppDecl, Token name, std.d.ast.TemplateParameters template_params)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.InterfaceDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        if (short_circuit !is null) return short_circuit.interfaceDeclaration;
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.InterfaceDeclaration)(cppDecl, outerDeclaration);
@@ -652,7 +662,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         trace("Entering TranslatorVisitor.visitRecord()");
         scope(exit) trace("Exiting TranslatorVisitor.visitRecord()");
         Token name = nameFromDecl(cppDecl);
-        info("Translating record named ", name.text);
+        info("Translating record named ", name.text, " for cppDecl @", cast(void*)cppDecl);
         IdentifierChain package_name = moduleForDeclaration(cppDecl);
         DeferredSymbol symbol = makeSymbolForTypeDecl(cppDecl, name, package_name, package_internal_path[$-1], namespace_path);
         package_internal_path ~= [symbol];
@@ -660,7 +670,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         buildRecord(cppDecl, name, null);
         // Records using the replacement strategy don't produce a result
-        if (auto ptr = cast(void*)cppDecl in translated)
+        auto ptr = cast(void*)cppDecl in translated;
+        if (ptr && (!((*ptr) in placedDeclarations) || placedDeclarations[*ptr] == 0))
         {
             last_result = *ptr;
         }
@@ -724,7 +735,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     std.d.ast.AliasDeclaration translateTypedef(Declaration)(Declaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        if (short_circuit !is null) return short_circuit.aliasDeclaration;
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.AliasDeclaration)(cppDecl, outerDeclaration);
@@ -781,7 +792,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     std.d.ast.EnumDeclaration translateEnum(unknown.EnumDeclaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        if (short_circuit !is null) return short_circuit.enumDeclaration;
 
         auto result = registerDeclaration!(std.d.ast.EnumDeclaration)(cppDecl);
         result.enumBody = new EnumBody();
@@ -824,8 +835,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     std.d.ast.EnumMember translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumMember)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        /*auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumMember)(cppDecl);
+        if (short_circuit !is null) return short_circuit.enumMember;*/
+        // TODO insert into translated AA
         auto result = new std.d.ast.EnumMember();
         result.name = nameFromDecl(cppDecl); // TODO remove prefix
         result.assignExpression = new AssignExpression();
@@ -856,7 +868,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     std.d.ast.UnionDeclaration translateUnion(unknown.UnionDeclaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.UnionDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        if (short_circuit !is null) return short_circuit.unionDeclaration;
 
         std.d.ast.Declaration outerDeclaration;
         auto result = registerDeclaration!(std.d.ast.UnionDeclaration)(cppDecl, outerDeclaration);
@@ -915,8 +927,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     std.d.ast.Parameter translateArgument(unknown.ArgumentDeclaration cppDecl)
     {
-        auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Parameter)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        /*auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Parameter)(cppDecl);
+        if (short_circuit !is null) return short_circuit;*/
+        // TODO put into translate AA
 
         auto arg = new std.d.ast.Parameter();
         arg.name = nameFromDecl(cppDecl);
@@ -950,7 +963,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     std.d.ast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl, out std.d.ast.Declaration outerDeclaration)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.VariableDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        if (short_circuit !is null) return short_circuit.variableDeclaration;
 
         auto var = registerDeclaration!(std.d.ast.VariableDeclaration)(cppDecl, outerDeclaration);
 
