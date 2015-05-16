@@ -1353,11 +1353,16 @@ private void placeIntoTargetModule(unknown.Declaration declaration, std.d.ast.De
     {
         if (translation in placedDeclarations)
         {
+            info("Already placed cpp decl ", binder.toDString(declaration.getSourceName()), " @", cast(void*)declaration);
             return;
         }
 
         destination.addDeclaration(translation, namespace_path);
         placedDeclarations[translation] = 1;
+    }
+    else
+    {
+        info("No translation for declaration @", cast(void*)declaration);
     }
 }
 
