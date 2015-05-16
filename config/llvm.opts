@@ -1,7 +1,61 @@
 -c config/builtin_types.json
+-c config/libstdc++.json
 -c config/llvm.json
 
-/usr/include/llvm/ADT/None.h
+/usr/include/llvm/ADT/APFloat.h
 /usr/include/llvm/ADT/APInt.h
+/usr/include/llvm/ADT/APSInt.h
+/usr/include/llvm/ADT/ArrayRef.h
+/usr/include/llvm/ADT/BitVector.h
+/usr/include/llvm/ADT/DAGDeltaAlgorithm.h
+/usr/include/llvm/ADT/DeltaAlgorithm.h
+/usr/include/llvm/ADT/DenseMap.h
+/usr/include/llvm/ADT/DenseMapInfo.h
+/usr/include/llvm/ADT/DenseSet.h
+/usr/include/llvm/ADT/DepthFirstIterator.h
+/usr/include/llvm/ADT/edit_distance.h
+/usr/include/llvm/ADT/FoldingSet.h
+/usr/include/llvm/ADT/GraphTraits.h
+/usr/include/llvm/ADT/Hashing.h
+/usr/include/llvm/ADT/ImmutableList.h
+/usr/include/llvm/ADT/ImmutableMap.h
+/usr/include/llvm/ADT/ImmutableSet.h
+/usr/include/llvm/ADT/IndexedMap.h
+/usr/include/llvm/ADT/IntEqClasses.h
+/usr/include/llvm/ADT/IntrusiveRefCntPtr.h
+/usr/include/llvm/ADT/iterator.h
+/usr/include/llvm/ADT/iterator_range.h
+/usr/include/llvm/ADT/MapVector.h
+/usr/include/llvm/ADT/None.h
+/usr/include/llvm/ADT/Optional.h
+/usr/include/llvm/ADT/PackedVector.h
+/usr/include/llvm/ADT/PointerIntPair.h
+/usr/include/llvm/ADT/PointerUnion.h
+/usr/include/llvm/ADT/PostOrderIterator.h
+/usr/include/llvm/ADT/PriorityQueue.h
+/usr/include/llvm/ADT/SCCIterator.h
+/usr/include/llvm/ADT/ScopedHashTable.h
+/usr/include/llvm/ADT/SetOperations.h
+/usr/include/llvm/ADT/SetVector.h
+/usr/include/llvm/ADT/SmallBitVector.h
+/usr/include/llvm/ADT/SmallPtrSet.h
+/usr/include/llvm/ADT/SmallSet.h
+/usr/include/llvm/ADT/SmallString.h
+/usr/include/llvm/ADT/SmallVector.h
+/usr/include/llvm/ADT/SparseBitVector.h
+/usr/include/llvm/ADT/SparseMultiSet.h
+/usr/include/llvm/ADT/SparseSet.h
+/usr/include/llvm/ADT/Statistic.h
+/usr/include/llvm/ADT/STLExtras.h
+/usr/include/llvm/ADT/StringExtras.h
+/usr/include/llvm/ADT/StringMap.h
+/usr/include/llvm/ADT/StringRef.h
+/usr/include/llvm/ADT/StringSet.h
+/usr/include/llvm/ADT/StringSwitch.h
+/usr/include/llvm/ADT/TinyPtrVector.h
+/usr/include/llvm/ADT/Triple.h
+/usr/include/llvm/ADT/Twine.h
+/usr/include/llvm/ADT/UniqueVector.h
+/usr/include/llvm/ADT/VariadicFunction.h
 
 -o llvmd

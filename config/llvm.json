@@ -5,5 +5,53 @@
         , "-fPIC"
     ],
     "binding_attributes": {
+        "mapped_iterator": {
+            "bound": 0
+        }
+        , "std::__or_": {
+            "bound": 0
+        }
+        , "llvm::SparseMultiSet": {
+            "bound": 0
+        }
+        , "llvm::APSInt::toString": {
+            "bound": 0
+        }
+        , "llvm::Triple": {
+            "bound": 0
+        }
+        , "llvm::StringRef::str": {
+            "bound": 0
+        }
+        , "llvm::StringRef::lower": {
+            "bound": 0
+        }
+        , "llvm::StringRef::upper": {
+            "bound": 0
+        }
+        , "llvm::StringRef::split": {
+            "bound": 0
+        }
+        , "llvm::StringRef::rsplit": {
+            "bound": 0
+        }
+        , "llvm::utohexstr": {
+            "bound": 0
+        }
+        , "llvm::utostr_32": {
+            "bound": 0
+        }
+        , "llvm::utostr": {
+            "bound": 0
+        }
+        , "llvm::itostr": {
+            "bound": 0
+        }
+        , "llvm::getToken": {
+            "bound": 0
+        }
+        , "std::swap": {
+            "bound": 0
+        }
     }
 }
