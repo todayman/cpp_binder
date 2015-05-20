@@ -6,7 +6,7 @@
 	, "authors": ["Paul O'Neil"]
     , "targetType": "executable"
 	, "dependencies": {
-        "libdparse": "~master"
+        "libdparse": "~>0.2.1"
 	}
     , "preBuildCommands": [
         "mkdir -p build"
