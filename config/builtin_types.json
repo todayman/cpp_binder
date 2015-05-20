@@ -148,5 +148,12 @@
             }
             , "target_module": "."
         }
+        , "__va_list_tag": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "__va_list_tag"
+            }
+            , "bound": 0
+        }
     }
 }
