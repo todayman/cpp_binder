@@ -57,5 +57,6 @@
 /usr/include/llvm/ADT/Twine.h
 /usr/include/llvm/ADT/UniqueVector.h
 /usr/include/llvm/ADT/VariadicFunction.h
+/usr/include/llvm/Support/type_traits.h
 
 -o llvmd
