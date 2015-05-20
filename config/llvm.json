@@ -53,5 +53,35 @@
         , "std::swap": {
             "bound": 0
         }
+        , "llvm::VariadicFunction": {
+            "bound": 0
+        }
+        , "llvm::VariadicFunction1": {
+            "bound": 0
+        }
+        , "llvm::VariadicFunction2": {
+            "bound": 0
+        }
+        , "llvm::VariadicFunction3": {
+            "bound": 0
+        }
+        , "llvm::Twine::Child::stdString": {
+            "bound": 0
+        }
+        , "llvm::Twine::str": {
+            "bound": 0
+        }
+        , "llvm::Twine::printOneChild": {
+            "bound": 0
+        }
+        , "llvm::Twine::printOneChildRepr": {
+            "bound": 0
+        }
+        , "uint64_t": {
+            "strategy": {
+                "name": "replace",
+                "d_decl": "ulong"
+            }
+        }
     }
 }
