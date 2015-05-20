@@ -1380,7 +1380,7 @@ std.d.ast.Module populateDAST(string output_module_name)
     for (size_t i = 0; i < array_len; ++i)
     {
         unknown.Declaration declaration = freeDeclarations[i];
-        if (!declaration.isWrappable())// || !declaration.shouldEmit())
+        if (!declaration.isWrappable())
         {
             continue;
         }
@@ -1414,7 +1414,7 @@ std.d.ast.Module populateDAST(string output_module_name)
         }
         catch (Exception exc)
         {
-            //declaration.dump();
+            declaration.dump();
             stderr.writeln("ERROR: ", exc.msg);
         }
 
@@ -1531,6 +1531,7 @@ package DeferredExpression makeExprForDecl
     import std.array : join;
     import std.algorithm : map;
 
+    info("Making DeferredExpression for declaration ", binder.toDString(cppDecl.getSourceName()));
     DeferredExpression expression;
     if (auto e_ptr = (cast(void*)cppDecl) in exprForDecl)
     {
@@ -1541,17 +1542,20 @@ package DeferredExpression makeExprForDecl
         expression = new DeferredExpression(null);
         exprForDecl[cast(void*)cppDecl] = expression;
     }
+    info("DeferredExpression = ", cast(void*)expression);
     DeferredSymbolConcatenation symbol;
 
     if (expression.symbol is null)
     {
         symbol = new DeferredSymbolConcatenation();
         expression.symbol = symbol;
+        info("expression symbol was null");
     }
     else
     {
         symbol = expression.symbol;
     }
+    symbol.addDependency(expression);
 
     unresolvedSymbols[symbol] = cppDecl;
 

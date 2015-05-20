@@ -19,6 +19,7 @@
 module translate.expr;
 
 import std.conv : to;
+import std.experimental.logger;
 
 static import std.d.ast;
 import std.d.lexer : Token, tok;
@@ -76,6 +77,8 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
         else
         {
             auto deferred = new DeferredExpression(null);
+            info("Created deferred expression ", cast(void*)deferred);
+            info("For declaration ", cast(void*)decl);
             exprForDecl[cast(void*)decl] = deferred;
             result = deferred.getExpression();
         }
@@ -129,6 +132,7 @@ class DeferredExpression : Resolvable
     {
         if (resolved) return;
 
+        info("Resolving deferred expression ", cast(void*)this);
         symbol.resolve();
         std.d.ast.IdentifierOrTemplateInstance[] chain = symbol.getChain();
 
