@@ -532,7 +532,6 @@ class TemplateArgumentVisitor : unknown.DeclarationVisitor
     extern(C++) override void visitVariable(unknown.VariableDeclaration) { }
     extern(C++) override void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration) { }
     extern(C++) override void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration) { }
-    extern(C++) override void visitUsingAlias(unknown.UsingAliasDeclaration) { }
     extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration) { }
 
     unknown.TemplateArgumentIterator first;

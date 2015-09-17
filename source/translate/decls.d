@@ -366,8 +366,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         override extern(C++) public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node) { }
 
-        override extern(C++) public void visitUsingAlias(unknown.UsingAliasDeclaration node) { }
-
         override extern(C++) public void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration node) { }
         // END BlackHole workaround
 
@@ -733,7 +731,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         buildRecord(cppDecl, template_inst.identifier, null);
     }
 
-    std.d.ast.AliasDeclaration translateTypedef(Declaration)(Declaration cppDecl)
+    std.d.ast.AliasDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
     {
         auto short_circuit = CHECK_FOR_DECL!(std.d.ast.AliasDeclaration)(cppDecl);
         if (short_circuit !is null) return short_circuit.aliasDeclaration;
@@ -753,14 +751,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        translateTypedef!(unknown.TypedefDeclaration)(cppDecl);
-        last_result = translated[cast(void*)cppDecl];
-    }
-
-    extern(C++) override
-    void visitUsingAlias(unknown.UsingAliasDeclaration cppDecl)
-    {
-        translateTypedef!(unknown.UsingAliasDeclaration)(cppDecl);
+        translateTypedef(cppDecl);
         last_result = translated[cast(void*)cppDecl];
     }
 
@@ -781,7 +772,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             package_internal_path ~= [symbol];
             scope(exit) package_internal_path = package_internal_path[0 .. $-1];
 
-            translateTypedef!(unknown.UsingAliasDeclaration)(cppDecl);
+            translateTypedef(cppDecl);
 
             if (auto ptr = cast(void*)cppDecl in translated)
             {

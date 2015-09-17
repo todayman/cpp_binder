@@ -217,6 +217,15 @@ const RecordDeclaration* RecordDeclaration::getDefinition() const
     return dynamic_cast<const RecordDeclaration*>(decl);
 }
 
+TypedefDeclaration::TypedefDeclaration(const clang::TypedefNameDecl* d)
+  : Declaration(), _decl(d)
+{ }
+
+clang::SourceLocation TypedefDeclaration::getSourceLocation() const
+{
+    return _decl->getLocation();
+}
+
 bool TypedefDeclaration::isWrappable() const
 {
     // TODO make sure this is the correct thing
@@ -225,12 +234,19 @@ bool TypedefDeclaration::isWrappable() const
    {
        return false;
    }
-   return getTargetType()->isWrappable(false);
+   Type * targetType = getTargetType();
+   bool result = targetType->isWrappable(false);
+   return result;
 }
 
-TypedefType* TypedefDeclaration::getTypedefType() const
+Type * TypedefDeclaration::getType() const
 {
-    return dynamic_cast<TypedefType*>(Type::get(_decl->getTypeForDecl()));
+    return Type::get(_decl->getTypeForDecl());
+}
+
+void TypedefDeclaration::visit(DeclarationVisitor& visitor)
+{
+    visitor.visitTypedef(*this);
 }
 
 Type* TypedefDeclaration::getTargetType() const
@@ -583,45 +599,8 @@ DeclarationRange* NamespaceDeclaration::getChildren()
     return new RedeclarableContextDeclarationRange<clang::NamespaceDecl>(_decl->redecls());
 }
 
-UsingAliasDeclaration::UsingAliasDeclaration(const clang::TypeAliasDecl* d)
-    : _decl(d)
-{ }
-
-clang::SourceLocation UsingAliasDeclaration::getSourceLocation() const
-{
-    return _decl->getLocation();
-}
-
-bool UsingAliasDeclaration::isWrappable() const
-{
-    return getTargetType()->isWrappable(false);
-}
-
-Type* UsingAliasDeclaration::getType() const
-{
-    clang::TypeSourceInfo* source_info = _decl->getTypeSourceInfo();
-    clang::QualType info_type = source_info->getType();
-    Type * result = Type::get(info_type);
-    return result;
-}
-
-void UsingAliasDeclaration::visit(DeclarationVisitor& visitor)
-{
-    visitor.visitUsingAlias(*this);
-}
-
-Type* UsingAliasDeclaration::getTargetType()const
-{
-    return Type::get(_decl->getUnderlyingType());
-}
-
-void UsingAliasDeclaration::dump()
-{
-    _decl->dump();
-}
-
 UsingAliasTemplateDeclaration::UsingAliasTemplateDeclaration(const clang::TypeAliasTemplateDecl* d)
-    : UsingAliasDeclaration(d->getTemplatedDecl()), outer_decl(d)
+    : TypedefDeclaration(d->getTemplatedDecl()), outer_decl(d)
 { }
 
 clang::SourceLocation UsingAliasTemplateDeclaration::getSourceLocation() const
@@ -636,12 +615,7 @@ bool UsingAliasTemplateDeclaration::isWrappable() const
         return false;
     }
 
-    return UsingAliasDeclaration::isWrappable();
-}
-
-void UsingAliasTemplateDeclaration::dump()
-{
-    _decl->dump();
+    return TypedefDeclaration::isWrappable();
 }
 
 void UsingAliasTemplateDeclaration::visit(DeclarationVisitor& visitor)
@@ -1119,7 +1093,7 @@ bool DeclVisitor::TraverseTypeAliasDecl(clang::TypeAliasDecl* cppDecl)
 
 bool DeclVisitor::WalkUpFromTypeAliasDecl(clang::TypeAliasDecl* cppDecl)
 {
-    allocateDeclaration<clang::TypeAliasDecl, UsingAliasDeclaration>(cppDecl);
+    allocateDeclaration<clang::TypeAliasDecl, TypedefDeclaration>(cppDecl);
     return Super::WalkUpFromTypeAliasDecl(cppDecl);
 }
 

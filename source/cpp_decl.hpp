@@ -283,7 +283,6 @@ func(Argument)                  \
 func(Variable)                  \
 func(TemplateTypeArgument)      \
 func(TemplateNonTypeArgument)   \
-func(UsingAlias)                \
 func(UsingAliasTemplate)        \
 func(Unwrappable)
 
@@ -453,36 +452,18 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
     class TypedefDeclaration : public Declaration
     {
         private:
-        const clang::TypedefDecl* _decl;
+        const clang::TypedefNameDecl* _decl;
 
         public:
-        explicit TypedefDeclaration(const clang::TypedefDecl* d)
-            : Declaration()
-        {
-            _decl = d;
-        }
+        explicit TypedefDeclaration(const clang::TypedefNameDecl* d);
 
-        virtual clang::SourceLocation getSourceLocation() const override
-        {
-            return _decl->getLocation();
-        }
+        virtual clang::SourceLocation getSourceLocation() const override;
 
         virtual bool isWrappable() const override;
 
-        TypedefType* getTypedefType() const;
-        virtual Type* getType() const override
-        {
-            return getTypedefType();
-        }
+        virtual Type* getType() const override;
 
-        virtual void visit(DeclarationVisitor& visitor) override
-        {
-            visitor.visitTypedef(*this);
-        }
-        /*virtual void visit(ConstDeclarationVisitor& visitor) const override
-        {
-            visitor.visitTypedef(*this);
-        }*/
+        virtual void visit(DeclarationVisitor& visitor) override;
 
         Type* getTargetType() const;
 
@@ -1408,27 +1389,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual Expression* getDefaultArgument() const;
     };
 
-    class UsingAliasDeclaration : public Declaration
-    {
-        protected:
-        const clang::TypeAliasDecl * _decl;
-
-        public:
-        UsingAliasDeclaration(const clang::TypeAliasDecl* d);
-
-        virtual clang::SourceLocation getSourceLocation() const override;
-        virtual bool isWrappable() const override;
-
-        virtual Type* getType() const override;
-
-        virtual void visit(DeclarationVisitor& visitor) override;
-
-        Type* getTargetType() const;
-
-        virtual void dump() override;
-    };
-
-    class UsingAliasTemplateDeclaration : public UsingAliasDeclaration
+    class UsingAliasTemplateDeclaration : public TypedefDeclaration
     {
         protected:
         const clang::TypeAliasTemplateDecl* outer_decl;
@@ -1440,8 +1401,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual bool isWrappable() const override;
 
         virtual void visit(DeclarationVisitor& visitor) override;
-
-        virtual void dump() override;
 
         // TODO merge with RecordTemplateDeclaration, but I'm having MI issues
         bool isVariadic() const;

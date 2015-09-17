@@ -1,7 +1,7 @@
 module unknown;
 
 
-import 
+import
     manual_types;
 static import binder;
 
@@ -455,8 +455,6 @@ extern (C++) interface DeclarationVisitor
 
     public void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration node);
 
-    public void visitUsingAlias(unknown.UsingAliasDeclaration node);
-
     public void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration node);
 
     public void visitUnwrappable(unknown.UnwrappableDeclaration node);
@@ -482,8 +480,6 @@ extern (C++) interface NamespaceDeclaration : unknown.Declaration
 
 extern (C++) interface TypedefDeclaration : unknown.Declaration
 {
-
-    final public unknown.TypedefType getTypedefType() const;
 
     final public unknown.Type getTargetType() const;
 }
@@ -732,12 +728,7 @@ extern (C++) interface TemplateNonTypeArgumentDeclaration : unknown.Declaration
     public unknown.Expression getDefaultArgument() const;
 }
 
-extern (C++) interface UsingAliasDeclaration : unknown.Declaration
-{
-    final public unknown.Type getTargetType() const;
-}
-
-extern (C++) interface UsingAliasTemplateDeclaration : unknown.UsingAliasDeclaration
+extern (C++) interface UsingAliasTemplateDeclaration : unknown.TypedefDeclaration
 {
     final public bool isVariadic() const;
     public uint getTemplateArgumentCount() const;
