@@ -17,7 +17,13 @@ There can be multiple header files.
 The D modules are placed into `output_dir`; there can be only one.
 The arguments can appear in any order.
 
-Someday, when this is a real tool, I'll ship a configuration file in `/etc/cpp_binder.json` with builtin types and such and that will get parsed automatically.
+Someday, when this is a real tool, I'll ship a configuration file in
+`/etc/cpp_binder.json` with builtin types and such and that will get parsed
+automatically.
+
+The configuration needs to specify "resource-dir" to clang.  This appears to be
+dependent on the particular version of clang installed.  See `config/builtin_types.json`
+
 
 ## Dependencies
 
