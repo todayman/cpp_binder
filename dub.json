@@ -14,7 +14,6 @@
     ]
     , "lflags": [
         "-Lbuild"
-      , "-L/usr/lib/llvm-3.6/lib"
     ]
     , "libs": [
         "cpp_binder"
@@ -30,10 +29,19 @@
       , "clangSerialization"
       , "clangBasic"
       , "clang"
-      , "LLVM-3.6"
+      , "LLVMMCParser"
+      , "LLVMMC"
+      , "LLVMAsmPrinter"
+      , "LLVMAsmParser"
+      , "LLVMOption"
+      , "LLVMBitReader"
+      , "LLVMCore"
+      , "LLVMSupport"
       , "boost_filesystem"
       , "boost_system"
+      , "curses"
       , "stdc++"
+      , "dl"
     ]
     , "subPackages": [
         "./tests"
