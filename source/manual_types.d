@@ -23,7 +23,7 @@ extern(C++, clang)
         CXXLanguageLinkage,
         NoLanguageLinkage,
     }
-    enum AccessSpecifier;
+    enum AccessSpecifier : int;
 
     // This isn't the correct implementation, but it is 32 bits!
     struct SourceLocation {
