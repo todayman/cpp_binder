@@ -30,10 +30,10 @@ static import dlang_decls;
 
 void visitModule(const dlang_decls.Module mod, string path_prefix)
 {
-    if (mod.declarations.length == 0)
+    /+if (mod.declarations.length == 0)
     {
         return;
-    }
+    }+/
 
     Appender!string path_appender;
     // TODO
