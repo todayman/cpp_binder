@@ -166,7 +166,6 @@ enum VirtualBehavior {
 private class TranslatorVisitor : unknown.DeclarationVisitor
 {
     string namespace_path;
-    //DeferredSymbol[] package_internal_path; TODO should probably change to current scope or something
 
     public:
     dast.decls.Declaration last_result;
@@ -184,10 +183,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    void visit(unknown.Declaration cppDecl)
+    dast.decls.Declaration visit(unknown.Declaration cppDecl)
     {
         try {
             cppDecl.visit(this);
+            return last_result;
         }
         catch (RefTypeException e)
         {
