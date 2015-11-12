@@ -124,12 +124,6 @@ void append(IdentifierOrTemplateChain chain, Token identifier)
     chain.identifiersOrTemplateInstances ~= [instance];
 }
 
-// Do I need this?
-void stripExternCpp(dast.decls.Declaration decl)
-{
-    // TODO fill in
-}
-
 class Module
 {
     protected:
@@ -194,8 +188,6 @@ class Module
 
             parent_namespace.declarations ~= [decl];
         }
-        // TODO this isn't really the right place for this, is it?
-        stripExternCpp(decl);
     }
 }
 
