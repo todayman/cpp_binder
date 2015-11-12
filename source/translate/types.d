@@ -24,9 +24,6 @@ import std.stdio : stderr;
 import std.typecons : Flag, Yes;
 import std.experimental.logger;
 
-import std.d.ast;
-import std.d.lexer;
-
 static import binder;
 static import unknown;
 

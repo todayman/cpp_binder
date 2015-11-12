@@ -21,9 +21,6 @@ module translate.expr;
 import std.conv : to;
 import std.experimental.logger;
 
-static import std.d.ast;
-import std.d.lexer : Token, tok;
-
 static import unknown;
 
 import translate.types;
@@ -108,64 +105,3 @@ dlang_decls.Expression translateExpression(unknown.Expression expr)
     expr.visit(visitor);
     return visitor.result;
 }
-
-/+class DeferredExpression : Resolvable
-{
-    public DeferredSymbolConcatenation symbol;
-    protected:
-    std.d.ast.UnaryExpression result;
-    bool resolved;
-
-    public:
-    this(DeferredSymbolConcatenation sym)
-    {
-        symbol = sym;
-        resolved = false;
-        result = new std.d.ast.UnaryExpression();
-    }
-
-    override void resolve()
-    {
-        if (resolved) return;
-
-        info("Resolving deferred expression ", cast(void*)this);
-        symbol.resolve();
-        std.d.ast.IdentifierOrTemplateInstance[] chain = symbol.getChain();
-
-        if (chain.length > 1)
-        {
-            std.d.ast.UnaryExpression current = result;
-
-            current.identifierOrTemplateInstance = chain[$-1];
-            for(; chain.length > 1; chain = chain[0 .. $-2])
-            {
-                current.unaryExpression = new std.d.ast.UnaryExpression();
-                current = current.unaryExpression;
-            }
-
-            current.primaryExpression = new std.d.ast.PrimaryExpression();
-            current.primaryExpression.identifierOrTemplateInstance = chain[0];
-        }
-        else
-        {
-            auto primary = new std.d.ast.PrimaryExpression();
-            primary.identifierOrTemplateInstance = chain[0];
-            result.primaryExpression = primary;
-        }
-
-        resolved = true;
-    }
-
-    std.d.ast.ExpressionNode getExpression()
-    {
-        return result;
-    }
-
-    override std.d.ast.IdentifierOrTemplateInstance[] getChain()
-    in {
-        assert(resolved);
-    }
-    body {
-        return symbol.getChain();
-    }
-} +/
