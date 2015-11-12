@@ -24,8 +24,6 @@ import std.stdio : stdout, stderr;
 import std.typecons : Flag, Yes;
 import std.experimental.logger;
 
-import std.d.ast;
-
 static import binder;
 static import dast.decls;
 import dlang_decls : makeIdentifierChain;
@@ -70,33 +68,6 @@ private dast.decls.LinkageAttribute translateLinkage(T)(T cppDecl, string namesp
     }
 }
 
-private StorageClass makeStorageClass(LinkageAttribute linkage)
-{
-    StorageClass result = new StorageClass();
-    result.linkageAttribute = linkage;
-    return result;
-}
-
-private string makeDeclarationMixin(string name)
-{
-    import std.ascii : toUpper, toLower;
-    return ("
-private std.d.ast.Declaration makeDeclaration(" ~ [toUpper(name[0])] ~ name[1..$] ~ "Declaration decl)
-{
-    auto result = new std.d.ast.Declaration();
-    result." ~ [toLower(name[0])] ~ name[1..$] ~ "Declaration = decl;
-    return result;
-}
-").idup;
-}
-mixin (makeDeclarationMixin("Alias"));
-mixin (makeDeclarationMixin("Enum"));
-mixin (makeDeclarationMixin("Function"));
-mixin (makeDeclarationMixin("Interface"));
-mixin (makeDeclarationMixin("Struct"));
-mixin (makeDeclarationMixin("Union"));
-mixin (makeDeclarationMixin("Variable"));
-
 private T registerDeclaration(T)(unknown.Declaration cppDecl)
 {
     T decl = new T();
@@ -126,13 +97,6 @@ private dast.decls.Visibility translateVisibility(T)(T cppDecl)
         case unknown.Visibility.PACKAGE:
             return dast.decls.Visibility.Package;
     }
-}
-
-private Attribute makeAttribute(LinkageAttribute linkage)
-{
-    auto result = new Attribute();
-    result.linkageAttribute = linkage;
-    return result;
 }
 
 class OverloadedOperatorError : Exception
@@ -296,14 +260,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    private void addCppLinkageAttribute(std.d.ast.Declaration declaration)
-    {
-        auto linkageAttribute = new LinkageAttribute();
-        linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
-        linkageAttribute.hasPlusPlus = true;
-        linkageAttribute.identifierChain = makeIdentifierChain!"::"(namespace_path);
-        declaration.attributes ~= [makeAttribute(linkageAttribute)];
-    }
     private void addCppLinkageAttribute(T)(T declaration)
     {
         declaration.linkage = new dast.decls.CppLinkageAttribute(namespace_path);
@@ -448,7 +404,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     void translateAllBaseClasses(unknown.RecordDeclaration cppDecl, dast.decls.InterfaceDeclaration result)
     {
-        auto baseClassList = new BaseClassList();
         bool hasBaseClass = false;
         foreach (superclass; cppDecl.getSuperclassRange())
         {
@@ -942,7 +897,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     dast.decls.TemplateArgumentDeclaration translateTemplateArgument(unknown.TemplateArgumentIterator iter)
     {
-        auto result = new .TemplateParameter();
         final switch (iter.getKind())
         {
             case unknown.TemplateArgumentIterator.Kind.Type:
