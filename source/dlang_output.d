@@ -26,9 +26,9 @@ import std.d.ast;
 import std.d.formatter;
 import std.d.lexer;
 
-import dlang_decls;
+static import dlang_decls;
 
-void visitModule(const Module mod, string path_prefix)
+void visitModule(const dlang_decls.Module mod, string path_prefix)
 {
     if (mod.declarations.length == 0)
     {
@@ -36,7 +36,8 @@ void visitModule(const Module mod, string path_prefix)
     }
 
     Appender!string path_appender;
-    const(Token)[] identifiers = mod.moduleDeclaration.moduleName.identifiers;
+    // TODO
+    /*const(Token)[] identifiers = mod.moduleName.identifiers;
     path_appender.put(path_prefix);
     foreach (Token t; identifiers)
     {
@@ -45,10 +46,10 @@ void visitModule(const Module mod, string path_prefix)
     }
     path_appender.put(".d");
     File outputFile = File(path_appender.data, "w");
-    format(delegate (string s) => (outputFile.write(s)), mod);
+    format(delegate (string s) => (outputFile.write(s)), mod);*/
 }
 
-void produceOutputForModule(std.d.ast.Module mod, string path_prefix)
+void produceOutputForModule(dlang_decls.Module mod, string path_prefix)
 {
     visitModule(mod, path_prefix);
 }

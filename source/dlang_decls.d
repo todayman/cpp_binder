@@ -19,6 +19,7 @@
 import std.algorithm : map, filter, splitter;
 import std.array : array;
 import std.stdio : stdout;
+import std.typecons : Flag, No;
 
 import std.d.ast;
 import std.d.lexer;
@@ -37,10 +38,8 @@ class Package
         else
         {
             Module mod = new Module();
-            ModuleDeclaration decl = new ModuleDeclaration();
-            mod.moduleDeclaration = decl;
 
-            decl.moduleName = makeIdentifierChain(path);
+            mod.moduleName = makeIdentifierChain(path);
             children[path] = mod;
 
             return mod;
@@ -147,21 +146,26 @@ void stripExternCpp(std.d.ast.Declaration decl)
     }
 }
 
+// Do I need this?
+void stripExternCpp(Declaration decl)
+{
+    // TODO fill in
+}
+
 class ModuleWithNamespaces
 {
     protected:
-    std.d.ast.Module mod;
-    std.d.ast.Declaration[string] namespaces;
+    Module mod;
+    Namespace[string] namespaces;
 
     public:
     this(string path)
     {
-        mod = new std.d.ast.Module();
-        mod.moduleDeclaration = new std.d.ast.ModuleDeclaration();
-        mod.moduleDeclaration.moduleName = makeIdentifierChain(path);
+        mod = new Module();
+        mod.moduleName = makeIdentifierChain(path);
     }
 
-    void addDeclaration(std.d.ast.Declaration decl, string namespace)
+    void addDeclaration(Declaration decl, string namespace)
     {
         if (namespace == "")
         {
@@ -179,7 +183,7 @@ class ModuleWithNamespaces
             immutable(string[]) namespace_chain = namespace.splitter("::").filter!(a => a.length != 0).array.assumeUnique;
             auto accumulated_name = appender!string();
 
-            std.d.ast.Declaration parent_namespace = null;
+            Namespace parent_namespace = null;
             foreach (ns; namespace_chain)
             {
                 string parent_name = accumulated_name.data[];
@@ -193,17 +197,8 @@ class ModuleWithNamespaces
                 }
                 else
                 {
-                    auto linkage = new std.d.ast.LinkageAttribute();
-                    linkage.identifier = Token(tok!"identifier", "C", 0, 0, 0);
-                    linkage.hasPlusPlus = true;
-                    linkage.identifierChain = makeIdentifierChain!"::"(ns);
-
-                    auto attr = new std.d.ast.Attribute();
-                    attr.linkageAttribute = linkage;
-
-                    auto next_namespace = new std.d.ast.Declaration();
+                    auto next_namespace = new Namespace();
                     namespaces[current_name] = next_namespace;
-                    next_namespace.attributes ~= [attr];
 
                     // FIXME I'm not a huge fan of conditions that only apply
                     // once at the beginning inside of loops
@@ -225,13 +220,308 @@ class ModuleWithNamespaces
         stripExternCpp(decl);
     }
 
-    std.d.ast.Module getModule()
+    Module getModule()
     {
         return mod;
     }
 }
 
+class Module
+{
+    IdentifierChain moduleName;
+
+    Declaration[] declarations;
+}
+
+class Namespace : Declaration
+{
+    Declaration[] declarations;
+}
+
 static this()
 {
     rootPackage = new Package();
+}
+
+enum Visibility
+{
+    Public,
+    Private,
+    Protected,
+    Export,
+    Package,
+}
+
+interface Type
+{
+}
+
+class ReturnType
+{
+}
+
+class Declaration
+{
+    Declaration parent;
+    // Do all declarations have visibility?
+    Visibility visibility;
+
+    string name;
+}
+
+class VariableDeclaration : Declaration
+{
+    Type type;
+    // modifiers
+    bool extern_;
+    bool static_;
+    LinkageAttribute linkage; // language linkage
+}
+
+class FieldDeclaration : Declaration
+{
+    Type type;
+}
+
+class LinkageAttribute
+{
+}
+
+class CLinkageAttribute : LinkageAttribute
+{
+}
+
+// Maybe this should be a struct?
+class CppLinkageAttribute : LinkageAttribute
+{
+    string[] namespacePath;
+
+    this()
+    {
+        // TODO
+    }
+    this(string np)
+    {
+        // TODO
+        namespacePath = [];
+    }
+}
+
+class Argument : Declaration
+{
+    Type type;
+    Flag!"ref_" ref_;
+}
+
+class FunctionDeclaration : Declaration
+{
+    LinkageAttribute linkage;
+
+    Type returnType;
+    Argument[] arguments;
+    bool varargs;
+
+    void setReturnType(Type t, Flag!"ref_" ref_ = No.ref_)
+    {
+    }
+}
+
+class EnumDeclaration : Declaration
+{
+    Type type;
+
+    EnumMember[] members;
+}
+
+class EnumMember : Declaration
+{
+    Expression value;
+}
+
+class StructDeclaration : Declaration
+{
+    LinkageAttribute linkage;
+
+    // FIXME Need to distinguish between no list and length 0 list
+    TemplateArgumentDeclaration[] templateArguments;
+
+    // TODO should this be field declaration?
+    void addField(VariableDeclaration v)
+    {
+        // TODO
+    }
+
+    // TODO make sure that Declaration is appropriate here.
+    void addClassLevelDeclaration(Declaration d)
+    {
+        // TODO
+    }
+
+    void addDeclaration(Declaration d)
+    {
+        // TODO
+        // Needs to determine whether d is a class level or instance level decl
+    }
+}
+
+class SpecializedStructDeclaration : Declaration
+{
+    TemplateArgument[] templateArguments;
+}
+
+class AliasThisDeclaration : Declaration
+{
+    Declaration target;
+}
+
+class TemplateArgumentDeclaration : Declaration
+{
+}
+
+class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration
+{
+    Type defaultType;
+}
+
+class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
+{
+    Type type;
+    Expression defaultValue;
+}
+
+class MethodDeclaration : FunctionDeclaration
+{
+    Flag!"const_" const_;
+    Flag!"virtual_" virtual_;
+}
+
+class InterfaceDeclaration : Declaration
+{
+    LinkageAttribute linkage;
+    InterfaceDeclaration bases;
+
+    // FIXME Need to distinguish between no list and length 0 list
+    TemplateArgumentDeclaration[] templateArguments;
+
+    void addBaseType(Type b)
+    {
+        // TODO
+    }
+
+    void addDeclaration(Declaration d)
+    {
+        // TODO
+        // Needs to determine whether d is a class level or instance level decl
+    }
+}
+
+class UnionDeclaration : Declaration
+{
+    LinkageAttribute linkage;
+
+    // FIXME Need to distinguish between no list and length 0 list
+    TemplateArgumentDeclaration[] templateArguments;
+
+    void addDeclaration(Declaration d)
+    {
+        // TODO
+        // Needs to determine whether d is a class level or instance level decl
+    }
+}
+
+class AliasTypeDeclaration : Declaration
+{
+    LinkageAttribute linkage;
+    Type type;
+}
+
+// An specific value of a template argument
+class TemplateArgument
+{
+}
+
+class TemplateTypeArgument : TemplateArgument
+{
+    this(Type)
+    {
+        // TODO
+    }
+}
+
+class TemplateExpressionArgument : TemplateArgument
+{
+    this(Expression)
+    {
+        // TODO
+    }
+}
+
+class Expression
+{
+}
+
+class IntegerLiteralExpression : Expression
+{
+    this(long)
+    {
+        // TODO
+    }
+}
+
+class BoolLiteralExpression : Expression
+{
+    this(bool)
+    {
+        // TODO
+    }
+}
+
+class CastExpression : Expression
+{
+    Type type;
+    Expression argument;
+}
+
+class PointerType : Type
+{
+    Type targetType;
+
+    this(Type t)
+    {
+        targetType = t;
+    }
+}
+
+class FunctionType : Type
+{
+    Type returnType;
+
+    bool varargs;
+    Type[] arguments;
+}
+
+// FIXME combine with argument declaration
+class ArgumentType : Type
+{
+    Type type;
+    Flag!"ref_" ref_;
+}
+
+class ArrayType : Type
+{
+    Type elementType;
+    Expression length;
+}
+
+// A type that we have been instructed to replace with a specific name
+class ReplacedType : Type
+{
+    IdentifierOrTemplateChain fullyQualifiedName;
+}
+
+// Used in the body of a template to refer to a type that is a parameter of the
+// template.  Paul thinks.  Maybe...
+class TemplateArgumentType : Type
+{
+    string name;
 }

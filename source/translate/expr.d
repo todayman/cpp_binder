@@ -29,32 +29,31 @@ static import unknown;
 import translate.types;
 import translate.decls;
 
+static import dlang_decls;
+
 private class ExpressionTranslator : unknown.ExpressionVisitor
 {
     public:
-    std.d.ast.ExpressionNode result;
+    dlang_decls.Expression result;
 
     extern(C++) override
     void visit(unknown.BoolLiteralExpression expr)
     {
-        auto primary = new std.d.ast.PrimaryExpression();
-        primary.primary = Token(tok!"longLiteral", to!string(expr.getValue()), 0, 0, 0);
-        result = primary;
+        result = new dlang_decls.BoolLiteralExpression(expr.getValue());
     }
 
     extern(C++) override
     void visit(unknown.IntegerLiteralExpression expr)
     {
-        auto primary = new std.d.ast.PrimaryExpression();
-        primary.primary = Token(tok!"longLiteral", to!string(expr.getValue()), 0, 0, 0);
-        result = primary;
+        result = new dlang_decls.IntegerLiteralExpression(expr.getValue());
     }
 
     extern(C++) override
     void visit(unknown.DeclaredExpression expr)
     {
         unknown.Declaration decl = expr.getDeclaration();
-        if (auto deferred_ptr = cast(void*)decl in exprForDecl)
+        // TODO need to be careful here...
+        /*if (auto deferred_ptr = cast(void*)decl in exprForDecl)
         {
             result = deferred_ptr.getExpression();
         }
@@ -63,14 +62,15 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
             auto deferred = new DeferredExpression(null);
             exprForDecl[cast(void*)decl] = deferred;
             result = deferred.getExpression();
-        }
+        }*/
     }
 
     extern(C++) override
     void visit(unknown.DelayedExpression expr)
     {
         unknown.Declaration decl = expr.getDeclaration();
-        if (auto deferred_ptr = cast(void*)decl in exprForDecl)
+        // TODO need to be careful here...
+        /*if (auto deferred_ptr = cast(void*)decl in exprForDecl)
         {
             result = deferred_ptr.getExpression();
         }
@@ -81,23 +81,19 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
             info("For declaration ", cast(void*)decl);
             exprForDecl[cast(void*)decl] = deferred;
             result = deferred.getExpression();
-        }
+        }*/
     }
 
     extern(C++) override
     void visit(unknown.CastExpression expr)
     {
-        auto unaryResult = new std.d.ast.UnaryExpression();
-        unaryResult.castExpression = new std.d.ast.CastExpression();
-        unaryResult.castExpression.type = translateType(expr.getType(), QualifierSet.init);
-        unaryResult.castExpression.unaryExpression = new std.d.ast.UnaryExpression();
-        unaryResult.castExpression.unaryExpression.primaryExpression = new std.d.ast.PrimaryExpression();
-        unaryResult.castExpression.unaryExpression.primaryExpression.expression = new std.d.ast.Expression();
+        auto castExpression = new dlang_decls.CastExpression();
+        castExpression.type = translateType(expr.getType(), QualifierSet.init);
 
         auto visitor = new ExpressionTranslator();
         expr.getSubExpression().visit(visitor);
-        unaryResult.castExpression.unaryExpression.primaryExpression.expression.items = [visitor.result];
-        result = unaryResult;
+        castExpression.argument = visitor.result;
+        result = castExpression;
     }
 
     extern(C++) override
@@ -106,14 +102,14 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     }
 }
 
-std.d.ast.ExpressionNode translateExpression(unknown.Expression expr)
+dlang_decls.Expression translateExpression(unknown.Expression expr)
 {
     auto visitor = new ExpressionTranslator();
     expr.visit(visitor);
     return visitor.result;
 }
 
-class DeferredExpression : Resolvable
+/+class DeferredExpression : Resolvable
 {
     public DeferredSymbolConcatenation symbol;
     protected:
@@ -172,4 +168,4 @@ class DeferredExpression : Resolvable
     body {
         return symbol.getChain();
     }
-}
+} +/

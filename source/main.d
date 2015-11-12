@@ -85,7 +85,7 @@ int main(string[] argv)
         return -1;
     }
 
-    std.d.ast.Module mod;
+    dlang_decls.Module mod;
     try {
         mod = populateDAST(args.output_module);
     }
