@@ -35,7 +35,6 @@ import dlang_decls : concat, makeIdentifierOrTemplateChain, makeInstance;
 
 private dlang_decls.Type[void*] translated_types;
 private dlang_decls.Type[string] types_by_name;
-package dlang_decls.Type[void*] translationForType; // I think this is the same as translated types now.  It used to hold deferred things.
 
 package void determineStrategy(unknown.Type cppType)
 {
@@ -406,7 +405,7 @@ class UnwrappableTypeDeclaration : Exception
 // check that cppType was a union, enum, etc.
 private dlang_decls.Type resolveOrDefer(Type)(Type cppType)
 {
-    if (auto type_ptr = (cast(void*)cppType) in translationForType)
+    if (auto type_ptr = (cast(void*)cppType) in translated_types)
     {
         return (*type_ptr);
     }
@@ -423,7 +422,7 @@ private dlang_decls.Type resolveOrDefer(Type)(Type cppType)
             }
             // cppDecl.getType() can be different than cppType
             // FIXME I need to find a better way to fix this at the source
-            if (auto type_ptr = cast(void*)cppDecl.getType() in translationForType)
+            if (auto type_ptr = cast(void*)cppDecl.getType() in translated_types)
             {
                 return *type_ptr;
             }
@@ -489,7 +488,7 @@ private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDe
 
 private dlang_decls.Type resolveOrDefer(unknown.TemplateArgumentType cppType)
 {
-    if (auto type_ptr = cast(void*)cppType in translationForType)
+    if (auto type_ptr = cast(void*)cppType in translated_types)
     {
         return (*type_ptr);
     }
@@ -603,7 +602,7 @@ package dlang_decls.Type resolveTemplateSpecializationTypeSymbol(unknown.Templat
 // TODO figure out if this is a specific instantation or not
 private dlang_decls.Type resolveOrDeferTemplateArgumentTypeSymbol(unknown.TemplateArgumentType cppType)
 {
-    if (auto type_ptr = cast(void*)cppType in translationForType)
+    if (auto type_ptr = cast(void*)cppType in translated_types)
     {
         return (*type_ptr);
     }
@@ -615,7 +614,7 @@ private dlang_decls.Type resolveOrDeferTemplateArgumentTypeSymbol(unknown.Templa
             auto result = new dlang_decls.TemplateArgumentType();
             result.name = binder.toDString(cppDecl.getTargetName());
             // This symbol will be filled in when the declaration is traversed
-            translationForType[cast(void*)cppType] = result;
+            translated_types[cast(void*)cppType] = result;
             return result;
         }
         assert(0);
