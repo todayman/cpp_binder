@@ -201,17 +201,17 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     dast.decls.FunctionDeclaration translateFunction(unknown.FunctionDeclaration cppDecl)
     {
-        auto short_circuit = CHECK_FOR_DECL!(dast.decls.FunctionDeclaration)(cppDecl);
-        if (short_circuit !is null) return short_circuit;
+        auto result = CHECK_FOR_DECL!(dast.decls.FunctionDeclaration)(cppDecl);
+        if (result !is null) return result;
 
-        auto d_decl = registerDeclaration!(dast.decls.FunctionDeclaration)(cppDecl);
+        result = registerDeclaration!(dast.decls.FunctionDeclaration)(cppDecl);
         // Set the linkage attributes for this function
-        d_decl.linkage = translateLinkage(cppDecl, namespace_path);
+        result.linkage = translateLinkage(cppDecl, namespace_path);
 
         binder.binder.string target_name = cppDecl.getTargetName();
         if (target_name.size())
         {
-            d_decl.name = nameFromDecl(cppDecl).text;
+            result.name = nameFromDecl(cppDecl).text;
         }
         else
         {
@@ -219,14 +219,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
         try {
-            d_decl.setReturnType(translateType(cppDecl.getReturnType(), QualifierSet.init));
+            result.setReturnType(translateType(cppDecl.getReturnType(), QualifierSet.init));
         }
         catch (RefTypeException e)
         {
             unknown.Type targetType = handleReferenceType(cppDecl.getReturnType());
             if (targetType)
             {
-                d_decl.setReturnType(translateType(targetType, QualifierSet.init), Yes.ref_);
+                result.setReturnType(translateType(targetType, QualifierSet.init), Yes.ref_);
             }
             else
             {
@@ -235,15 +235,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
         // FIXME obviously not always true
-        d_decl.varargs = false;
+        result.varargs = false;
 
         for (auto arg_iter = cppDecl.getArgumentBegin(), arg_end = cppDecl.getArgumentEnd();
              !arg_iter.equals(arg_end);
              arg_iter.advance())
         {
-            d_decl.arguments ~= [translateArgument(arg_iter.get())];
+            result.arguments ~= [translateArgument(arg_iter.get())];
         }
-        return d_decl;
+        return result;
     }
     extern(C++) override
     void visitFunction(unknown.FunctionDeclaration cppDecl)
@@ -251,11 +251,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (cppDecl.isOverloadedOperator())
         {
             stderr.writeln("ERROR: Cannot translate overloaded operator.");
+            last_result = null;
         }
         else
         {
-            translateFunction(cppDecl);
-            last_result = translated[cast(void*)cppDecl];
+            last_result = translateFunction(cppDecl);
         }
     }
 
