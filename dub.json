@@ -28,7 +28,6 @@
       , "clangLex"
       , "clangSerialization"
       , "clangBasic"
-      , "clang"
       , "LLVMMCParser"
       , "LLVMMC"
       , "LLVMAsmPrinter"

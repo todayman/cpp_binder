@@ -3,7 +3,7 @@
   , "targetType": "executable"
   , "targetName": "test_runner"
   , "dependencies": {
-      "libdparse": "~master"
+      "libdparse": "~>0.2.1"
     }
   , "sourceFiles": [
       "test_runner.d"
