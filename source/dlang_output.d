@@ -22,22 +22,24 @@ import std.file : exists, isDir, mkdir;
 import std.path;
 import std.stdio;
 
+import std.experimental.logger;
+
 import std.d.ast;
-import std.d.formatter;
+import std.d.formatter : format;
 import std.d.lexer;
 
 static import dlang_decls;
 
 void visitModule(const dlang_decls.Module mod, string path_prefix)
 {
-    /+if (mod.declarations.length == 0)
+    /*if (mod.empty == 0)
     {
         return;
-    }+/
+    }*/
 
     Appender!string path_appender;
     // TODO
-    /*const(Token)[] identifiers = mod.moduleName.identifiers;
+    immutable(Token)[] identifiers = mod.name.identifiers;
     path_appender.put(path_prefix);
     foreach (Token t; identifiers)
     {
@@ -46,7 +48,8 @@ void visitModule(const dlang_decls.Module mod, string path_prefix)
     }
     path_appender.put(".d");
     File outputFile = File(path_appender.data, "w");
-    format(delegate (string s) => (outputFile.write(s)), mod);*/
+    info("Writing file ", path_appender.data);
+    format(delegate (string s) => (outputFile.write(s)), mod.buildConcreteTree());
 }
 
 void produceOutputForModule(dlang_decls.Module mod, string path_prefix)

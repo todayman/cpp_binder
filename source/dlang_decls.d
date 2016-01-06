@@ -21,7 +21,8 @@ import std.array : array;
 import std.stdio : stdout;
 import std.typecons : Flag, No;
 
-import std.d.ast : IdentifierChain, IdentifierOrTemplateInstance;
+static import std.d.ast;
+import std.d.ast : IdentifierChain, IdentifierOrTemplateChain, IdentifierOrTemplateInstance;
 import std.d.lexer : Token, tok;
 
 import dast.decls;
@@ -50,6 +51,7 @@ class Package
 
 Package rootPackage;
 
+pure
 IdentifierChain makeIdentifierChain(string separator = ".")(string path)
 {
     auto result = new IdentifierChain();
@@ -122,73 +124,6 @@ void append(IdentifierOrTemplateChain chain, Token identifier)
     auto instance = new IdentifierOrTemplateInstance();
     instance.identifier = identifier;
     chain.identifiersOrTemplateInstances ~= [instance];
-}
-
-class Module
-{
-    protected:
-    IdentifierChain moduleName;
-    Namespace[string] namespaces;
-    Declaration[] declarations;
-
-    public:
-    this(string path)
-    {
-        moduleName = makeIdentifierChain(path);
-    }
-
-    void addDeclaration(Declaration decl, string namespace)
-    {
-        if (namespace == "")
-        {
-            declarations ~= [decl];
-            return;
-        }
-
-        if (auto dest = namespace in namespaces)
-        {
-            dest.declarations ~= [decl];
-        }
-        else {
-            import std.exception : assumeUnique;
-            import std.array : appender;
-            immutable(string[]) namespace_chain = namespace.splitter("::").filter!(a => a.length != 0).array.assumeUnique;
-            auto accumulated_name = appender!string();
-
-            Namespace parent_namespace = null;
-            foreach (ns; namespace_chain)
-            {
-                string parent_name = accumulated_name.data[];
-                accumulated_name.put("::");
-                accumulated_name.put(ns);
-                string current_name = accumulated_name.data[];
-
-                if (auto nsptr = current_name in namespaces)
-                {
-                    parent_namespace = *nsptr;
-                }
-                else
-                {
-                    auto next_namespace = new Namespace();
-                    namespaces[current_name] = next_namespace;
-
-                    // FIXME I'm not a huge fan of conditions that only apply
-                    // once at the beginning inside of loops
-                    if (parent_namespace is null)
-                    {
-                        declarations ~= [next_namespace];
-                    }
-                    else
-                    {
-                        parent_namespace.declarations ~= [next_namespace];
-                    }
-                    parent_namespace = next_namespace;
-                }
-            }
-
-            parent_namespace.declarations ~= [decl];
-        }
-    }
 }
 
 static this()
