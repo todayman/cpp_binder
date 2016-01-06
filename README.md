@@ -1,7 +1,5 @@
 # `cpp_binder`
 
-[![build status](https://ci.acm.jhu.edu/projects/1/status.png?ref=master)](https://ci.acm.jhu.edu/projects/1?ref=master)
-
 This tool reads C++ headers and generates D bindings to the declarations there.
 It is licensed under the GNU GPLv3.
 
