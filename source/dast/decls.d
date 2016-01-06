@@ -304,7 +304,7 @@ class FunctionDeclaration : Declaration
         if (!insideNamespace()) // Are there other places too?
         {
             auto attr = linkage.buildConcreteAttribute();
-            result.attributes = [attr];
+            result.attributes ~= [attr];
         }
 
         return result;
