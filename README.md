@@ -29,6 +29,6 @@ dependent on the particular version of clang installed.  See `config/builtin_typ
 
 *   dmd 2.067 or higher
 *   dub
-*   clang 3.6 (dev packages).  clang 3.5 can be used by replacing the references in: CMakeLists.txt, dub.json, and (optionally) config/cpp_binder.json
+*   clang 3.7 (dev packages).  clang 3.6 or 3.5 can be used by replacing the references in: CMakeLists.txt, dub.json, and (optionally) config/cpp_binder.json
 *   boost filesystem (and boost system)
 *   C++11 compiler

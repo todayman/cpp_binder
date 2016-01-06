@@ -1,7 +1,7 @@
 {
 	  "name": "cpp_binder"
 	, "description": "A C++ binding generator for D."
-	, "copyright": "Copyright © 2014-2015, Paul O'Neil"
+	, "copyright": "Copyright © 2014-2016, Paul O'Neil"
     , "license": "GPL-3.0"
 	, "authors": ["Paul O'Neil"]
     , "targetType": "executable"
