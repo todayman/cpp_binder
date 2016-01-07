@@ -849,7 +849,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
     extern(C++) override void visitVariable(unknown.VariableDeclaration cppDecl)
     {
-        translateVariable(cppDecl);
+        last_result = translateVariable(cppDecl);
     }
     extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration)
     {
