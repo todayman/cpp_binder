@@ -313,7 +313,15 @@ class Argument
 
     pure std.d.ast.Parameter buildConcreteArgument() const
     {
-        assert(0);
+        // TODO handle ref
+        auto result = new std.d.ast.Parameter();
+        result.type = type.buildConcreteType();
+        if (name.length > 0)
+        {
+            result.name = tokenFromString(name);
+        }
+
+        return result;
     }
 }
 
