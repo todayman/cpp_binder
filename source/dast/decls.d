@@ -28,6 +28,11 @@ import std.d.lexer;
 
 static import dlang_decls;
 
+Token tokenFromString(string name) pure nothrow @nogc @safe
+{
+    return Token(tok!"identifier", name, 0, 0, 0);
+}
+
 class Module
 {
     protected:
@@ -135,18 +140,47 @@ public class Declaration
 
     abstract pure std.d.ast.Declaration buildConcreteDecl() const;
 
-    bool insideNamespace() const pure @nogc nothrow
+    bool isNested() const pure
     {
-        const(Declaration) cur = parent;
-        while (cur !is null)
-        {
-            if (cast(const(Namespace))cur !is null)
-            {
-                return true;
-            }
-        }
+        // Modules are not declarations, so
+        // if we have parent, then we are nested
+        return parent !is null;
+    }
 
-        return false;
+    private void addLinkage(std.d.ast.Declaration result, const(LinkageAttribute) linkage) const pure
+    {
+        // TODO should we always have a linkage?
+        // TODO should check the scenarios where we cannot have linkage, e.g. methods?
+        if (linkage && !isNested())
+        {
+            auto attr = linkage.buildConcreteAttribute();
+            result.attributes ~= [attr];
+        }
+    }
+
+    private void addVisibility(std.d.ast.Declaration result) const pure
+    {
+        auto attr = new std.d.ast.Attribute();
+
+        final switch (visibility)
+        {
+            case Visibility.Public:
+                attr.attribute = Token(tok!"public", "", 0, 0, 0);
+                break;
+            case Visibility.Private:
+                attr.attribute = Token(tok!"private", "", 0, 0, 0);
+                break;
+            case Visibility.Protected:
+                attr.attribute = Token(tok!"protected", "", 0, 0, 0);
+                break;
+            case Visibility.Export:
+                attr.attribute = Token(tok!"export", "", 0, 0, 0);
+                break;
+            case Visibility.Package:
+                attr.attribute = Token(tok!"package", "", 0, 0, 0);
+                break;
+        }
+        result.attributes ~= [attr];
     }
 }
 
@@ -159,9 +193,10 @@ public class Namespace
     std.d.ast.Declaration buildConcreteDecl() const
     {
         auto result = new std.d.ast.Declaration();
+        // FIXME convert to linkage attribute
         auto linkAttr = new std.d.ast.Attribute();
         linkAttr.linkageAttribute = new std.d.ast.LinkageAttribute();
-        linkAttr.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        linkAttr.linkageAttribute.identifier = tokenFromString("C");
         linkAttr.linkageAttribute.hasPlusPlus = true;
         linkAttr.linkageAttribute.identifierChain = new std.d.ast.IdentifierChain();
         linkAttr.linkageAttribute.identifierChain.identifiers = name.identifiers.dup;
@@ -186,7 +221,20 @@ public class VariableDeclaration : Declaration
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
-        assert(0);
+        auto result = new std.d.ast.Declaration();
+        auto varDecl = new std.d.ast.VariableDeclaration();
+        result.variableDeclaration = varDecl;
+
+        varDecl.type = type.buildConcreteType();
+
+        auto declarator = new std.d.ast.Declarator();
+        declarator.name = tokenFromString(name);
+        varDecl.declarators = [declarator];
+
+        addLinkage(result, linkage);
+        addVisibility(result);
+
+        return result;
     }
 }
 
@@ -213,7 +261,7 @@ class CLinkageAttribute : LinkageAttribute
     {
         auto result = new std.d.ast.Attribute();
         result.linkageAttribute = new std.d.ast.LinkageAttribute();
-        result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.linkageAttribute.identifier = tokenFromString("C");
 
         return result;
     }
@@ -241,14 +289,14 @@ class CppLinkageAttribute : LinkageAttribute
 
         auto result = new std.d.ast.Attribute();
         result.linkageAttribute = new std.d.ast.LinkageAttribute();
-        result.linkageAttribute.identifier = Token(tok!"identifier", "C", 0, 0, 0);
+        result.linkageAttribute.identifier = tokenFromString("C");
         result.linkageAttribute.hasPlusPlus = true;
 
         if (namespacePath.length > 0)
         {
             auto chain = new std.d.ast.IdentifierChain();
             chain.identifiers = namespacePath
-                .map!(str => Token(tok!"identifier", str, 0, 0, 0)).array;
+                .map!(tokenFromString).array;
 
             result.linkageAttribute.identifierChain = chain;
         }
@@ -292,7 +340,7 @@ class FunctionDeclaration : Declaration
         result.functionDeclaration = funcDecl;
         // TODO deal with ref return type
         funcDecl.returnType = returnType.buildConcreteType();
-        funcDecl.name = Token(tok!"identifier", name, 0, 0, 0);
+        funcDecl.name = tokenFromString(name);
         funcDecl.parameters = new std.d.ast.Parameters();
         // TODO deal with varargs
 
@@ -301,11 +349,7 @@ class FunctionDeclaration : Declaration
             funcDecl.parameters.parameters ~= [arg.buildConcreteArgument()];
         }
 
-        if (!insideNamespace()) // Are there other places too?
-        {
-            auto attr = linkage.buildConcreteAttribute();
-            result.attributes ~= [attr];
-        }
+        addLinkage(result, linkage);
 
         return result;
     }
@@ -342,10 +386,13 @@ class StructDeclaration : Declaration
     // FIXME Need to distinguish between no list and length 0 list
     TemplateArgumentDeclaration[] templateArguments;
 
+    VariableDeclaration[] fields;
+
     // TODO should this be field declaration?
     void addField(VariableDeclaration v)
     {
         // TODO
+        fields ~= [v];
     }
 
     // TODO make sure that Declaration is appropriate here.
@@ -358,14 +405,38 @@ class StructDeclaration : Declaration
     {
         // TODO
         // Needs to determine whether d is a class level or instance level decl
+        auto varDecl = cast(VariableDeclaration)d;
+        if (varDecl !is null)
+        {
+            if (varDecl.static_)
+            {
+                addClassLevelDeclaration(varDecl);
+            }
+            else
+            {
+                addField(varDecl);
+            }
+        }
     }
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
         auto result = new std.d.ast.Declaration();
+        auto structDecl = new std.d.ast.StructDeclaration();
+        result.structDeclaration = structDecl;
 
+        structDecl.name = tokenFromString(name);
+
+        structDecl.structBody = new std.d.ast.StructBody();
+
+        foreach (field; fields)
+        {
+            structDecl.structBody.declarations ~= [field.buildConcreteDecl()];
+        }
         // TODO
+
+        addLinkage(result, linkage);
 
         return result;
     }
