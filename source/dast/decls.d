@@ -18,7 +18,7 @@
 
 module dast.decls;
 
-import std.algorithm : filter, splitter;
+import std.algorithm : filter, map, splitter;
 import std.array : array;
 import std.stdio;
 import std.typecons : Flag, No;
@@ -67,7 +67,7 @@ class Module
             auto accumulated_name = appender!string();
 
             Namespace parent_namespace = null;
-            foreach (ns; namespace_chain)
+            foreach (nsDepth, ns; namespace_chain)
             {
                 string parent_name = accumulated_name.data[];
                 accumulated_name.put("::");
@@ -82,6 +82,8 @@ class Module
                 {
                     auto next_namespace = new Namespace();
                     namespaces[current_name] = next_namespace;
+                    next_namespace.name = new std.d.ast.IdentifierChain();
+                    next_namespace.name.identifiers = namespace_chain[0 .. nsDepth+1].map!(tokenFromString).array;
 
                     // FIXME I'm not a huge fan of conditions that only apply
                     // once at the beginning inside of loops
@@ -122,9 +124,13 @@ class Module
 
         foreach (const Declaration decl; declarations)
         {
-            import std.d.formatter : format;
             std.d.ast.Declaration concrete = decl.buildConcreteDecl();
             result.declarations ~= [concrete];
+        }
+
+        foreach (const Namespace ns; namespaces.byValue())
+        {
+            result.declarations ~= [ns.buildConcreteDecl()];
         }
         return result;
     }
@@ -191,7 +197,10 @@ public class Namespace
 
     pure
     std.d.ast.Declaration buildConcreteDecl() const
-    {
+    in {
+        assert (name !is null);
+    }
+    body {
         auto result = new std.d.ast.Declaration();
         // FIXME convert to linkage attribute
         auto linkAttr = new std.d.ast.Attribute();
@@ -200,6 +209,7 @@ public class Namespace
         linkAttr.linkageAttribute.hasPlusPlus = true;
         linkAttr.linkageAttribute.identifierChain = new std.d.ast.IdentifierChain();
         linkAttr.linkageAttribute.identifierChain.identifiers = name.identifiers.dup;
+        result.attributes ~= [linkAttr];
 
         foreach (const Declaration subdecl; declarations)
         {
@@ -285,8 +295,6 @@ class CppLinkageAttribute : LinkageAttribute
     override pure
     public std.d.ast.Attribute buildConcreteAttribute() const
     {
-        import std.algorithm : map;
-
         auto result = new std.d.ast.Attribute();
         result.linkageAttribute = new std.d.ast.LinkageAttribute();
         result.linkageAttribute.identifier = tokenFromString("C");
