@@ -447,6 +447,7 @@ class StructDeclaration : Declaration
     void addClassLevelDeclaration(Declaration d)
     {
         // TODO
+        assert(0);
     }
 
     void addDeclaration(Declaration d)
@@ -471,6 +472,10 @@ class StructDeclaration : Declaration
             if (methodDecl !is null)
             {
                 addMethod(methodDecl);
+            }
+            else
+            {
+                addClassLevelDeclaration(d);
             }
         }
     }
@@ -615,16 +620,83 @@ class UnionDeclaration : Declaration
     // FIXME Need to distinguish between no list and length 0 list
     TemplateArgumentDeclaration[] templateArguments;
 
+    VariableDeclaration[] fields;
+    MethodDeclaration[] methods;
+
+    // TODO should this be field declaration?
+    void addField(VariableDeclaration v)
+    {
+        // TODO
+        fields ~= [v];
+    }
+
+    // TODO should this be method declaration?
+    void addMethod(MethodDeclaration f)
+    {
+        methods ~= [f];
+    }
+
+    // TODO make sure that Declaration is appropriate here.
+    void addClassLevelDeclaration(Declaration d)
+    {
+        // TODO
+        assert(0);
+    }
+
     void addDeclaration(Declaration d)
     {
         // TODO
         // Needs to determine whether d is a class level or instance level decl
+        auto varDecl = cast(VariableDeclaration)d;
+        if (varDecl !is null)
+        {
+            if (varDecl.static_)
+            {
+                addClassLevelDeclaration(varDecl);
+            }
+            else
+            {
+                addField(varDecl);
+            }
+        }
+        else
+        {
+            auto methodDecl = cast(MethodDeclaration)d;
+            if (methodDecl !is null)
+            {
+                addMethod(methodDecl);
+            }
+            else
+            {
+                addClassLevelDeclaration(d);
+            }
+        }
     }
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
-        assert(0);
+        auto result = new std.d.ast.Declaration();
+        auto unionDecl = new std.d.ast.UnionDeclaration();
+        result.unionDeclaration = unionDecl;
+
+        unionDecl.name = tokenFromString(name);
+
+        unionDecl.structBody = new std.d.ast.StructBody();
+
+        foreach (field; fields)
+        {
+            unionDecl.structBody.declarations ~= [field.buildConcreteDecl()];
+        }
+        foreach (method; methods)
+        {
+            unionDecl.structBody.declarations ~= [method.buildConcreteDecl()];
+        }
+        // TODO
+
+        addLinkage(result, linkage);
+
+        return result;
     }
 }
 
@@ -755,7 +827,13 @@ class PointerType : Type
     override pure
     std.d.ast.Type buildConcreteType() const
     {
-        assert(0);
+        auto result = targetType.buildConcreteType().deepDup();
+
+        auto starSuffix = new std.d.ast.TypeSuffix();
+        starSuffix.star = Token(tok!"*", "", 0, 0, 0);
+        result.typeSuffixes ~= [starSuffix];
+
+        return result;
     }
 }
 
@@ -853,6 +931,69 @@ std.d.ast.TemplateSingleArgument deepDup(const(std.d.ast.TemplateSingleArgument)
 {
     auto result = new std.d.ast.TemplateSingleArgument();
     result.token = src.token;
+    return result;
+}
+
+std.d.ast.Type deepDup(const(std.d.ast.Type) src) pure
+{
+    if (src is null)
+    {
+        return null;
+    }
+
+    auto result = new std.d.ast.Type();
+    result.typeConstructors = src.typeConstructors.dup;
+    result.typeSuffixes = src.typeSuffixes.map!(deepDup).array;
+    result.type2 = deepDup(src.type2);
+    return result;
+}
+
+std.d.ast.TypeSuffix deepDup(const(std.d.ast.TypeSuffix) src) pure
+{
+    auto result = new std.d.ast.TypeSuffix();
+    result.delegateOrFunction = src.delegateOrFunction;
+    result.star = src.star;
+    result.array = src.array;
+    if (src.type) result.type = deepDup(src.type);
+    assert(src.low is null); // TODO
+    assert(src.high is null); // TODO
+    assert(src.parameters is null); // TODO
+    assert(src.memberFunctionAttributes.length == 0); // TODO
+
+    return result;
+}
+
+std.d.ast.Type2 deepDup(const(std.d.ast.Type2) src) pure
+{
+    auto result = new std.d.ast.Type2();
+    result.builtinType = src.builtinType;
+    result.symbol = deepDup(src.symbol);
+    assert(src.typeofExpression is null);
+    result.identifierOrTemplateChain = deepDup(src.identifierOrTemplateChain);
+    result.typeConstructor = src.typeConstructor;
+    result.type = deepDup(src.type);
+    assert(src.vector is null);
+
+    return result;
+}
+
+std.d.ast.Symbol deepDup(const(std.d.ast.Symbol) src) pure
+{
+    auto result = new std.d.ast.Symbol();
+    result.identifierOrTemplateChain = deepDup(src.identifierOrTemplateChain);
+    result.dot = src.dot;
+    return result;
+}
+
+std.d.ast.IdentifierOrTemplateChain deepDup(const(std.d.ast.IdentifierOrTemplateChain) src) pure
+{
+    if (src is null)
+    {
+        return null;
+    }
+
+    auto result = new std.d.ast.IdentifierOrTemplateChain();
+    result.identifiersOrTemplateInstances = deepDup(src.identifiersOrTemplateInstances);
     return result;
 }
 
