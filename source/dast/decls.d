@@ -20,6 +20,7 @@ module dast.decls;
 
 import std.algorithm : filter, map, splitter;
 import std.array : array;
+import std.conv : to;
 import std.stdio;
 import std.typecons : Flag, No;
 
@@ -380,7 +381,16 @@ class EnumDeclaration : Declaration
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
-        assert(0);
+        auto result = new std.d.ast.Declaration();
+        auto enumDecl = new std.d.ast.EnumDeclaration();
+        result.enumDeclaration = enumDecl;
+
+        enumDecl.name = tokenFromString(name);
+        enumDecl.type = type.buildConcreteType();
+        enumDecl.enumBody = new std.d.ast.EnumBody();
+        enumDecl.enumBody.enumMembers = members.map!(m => m.buildEnumMember()).array;
+
+        return result;
     }
 }
 
@@ -392,6 +402,20 @@ class EnumMember : Declaration
     std.d.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
+    }
+
+    pure
+    std.d.ast.EnumMember buildEnumMember() const
+    {
+        auto result = new std.d.ast.EnumMember();
+        result.name = tokenFromString(name);
+
+        if (value !is null)
+        {
+            result.assignExpression = value.buildConcreteExpression();
+        }
+
+        return result;
     }
 }
 
@@ -610,23 +634,44 @@ class TemplateExpressionArgument : TemplateArgument
     }
 }
 
+// TODO move this to dast.expr.d
 class Expression
 {
+    abstract pure std.d.ast.ExpressionNode buildConcreteExpression() const;
 }
 
 class IntegerLiteralExpression : Expression
 {
-    this(long)
+    long value;
+    this(long v)
     {
-        // TODO
+        value = v;
+    }
+
+    override pure
+    std.d.ast.ExpressionNode buildConcreteExpression() const
+    {
+        auto result = new std.d.ast.PrimaryExpression();
+        result.primary = tokenFromString(to!string(value));
+        return result;
     }
 }
 
 class BoolLiteralExpression : Expression
 {
-    this(bool)
+    bool value;
+
+    this(bool v)
     {
-        // TODO
+        value = v;
+    }
+
+    override pure
+    std.d.ast.ExpressionNode buildConcreteExpression() const
+    {
+        auto result = new std.d.ast.PrimaryExpression();
+        result.primary = Token((value ? tok!"true" : tok!"false"), "", 0, 0, 0);
+        return result;
     }
 }
 
@@ -634,6 +679,12 @@ class CastExpression : Expression
 {
     Type type;
     Expression argument;
+
+    override pure
+    std.d.ast.ExpressionNode buildConcreteExpression() const
+    {
+        assert(0);
+    }
 }
 
 class PointerType : Type
