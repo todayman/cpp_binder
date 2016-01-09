@@ -2,5 +2,5 @@ module unknown;
 
 extern(C++) struct Simple
 {
-    final public void method() const;
+    public final void method() const;
 }

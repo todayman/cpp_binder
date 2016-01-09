@@ -21,7 +21,7 @@ module translate.decls;
 import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
-import std.typecons : Flag, Yes;
+import std.typecons : Flag, Yes, No;
 import std.experimental.logger;
 
 static import binder;
@@ -1041,6 +1041,10 @@ class StructBodyTranslator
                     throw new Exception("Methods on structs cannot be virtual!");
                     // FIXME this message may not always be correct
                 }
+                else
+                {
+                    method.virtual_ = Yes.virtual_;
+                }
                 // virtual is implied by context i.e. must be in class, interface,
                 // then it's by default, so no attribute here
             }
@@ -1052,7 +1056,7 @@ class StructBodyTranslator
                 }
                 else
                 {
-                    method.virtual_ = Yes.virtual_;
+                    method.virtual_ = No.virtual_;
                 }
             }
 

@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2015 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2015-2016 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -341,6 +341,7 @@ class FunctionDeclaration : Declaration
     Type returnType;
     Argument[] arguments;
     bool varargs;
+    // TODO do I need static? or do those come through as functions?
 
     void setReturnType(Type t, Flag!"ref_" ref_ = No.ref_)
     {
@@ -427,12 +428,19 @@ class StructDeclaration : Declaration
     TemplateArgumentDeclaration[] templateArguments;
 
     VariableDeclaration[] fields;
+    MethodDeclaration[] methods;
 
     // TODO should this be field declaration?
     void addField(VariableDeclaration v)
     {
         // TODO
         fields ~= [v];
+    }
+
+    // TODO should this be method declaration?
+    void addMethod(MethodDeclaration f)
+    {
+        methods ~= [f];
     }
 
     // TODO make sure that Declaration is appropriate here.
@@ -457,6 +465,14 @@ class StructDeclaration : Declaration
                 addField(varDecl);
             }
         }
+        else
+        {
+            auto methodDecl = cast(MethodDeclaration)d;
+            if (methodDecl !is null)
+            {
+                addMethod(methodDecl);
+            }
+        }
     }
 
     override pure
@@ -473,6 +489,10 @@ class StructDeclaration : Declaration
         foreach (field; fields)
         {
             structDecl.structBody.declarations ~= [field.buildConcreteDecl()];
+        }
+        foreach (method; methods)
+        {
+            structDecl.structBody.declarations ~= [method.buildConcreteDecl()];
         }
         // TODO
 
@@ -535,6 +555,31 @@ class MethodDeclaration : FunctionDeclaration
 {
     Flag!"const_" const_;
     Flag!"virtual_" virtual_;
+
+    override pure
+    std.d.ast.Declaration buildConcreteDecl() const
+    {
+        auto result = FunctionDeclaration.buildConcreteDecl();
+        auto methodDecl = result.functionDeclaration;
+        assert(methodDecl !is null);
+        if (const_)
+        {
+            auto attr = new std.d.ast.MemberFunctionAttribute();
+            attr.tokenType = tok!"const";
+            methodDecl.memberFunctionAttributes ~= [attr];
+        }
+
+        addVisibility(result);
+
+        if (!virtual_)
+        {
+            auto attr = new std.d.ast.Attribute();
+            attr.attribute = Token(tok!"final", "", 0, 0, 0);
+            result.attributes ~= [attr];
+        }
+
+        return result;
+    }
 }
 
 class InterfaceDeclaration : Declaration
