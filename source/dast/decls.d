@@ -636,7 +636,18 @@ class AliasTypeDeclaration : Declaration
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
-        assert(0);
+        auto result = new std.d.ast.Declaration();
+        auto aliasDecl = new std.d.ast.AliasDeclaration();
+        result.aliasDeclaration = aliasDecl;
+
+        auto initializer = new std.d.ast.AliasInitializer();
+        initializer.name = tokenFromString(name);
+        initializer.type = type.buildConcreteType();
+        aliasDecl.initializers = [initializer];
+
+        addLinkage(result, linkage);
+
+        return result;
     }
 }
 
