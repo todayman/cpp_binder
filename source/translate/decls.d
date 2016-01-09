@@ -236,7 +236,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 continue;
             }
             try {
-                TranslatorVisitor subpackage_visitor = new TranslatorVisitor(this_namespace_path);
+                auto subpackage_visitor = new InsideNamespaceTranslator(this_namespace_path);
                 subpackage_visitor.visit(child);
 
                 if (subpackage_visitor.last_result && child.shouldEmit)
@@ -959,6 +959,33 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result ~= [current];
         }
 
+        return result;
+    }
+}
+
+// Strips "extern(C++, ns)" off of declarations inside of it
+class InsideNamespaceTranslator : TranslatorVisitor
+{
+    this(string namespace_path)
+    {
+        super(namespace_path);
+    }
+
+    override
+    dast.decls.VariableDeclaration translateVariable(unknown.VariableDeclaration variable)
+    {
+        dast.decls.VariableDeclaration result = super.translateVariable(variable);
+        // FIXME this is a bit blunt
+        result.linkage = null;
+        return result;
+    }
+
+    override
+    dast.decls.FunctionDeclaration translateFunction(unknown.FunctionDeclaration variable)
+    {
+        dast.decls.FunctionDeclaration result = super.translateFunction(variable);
+        // FIXME this is a bit blunt
+        result.linkage = null;
         return result;
     }
 }
