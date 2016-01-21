@@ -2,5 +2,5 @@ module unknown;
 
 extern(C++) struct A
 {
-    static public const(int) a;
+    public static const(int) a;
 }

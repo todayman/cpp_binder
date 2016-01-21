@@ -30,7 +30,7 @@ static import unknown;
 import log_controls;
 import translate.expr;
 
-static import dlang_decls;
+import dast.decls;
 import dlang_decls : concat, makeIdentifierOrTemplateChain, makeInstance;
 
 private dlang_decls.Type[void*] translated_types;
@@ -762,16 +762,11 @@ private dlang_decls.Type resolveOrDeferType
     }
     dlang_decls.Type result = translateType(cppType.unqualifiedType(), innerQualifiers);
 
-    // TODO bring back in
     // Apply qualifiers that ...?
-    /*if (cppType.isConst() && !qualifiersAlreadApplied.const_)
+    if (cppType.isConst() && !qualifiersAlreadyApplied.const_)
     {
-        auto outer = new std.d.ast.Type();
-        outer.type2 = new std.d.ast.Type2();
-        outer.type2.typeConstructor = tok!"const";
-        outer.type2.type = result;
-        result = outer;
-    }*/
+        result = new ConstType(result);
+    }
 
     return result;
 }

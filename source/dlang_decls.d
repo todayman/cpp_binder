@@ -18,7 +18,6 @@
 
 import std.algorithm : map, filter, splitter;
 import std.array : array;
-import std.stdio : stdout;
 import std.typecons : Flag, No;
 
 static import std.d.ast;

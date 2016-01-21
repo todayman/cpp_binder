@@ -243,6 +243,14 @@ public class VariableDeclaration : Declaration
         varDecl.declarators = [declarator];
 
         addLinkage(result, linkage);
+
+        if (static_)
+        {
+            auto sc = new std.d.ast.StorageClass();
+            sc.token = Token(tok!"static", "", 0, 0, 0);
+            varDecl.storageClasses ~= [sc];
+        }
+
         addVisibility(result);
 
         return result;
@@ -430,24 +438,36 @@ class StructDeclaration : Declaration
     VariableDeclaration[] fields;
     MethodDeclaration[] methods;
 
+    Declaration[] classDeclarations;
+
     // TODO should this be field declaration?
     void addField(VariableDeclaration v)
     {
         // TODO
+        v.parent = this;
         fields ~= [v];
     }
 
     // TODO should this be method declaration?
     void addMethod(MethodDeclaration f)
     {
+        f.parent = this;
         methods ~= [f];
     }
 
     // TODO make sure that Declaration is appropriate here.
     void addClassLevelDeclaration(Declaration d)
     {
-        // TODO
-        assert(0);
+        // TODO need to add static to the variables...
+        d.parent = this;
+        classDeclarations ~= [d];
+    }
+
+    void addClassLevelVariable(VariableDeclaration d)
+    {
+        d.parent = this;
+        classDeclarations ~= [d];
+        d.static_ = true;
     }
 
     void addDeclaration(Declaration d)
@@ -459,7 +479,7 @@ class StructDeclaration : Declaration
         {
             if (varDecl.static_)
             {
-                addClassLevelDeclaration(varDecl);
+                addClassLevelVariable(varDecl);
             }
             else
             {
@@ -498,6 +518,10 @@ class StructDeclaration : Declaration
         foreach (method; methods)
         {
             structDecl.structBody.declarations ~= [method.buildConcreteDecl()];
+        }
+        foreach (decl; classDeclarations)
+        {
+            structDecl.structBody.declarations ~= [decl.buildConcreteDecl()];
         }
         // TODO
 
@@ -627,12 +651,14 @@ class UnionDeclaration : Declaration
     void addField(VariableDeclaration v)
     {
         // TODO
+        v.parent = this;
         fields ~= [v];
     }
 
     // TODO should this be method declaration?
     void addMethod(MethodDeclaration f)
     {
+        f.parent = this;
         methods ~= [f];
     }
 
@@ -739,6 +765,27 @@ interface Type
 
 class ReturnType
 {
+}
+
+class ConstType : Type
+{
+    Type target;
+
+    this(Type t)
+    {
+        target = t;
+    }
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        auto result = new std.d.ast.Type();
+        result.type2 = new std.d.ast.Type2();
+        result.type2.typeConstructor = tok!"const";
+        result.type2.type = target.buildConcreteType().deepDup();
+
+        return result;
+    }
 }
 
 // An specific value of a template argument
