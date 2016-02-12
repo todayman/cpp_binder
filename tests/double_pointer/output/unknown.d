@@ -1,4 +1,4 @@
 module unknown;
 
-extern(C++) extern char** var;
+extern(C++) public extern char** var;
 

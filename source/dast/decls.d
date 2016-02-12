@@ -244,6 +244,13 @@ public class VariableDeclaration : Declaration
 
         addLinkage(result, linkage);
 
+        if (extern_)
+        {
+            auto sc = new std.d.ast.StorageClass();
+            sc.token = Token(tok!"extern", "", 0, 0, 0);
+            varDecl.storageClasses ~= [sc];
+        }
+
         if (static_)
         {
             auto sc = new std.d.ast.StorageClass();

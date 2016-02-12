@@ -49,7 +49,7 @@ Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 
 private dast.decls.LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
 {
-    clang.LanguageLinkage linkage = cppDecl.getLinkLanguage();
+    immutable clang.LanguageLinkage linkage = cppDecl.getLinkLanguage();
     if (linkage == manual_types.LanguageLinkage.CLanguageLinkage)
     {
         return new dast.decls.CLinkageAttribute();
@@ -105,7 +105,7 @@ class OverloadedOperatorError : Exception
     {
         super("Cannot translate overloaded operators.");
     }
-};
+}
 
 private dlang_decls.Module moduleForDeclaration(unknown.Declaration cppDecl)
 {
@@ -404,7 +404,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     void translateAllBaseClasses(unknown.RecordDeclaration cppDecl, dast.decls.InterfaceDeclaration result)
     {
-        bool hasBaseClass = false;
         foreach (superclass; cppDecl.getSuperclassRange())
         {
             if (superclass.visibility != unknown.Visibility.PUBLIC)
@@ -836,13 +835,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         addCppLinkageAttribute(result);
 
-        // TODO is this the best way to see if this is a top level, global variable?
-        // FIXME this check doesn't work now that Paul is getting rid of package_internal_path
-        /+if (package_internal_path.length == 0 || package_internal_path[$-1] is null)
-        {
-            result.extern_=  true;
-        }+/
-
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
 
         return result;
@@ -959,6 +951,23 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result ~= [current];
         }
 
+        return result;
+    }
+}
+
+class GlobalTranslator : TranslatorVisitor
+{
+    this()
+    {
+        super();
+    }
+
+    override
+    dast.decls.VariableDeclaration translateVariable(unknown.VariableDeclaration variable)
+    {
+        dast.decls.VariableDeclaration result = super.translateVariable(variable);
+        // If the variable wasn't extern in the C++, it is in the D
+        result.extern_ = true;
         return result;
     }
 }
@@ -1250,7 +1259,7 @@ dlang_decls.Module populateDAST(string output_module_name)
             // FIXME creates the module as a side effect of finding?
         }
 
-        auto visitor = new TranslatorVisitor("");
+        auto visitor = new GlobalTranslator();
         try {
             dast.decls.Declaration translation;
             if (cast(void*)declaration !in translated)

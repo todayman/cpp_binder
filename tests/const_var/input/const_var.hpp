@@ -1,1 +1,2 @@
-const int a;
+extern const int a;
+const int b = 0;
