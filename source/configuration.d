@@ -18,13 +18,11 @@
 
 module configuration;
 
-import std.algorithm : map;
 import std.conv : to;
 import std.exception : enforce;
-import std.file;
+import std.file : read;
 import std.json;
 import std.string : toStringz, fromStringz, toLower;
-import std.c.string;
 
 static import binder;
 static import unknown;
