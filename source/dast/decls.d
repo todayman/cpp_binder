@@ -729,6 +729,7 @@ class UnionDeclaration : Declaration, Type
         // TODO
 
         addLinkage(result, linkage);
+        addVisibility(result);
 
         return result;
     }
