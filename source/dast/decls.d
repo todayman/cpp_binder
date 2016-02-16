@@ -455,7 +455,6 @@ class StructDeclaration : Declaration
         fields ~= [v];
     }
 
-    // TODO should this be method declaration?
     void addMethod(MethodDeclaration f)
     {
         f.parent = this;
@@ -465,7 +464,6 @@ class StructDeclaration : Declaration
     // TODO make sure that Declaration is appropriate here.
     void addClassLevelDeclaration(Declaration d)
     {
-        // TODO need to add static to the variables...
         d.parent = this;
         classDeclarations ~= [d];
     }
@@ -644,7 +642,7 @@ class InterfaceDeclaration : Declaration
     }
 }
 
-class UnionDeclaration : Declaration
+class UnionDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
 
@@ -713,7 +711,10 @@ class UnionDeclaration : Declaration
         auto unionDecl = new std.d.ast.UnionDeclaration();
         result.unionDeclaration = unionDecl;
 
-        unionDecl.name = tokenFromString(name);
+        if (name.length)
+        {
+            unionDecl.name = tokenFromString(name);
+        }
 
         unionDecl.structBody = new std.d.ast.StructBody();
 
@@ -730,6 +731,12 @@ class UnionDeclaration : Declaration
         addLinkage(result, linkage);
 
         return result;
+    }
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        return null;
     }
 }
 
