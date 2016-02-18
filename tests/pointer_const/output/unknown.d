@@ -1,3 +1,3 @@
 module unknown;
 
-extern(C++) extern const(int) * ptr;
+extern(C++) public extern const(int) * ptr;
