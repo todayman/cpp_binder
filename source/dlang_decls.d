@@ -62,12 +62,14 @@ IdentifierChain makeIdentifierChain(string separator = ".")(string path)
     return result;
 }
 
+pure
 IdentifierOrTemplateInstance makeInstance(string str)
 {
     auto result = new IdentifierOrTemplateInstance();
     result.identifier = Token(tok!"identifier", str, 0, 0, 0);
     return result;
 }
+pure
 IdentifierOrTemplateInstance makeInstance(Token t)
 {
     auto result = new IdentifierOrTemplateInstance();
@@ -75,6 +77,7 @@ IdentifierOrTemplateInstance makeInstance(Token t)
     return result;
 }
 
+pure
 IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierOrTemplateInstance inst)
 {
     auto result = new IdentifierOrTemplateChain();
@@ -82,6 +85,7 @@ IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierOrTemplateInst
     return result;
 }
 
+pure
 IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierChain idChain)
 {
     auto result = new IdentifierOrTemplateChain();
@@ -90,6 +94,7 @@ IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierChain idChain)
 }
 
 // FIXME combine this with makeIdentifierChain
+pure
 IdentifierOrTemplateChain makeIdentifierOrTemplateChain(string separator)(string path)
 {
     import std.algorithm : map, filter, splitter;
@@ -104,12 +109,14 @@ IdentifierOrTemplateChain makeIdentifierOrTemplateChain(string separator)(string
     return result;
 }
 
+pure
 IdentifierOrTemplateChain concat(IdentifierChain idChain, IdentifierOrTemplateChain tempChain)
 {
     auto result = new IdentifierOrTemplateChain();
     result.identifiersOrTemplateInstances = idChain.identifiers.map!(makeInstance).array ~ tempChain.identifiersOrTemplateInstances;
     return result;
 }
+pure
 IdentifierOrTemplateChain concat(IdentifierOrTemplateChain idChain, IdentifierOrTemplateChain tempChain)
 {
     auto result = new IdentifierOrTemplateChain();
@@ -117,6 +124,7 @@ IdentifierOrTemplateChain concat(IdentifierOrTemplateChain idChain, IdentifierOr
     return result;
 }
 
+pure
 void append(IdentifierOrTemplateChain chain, Token identifier)
 {
     //auto t = Token(tok!"identifier", identifier, 0, 0, 0);
