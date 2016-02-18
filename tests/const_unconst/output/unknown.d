@@ -1,5 +1,5 @@
 module unknown;
 
-extern(C++) extern const(int) a;
+extern(C++) public extern const(int) a;
 
-extern(C++) extern int b;
+extern(C++) public extern int b;
