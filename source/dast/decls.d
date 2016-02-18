@@ -460,6 +460,24 @@ class EnumMember : Declaration
     }
 }
 
+// Needs this name for eponymous template trick to work,
+// but I'd really like a different, more explanatory name
+mixin template buildConcreteType()
+{
+    pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        auto result = new std.d.ast.Type();
+        result.type2 = new std.d.ast.Type2();
+        result.type2.symbol = new std.d.ast.Symbol();
+        result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
+        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
+        result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances
+            = map!(dlang_decls.makeInstance)(qualifiedPath).array;
+        return result;
+    }
+}
+
 class StructDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
@@ -560,18 +578,7 @@ class StructDeclaration : Declaration, Type
         return result;
     }
 
-    override pure
-    std.d.ast.Type buildConcreteType() const
-    {
-        auto result = new std.d.ast.Type();
-        result.type2 = new std.d.ast.Type2();
-        result.type2.symbol = new std.d.ast.Symbol();
-        result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
-        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
-        result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances
-            = map!(dlang_decls.makeInstance)(qualifiedPath).array;
-        return result;
-    }
+    mixin .buildConcreteType!();
 }
 
 class SpecializedStructDeclaration : Declaration
@@ -807,19 +814,7 @@ class AliasTypeDeclaration : Declaration, Type
         return result;
     }
 
-    override pure
-    std.d.ast.Type buildConcreteType() const
-    {
-        // FIXME copy pasted from StructDeclaration
-        auto result = new std.d.ast.Type();
-        result.type2 = new std.d.ast.Type2();
-        result.type2.symbol = new std.d.ast.Symbol();
-        result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
-        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
-        result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances
-            = map!(dlang_decls.makeInstance)(qualifiedPath).array;
-        return result;
-    }
+    mixin .buildConcreteType!();
 }
 
 enum Visibility
