@@ -1094,6 +1094,10 @@ std.d.ast.Type2 deepDup(const(std.d.ast.Type2) src) pure
 
 std.d.ast.Symbol deepDup(const(std.d.ast.Symbol) src) pure
 {
+    if (src is null)
+    {
+        return null;
+    }
     auto result = new std.d.ast.Symbol();
     result.identifierOrTemplateChain = deepDup(src.identifierOrTemplateChain);
     result.dot = src.dot;
