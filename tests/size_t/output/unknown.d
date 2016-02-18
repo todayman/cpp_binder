@@ -1,4 +1,4 @@
 module unknown;
 
-extern(C++) extern size_t var;
+extern(C++) public extern size_t var;
 

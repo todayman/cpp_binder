@@ -638,9 +638,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     dast.decls.AliasTypeDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
     {
         auto result = CHECK_FOR_DECL!(dast.decls.AliasTypeDeclaration)(cppDecl);
-        if (result !is null) return result;
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.decls.AliasTypeDeclaration)(cppDecl);
+        }
 
-        result = registerDeclaration!(dast.decls.AliasTypeDeclaration)(cppDecl);
         addCppLinkageAttribute(result);
         result.name = nameFromDecl(cppDecl);
         result.type = translateType(cppDecl.getTargetType(), QualifierSet.init);
@@ -1305,10 +1307,9 @@ class StarterVisitor : unknown.DeclarationVisitor
         // TODO fill this one in!
         assert(0);
     }
-    extern(C++) void visitTypedef(unknown.TypedefDeclaration)
+    extern(C++) void visitTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        // TODO fill this one in!
-        assert(0);
+        result = registerDeclaration!(dast.decls.AliasTypeDeclaration)(cppDecl);
     }
     extern(C++) void visitEnum(unknown.EnumDeclaration)
     {

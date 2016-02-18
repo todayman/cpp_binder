@@ -198,7 +198,16 @@ public class Declaration
     {
         if (parent is null)
         {
-            return parentModule.moduleName.identifiers ~ [tokenFromString(name)];
+            if (parentModule !is null)
+            {
+                return parentModule.moduleName.identifiers ~ [tokenFromString(name)];
+            }
+            else
+            {
+                // TODO this means I am in the global namespace There should
+                // probably be a prepended dot on the rendered name.
+                return [tokenFromString(name)];
+            }
         }
         else
         {
@@ -776,7 +785,7 @@ class UnionDeclaration : Declaration, Type
     }
 }
 
-class AliasTypeDeclaration : Declaration
+class AliasTypeDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
     Type type;
@@ -795,6 +804,20 @@ class AliasTypeDeclaration : Declaration
 
         addLinkage(result, linkage);
 
+        return result;
+    }
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        // FIXME copy pasted from StructDeclaration
+        auto result = new std.d.ast.Type();
+        result.type2 = new std.d.ast.Type2();
+        result.type2.symbol = new std.d.ast.Symbol();
+        result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
+        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
+        result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances
+            = map!(dlang_decls.makeInstance)(qualifiedPath).array;
         return result;
     }
 }
