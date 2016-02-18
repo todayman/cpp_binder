@@ -49,6 +49,7 @@ class Module
 
     void addDeclaration(Declaration decl, string namespace)
     {
+        decl.parentModule = this;
         if (namespace == "")
         {
             declarations ~= [decl];
@@ -139,6 +140,8 @@ class Module
 
 public class Declaration
 {
+    // FIXME the fact that this is different than parent is a hack
+    Module parentModule;
     Declaration parent;
     // Do all declarations have visibility?
     Visibility visibility;
@@ -188,6 +191,19 @@ public class Declaration
                 break;
         }
         result.attributes ~= [attr];
+    }
+
+    // FIXME doesn't work for symbols inside a namespace
+    const(Token)[] qualifiedPath() const pure
+    {
+        if (parent is null)
+        {
+            return parentModule.moduleName.identifiers ~ [tokenFromString(name)];
+        }
+        else
+        {
+            return parent.qualifiedPath() ~ [tokenFromString(name)];
+        }
     }
 }
 
