@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2015 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2015-2016 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ static import binder;
 static import unknown;
 
 import log_controls;
+import translate.decls;
 import translate.expr;
 
 import dast.decls;
@@ -433,11 +434,16 @@ private dlang_decls.Type resolveOrDefer(Type)(Type cppType)
                 if (dumpBeforeThrowing) cppDecl.dump();
                 throw new Exception("This type is not wrappable.");
             }
-            // TODO traverse the decl to get the translation
+
+            dast.decls.Declaration dDecl = startDeclBuild(cppDecl);
+            result = cast(dlang_decls.Type)dDecl;
+            // This ^ cast really shouldn't fail, since we just constructed a
+            // declaration from something that we know is a C++ type.
+            translated_types[cast(void*)cppDecl.getType()] = result;
         }
         if (result is null)
         {
-            stderr.writeln("Could not build DeferredSymbol for");
+            stderr.writeln("Could not build a D AST Type node for");
             cppType.dump();
             assert(result !is null);
         }

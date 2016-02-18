@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2015 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2015-2016 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -445,11 +445,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (result !is null)
         {
             info("Short-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
-            return result;
         }
-        info("Long-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
+        else
+        {
+            info("Long-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
+            result = registerDeclaration!(dast.decls.StructDeclaration)(cppDecl);
+        }
+        info("Building struct @0x", cast(void*)result);
 
-        result = registerDeclaration!(dast.decls.StructDeclaration)(cppDecl);
         result.name = name;
         result.templateArguments = template_params;
         if (cast(void*)cppDecl in translated)
@@ -517,9 +520,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             dast.decls.TemplateArgumentDeclaration[] template_params)
     {
         auto result = CHECK_FOR_DECL!(dast.decls.InterfaceDeclaration)(cppDecl);
-        if (result !is null) return result;
-
-        result = registerDeclaration!(dast.decls.InterfaceDeclaration)(cppDecl);
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.decls.InterfaceDeclaration)(cppDecl);
+        }
 
         result.name = name;
         result.templateArguments = template_params;
@@ -738,9 +742,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     dast.decls.UnionDeclaration translateUnion(unknown.UnionDeclaration cppDecl)
     {
         auto result = CHECK_FOR_DECL!(dast.decls.UnionDeclaration)(cppDecl);
-        if (result !is null) return result;
-
-        result = registerDeclaration!(dast.decls.UnionDeclaration)(cppDecl);
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.decls.UnionDeclaration)(cppDecl);
+        }
         if (!cppDecl.isAnonymous)
         {
             result.name = nameFromDecl(cppDecl);
@@ -1211,7 +1216,10 @@ private dlang_decls.Module findTargetModule(unknown.Declaration declaration)
     return dlang_decls.rootPackage.getOrCreateModulePath(target_module);
 }
 
-private void placeIntoTargetModule(unknown.Declaration declaration, dast.decls.Declaration translation, string namespace_path)
+private void placeIntoTargetModule(
+    unknown.Declaration declaration,
+    dast.decls.Declaration translation,
+    string namespace_path)
 {
     // FIXME sometimes this gets called multiple times on the same declaration,
     // so it will get output multiple times, which is clearly wrong
@@ -1232,6 +1240,93 @@ private void placeIntoTargetModule(unknown.Declaration declaration, dast.decls.D
     {
         info("No translation for declaration @", cast(void*)declaration);
     }
+}
+
+// This function is responsible for building just enough of a D AST to
+// continue.  That means: it picks the right type of AST node, but doesn't
+// name it or place it anywhere.
+dast.decls.Declaration startDeclBuild(unknown.Declaration cppDecl)
+{
+    if (auto decl_ptr = cast(void*)cppDecl in translated)
+    {
+        return *decl_ptr;
+    }
+
+    info("Starting declaration build for cppDecl 0x", cast(void*)cppDecl);
+    auto visitor = new StarterVisitor();
+    cppDecl.visit(visitor);
+    assert(visitor.result !is null);
+    return visitor.result;
+}
+// Inherit from DeclarationVisitor instead of TranslatorVisitor since we
+// need to replace all the methods
+class StarterVisitor : unknown.DeclarationVisitor
+{
+    public:
+    dast.decls.Declaration result;
+
+    extern(C++) void visitFunction(unknown.FunctionDeclaration) { }
+    extern(C++) void visitNamespace(unknown.NamespaceDeclaration) { }
+    extern(C++) void visitField(unknown.FieldDeclaration) { }
+    extern(C++) void visitEnumConstant(unknown.EnumConstantDeclaration) { }
+    extern(C++) void visitMethod(unknown.MethodDeclaration) { }
+    extern(C++) void visitConstructor(unknown.ConstructorDeclaration) { }
+    extern(C++) void visitDestructor(unknown.DestructorDeclaration) { }
+    extern(C++) void visitArgument(unknown.ArgumentDeclaration) { }
+    extern(C++) void visitVariable(unknown.VariableDeclaration) { }
+    extern(C++) void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration) { }
+
+    extern(C++) void visitRecord(unknown.RecordDeclaration cppDecl)
+    {
+        // FIXME copied from TranslatorVisitor.buildRecord
+        trace("Entering");
+        scope(exit) trace("Exiting");
+        determineRecordStrategy(cppDecl.getRecordType());
+        switch (cppDecl.getType().getStrategy())
+        {
+            case unknown.Strategy.STRUCT:
+                info("Building record using strategy STRUCT.");
+                result = registerDeclaration!(dast.decls.StructDeclaration)(cppDecl);
+                break;
+            case unknown.Strategy.INTERFACE:
+                info("Building record using strategy INTERFACE.");
+                result = registerDeclaration!(dast.decls.InterfaceDeclaration)(cppDecl);
+                break;
+            case unknown.Strategy.REPLACE:
+                info("Skipping build because the strategy is REPLACE.");
+                assert(0);
+            default:
+                stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
+                throw new Exception("I don't know how to translate records using strategies other than REPLACE, STRUCT, and INTERFACE yet.");
+        }
+    }
+    extern(C++) void visitRecordTemplate(unknown.RecordTemplateDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitTypedef(unknown.TypedefDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitEnum(unknown.EnumDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitUnion(unknown.UnionDeclaration cppDecl)
+    {
+        result = registerDeclaration!(dast.decls.UnionDeclaration)(cppDecl);
+    }
+    extern(C++) void visitSpecializedRecord(unknown.SpecializedRecordDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration) { }
+    extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration) { }
+    extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration) { }
 }
 
 dlang_decls.Module destination;
