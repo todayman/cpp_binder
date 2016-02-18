@@ -451,7 +451,7 @@ class EnumMember : Declaration
     }
 }
 
-class StructDeclaration : Declaration
+class StructDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
 
@@ -550,6 +550,19 @@ class StructDeclaration : Declaration
 
         return result;
     }
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        auto result = new std.d.ast.Type();
+        result.type2 = new std.d.ast.Type2();
+        result.type2.symbol = new std.d.ast.Symbol();
+        result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
+        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
+        result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances
+            = map!(dlang_decls.makeInstance)(qualifiedPath).array;
+        return result;
+    }
 }
 
 class SpecializedStructDeclaration : Declaration
@@ -632,7 +645,7 @@ class MethodDeclaration : FunctionDeclaration
     }
 }
 
-class InterfaceDeclaration : Declaration
+class InterfaceDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
     InterfaceDeclaration bases;
@@ -653,6 +666,12 @@ class InterfaceDeclaration : Declaration
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
+    {
+        assert(0);
+    }
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
     {
         assert(0);
     }
@@ -753,7 +772,7 @@ class UnionDeclaration : Declaration, Type
     override pure
     std.d.ast.Type buildConcreteType() const
     {
-        return null;
+        assert(0);
     }
 }
 
