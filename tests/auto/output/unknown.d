@@ -1,4 +1,4 @@
 module unknown;
 
-extern(C++) extern int var;
+extern(C++) public extern int var;
 
