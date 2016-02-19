@@ -663,34 +663,103 @@ class MethodDeclaration : FunctionDeclaration
 
 class InterfaceDeclaration : Declaration, Type
 {
+    // FIXME dedup this class with StructDeclaration
+
     LinkageAttribute linkage;
     InterfaceDeclaration bases;
 
     // FIXME Need to distinguish between no list and length 0 list
     TemplateArgumentDeclaration[] templateArguments;
 
-    void addBaseType(Type b)
+    MethodDeclaration[] methods;
+
+    Declaration[] classDeclarations;
+
+    void addMethod(MethodDeclaration f)
     {
-        // TODO
+        f.parent = this;
+        methods ~= [f];
+    }
+
+    // TODO make sure that Declaration is appropriate here.
+    void addClassLevelDeclaration(Declaration d)
+    {
+        d.parent = this;
+        classDeclarations ~= [d];
+    }
+
+    void addClassLevelVariable(VariableDeclaration d)
+    {
+        d.parent = this;
+        classDeclarations ~= [d];
+        d.static_ = true;
     }
 
     void addDeclaration(Declaration d)
     {
         // TODO
         // Needs to determine whether d is a class level or instance level decl
+        auto varDecl = cast(VariableDeclaration)d;
+        if (varDecl !is null)
+        {
+            if (varDecl.static_)
+            {
+                addClassLevelVariable(varDecl);
+            }
+            else
+            {
+                throw new Exception("Cannot add instance level variables to an interface");
+            }
+        }
+        else
+        {
+            auto methodDecl = cast(MethodDeclaration)d;
+            if (methodDecl !is null)
+            {
+                addMethod(methodDecl);
+            }
+            else
+            {
+                addClassLevelDeclaration(d);
+            }
+        }
     }
+
+    void addBaseType(Type b)
+    {
+        // TODO
+        assert(0);
+    }
+
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
-        assert(0);
+        auto result = new std.d.ast.Declaration();
+        auto interfaceDecl = new std.d.ast.InterfaceDeclaration();
+        result.interfaceDeclaration = interfaceDecl;
+
+        interfaceDecl.name = tokenFromString(name);
+
+        auto body_ = new std.d.ast.StructBody();
+
+        foreach (method; methods)
+        {
+            body_.declarations ~= [method.buildConcreteDecl()];
+        }
+        foreach (decl; classDeclarations)
+        {
+            body_.declarations ~= [decl.buildConcreteDecl()];
+        }
+        interfaceDecl.structBody = body_;
+        // TODO
+
+        addLinkage(result, linkage);
+
+        return result;
     }
 
-    override pure
-    std.d.ast.Type buildConcreteType() const
-    {
-        assert(0);
-    }
+    mixin .buildConcreteType!();
 }
 
 class UnionDeclaration : Declaration, Type
