@@ -435,10 +435,7 @@ private dlang_decls.Type resolveOrDefer(Type)(Type cppType)
                 throw new Exception("This type is not wrappable.");
             }
 
-            dast.decls.Declaration dDecl = startDeclBuild(cppDecl);
-            result = cast(dlang_decls.Type)dDecl;
-            // This ^ cast really shouldn't fail, since we just constructed a
-            // declaration from something that we know is a C++ type.
+            result = startDeclBuild(cppDecl);
             translated_types[cast(void*)cppDecl.getType()] = result;
         }
         if (result is null)

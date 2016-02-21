@@ -1247,11 +1247,13 @@ private void placeIntoTargetModule(
 // This function is responsible for building just enough of a D AST to
 // continue.  That means: it picks the right type of AST node, but doesn't
 // name it or place it anywhere.
-dast.decls.Declaration startDeclBuild(unknown.Declaration cppDecl)
+dast.decls.Type startDeclBuild(unknown.Declaration cppDecl)
 {
     if (auto decl_ptr = cast(void*)cppDecl in translated)
     {
-        return *decl_ptr;
+        dast.decls.Type result = cast(dast.decls.Type)*decl_ptr;
+        assert(result !is null);
+        return result;
     }
 
     info("Starting declaration build for cppDecl 0x", cast(void*)cppDecl);
@@ -1265,7 +1267,7 @@ dast.decls.Declaration startDeclBuild(unknown.Declaration cppDecl)
 class StarterVisitor : unknown.DeclarationVisitor
 {
     public:
-    dast.decls.Declaration result;
+    dast.decls.Type result;
 
     extern(C++) void visitFunction(unknown.FunctionDeclaration) { }
     extern(C++) void visitNamespace(unknown.NamespaceDeclaration) { }
@@ -1296,7 +1298,11 @@ class StarterVisitor : unknown.DeclarationVisitor
                 break;
             case unknown.Strategy.REPLACE:
                 info("Skipping build because the strategy is REPLACE.");
-                assert(0);
+                auto replacement = new dlang_decls.ReplacedType();
+                replacement.fullyQualifiedName = makeIdentifierOrTemplateChain!"."(nameFromDecl(cppDecl));
+                assert(replacement.fullyQualifiedName !is null);
+                result = replacement;
+                break;
             default:
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
                 throw new Exception("I don't know how to translate records using strategies other than REPLACE, STRUCT, and INTERFACE yet.");
