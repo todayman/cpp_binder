@@ -489,20 +489,6 @@ private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDe
     }
 }
 
-private dlang_decls.Type resolveOrDefer(unknown.TemplateArgumentType cppType)
-{
-    if (auto type_ptr = cast(void*)cppType in translated_types)
-    {
-        return (*type_ptr);
-    }
-    else
-    {
-        // TODO make the type here.
-        // Paul needs to check whether this is a specific instantiation or what
-        assert(0);
-    }
-}
-
 class TemplateArgumentVisitor : unknown.DeclarationVisitor
 {
     extern(C++) override void visitFunction(unknown.FunctionDeclaration) { }

@@ -607,7 +607,7 @@ class TemplateArgumentDeclaration : Declaration
 {
 }
 
-class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration
+class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
 {
     Type defaultType;
 
@@ -616,6 +616,8 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration
     {
         assert(0);
     }
+
+    mixin .buildConcreteType!();
 }
 
 class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration

@@ -859,7 +859,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     // for a template, so we don't need to check for duplicates
     dast.decls.TemplateTypeArgumentDeclaration translateTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
     {
-        auto result = new dast.decls.TemplateTypeArgumentDeclaration();
+        auto result = registerDeclaration!(dast.decls.TemplateTypeArgumentDeclaration)(cppDecl);
         result.name = nameFromDecl(cppDecl);
 
         if (cppDecl.hasDefaultType())
