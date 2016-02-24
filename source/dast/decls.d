@@ -478,11 +478,12 @@ mixin template buildConcreteType()
     }
 }
 
+alias TemplateArgumentList = Nullable!(TemplateArgumentDeclaration[]);
 class StructDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
 
-    Nullable!(TemplateArgumentDeclaration[]) templateArguments;
+    TemplateArgumentList templateArguments;
 
     VariableDeclaration[] fields;
     MethodDeclaration[] methods;

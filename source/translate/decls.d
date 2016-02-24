@@ -436,7 +436,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     dast.decls.StructDeclaration buildStruct(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.decls.TemplateArgumentDeclaration[] template_params)
+            dast.decls.TemplateArgumentList template_params)
     {
         trace("Entering");
         scope(exit) trace("Exiting");
@@ -543,7 +543,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void buildRecord(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.decls.TemplateArgumentDeclaration[] template_params)
+            dast.decls.TemplateArgumentList template_params)
     {
         trace("Entering");
         scope(exit) trace("Exiting");
@@ -580,7 +580,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         string name = nameFromDecl(cppDecl);
         info("Translating record named ", name, " for cppDecl @", cast(void*)cppDecl);
 
-        buildRecord(cppDecl, name, null);
+        buildRecord(cppDecl, name, dast.decls.TemplateArgumentList());
         // Records using the replacement strategy don't produce a result
         auto ptr = cast(void*)cppDecl in translated;
         if (ptr && (!((*ptr) in placedDeclarations) || placedDeclarations[*ptr] == 0))
@@ -593,7 +593,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
     {
         string name = nameFromDecl(cppDecl);
-        dast.decls.TemplateArgumentDeclaration[] templateParameters = translateTemplateParameters(cppDecl);
+        dast.decls.TemplateArgumentList templateParameters = translateTemplateParameters(cppDecl);
 
         {
             buildRecord(cppDecl, name, templateParameters);
@@ -632,7 +632,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         template_inst.templateArguments = translateTemplateArguments(cppDecl);
 
         // FIXME this call
-        buildRecord(cppDecl, nameFromDecl(cppDecl), null);
+        buildRecord(cppDecl, nameFromDecl(cppDecl), dast.decls.TemplateArgumentList());
     }
 
     dast.decls.AliasTypeDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
