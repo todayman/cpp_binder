@@ -22,7 +22,7 @@ import std.algorithm : filter, map, splitter;
 import std.array : array;
 import std.conv : to;
 import std.stdio;
-import std.typecons : Flag, No;
+import std.typecons : Flag, No, Nullable;
 
 static import std.d.ast;
 import std.d.lexer;
@@ -482,8 +482,7 @@ class StructDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
 
-    // FIXME Need to distinguish between no list and length 0 list
-    TemplateArgumentDeclaration[] templateArguments;
+    Nullable!(TemplateArgumentDeclaration[]) templateArguments;
 
     VariableDeclaration[] fields;
     MethodDeclaration[] methods;
@@ -557,6 +556,14 @@ class StructDeclaration : Declaration, Type
 
         structDecl.name = tokenFromString(name);
 
+        if (!templateArguments.isNull)
+        {
+            structDecl.templateParameters = new std.d.ast.TemplateParameters();
+            structDecl.templateParameters.templateParameterList = new std.d.ast.TemplateParameterList();
+            auto items = templateArguments.get().map!(param => param.buildTemplateParameter()).array;
+            structDecl.templateParameters.templateParameterList.items = items;
+        }
+
         structDecl.structBody = new std.d.ast.StructBody();
 
         foreach (field; fields)
@@ -603,8 +610,13 @@ class AliasThisDeclaration : Declaration
     }
 }
 
+// Maybe these shouldn't be declarations?  We need the "declaration" to be a
+// std.d.ast.TemplateParameter, so I've added a method here.  But now the
+// Declaration part of this type isn't used anymore.
 class TemplateArgumentDeclaration : Declaration
 {
+    pure abstract
+    std.d.ast.TemplateParameter buildTemplateParameter() const;
 }
 
 class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
@@ -618,6 +630,16 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
     }
 
     mixin .buildConcreteType!();
+
+    override pure
+    std.d.ast.TemplateParameter buildTemplateParameter() const
+    {
+        auto result = new std.d.ast.TemplateParameter();
+        result.templateTypeParameter = new std.d.ast.TemplateTypeParameter();
+        // TODO deal with default types, specific specializations, etc.
+        result.templateTypeParameter.identifier = tokenFromString(name);
+        return result;
+    }
 }
 
 class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
@@ -627,6 +649,12 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
+    {
+        assert(0);
+    }
+
+    override pure
+    std.d.ast.TemplateParameter buildTemplateParameter() const
     {
         assert(0);
     }
@@ -927,7 +955,7 @@ class ConstType : Type
     }
 }
 
-// An specific value of a template argument
+// A specific value of a template argument
 class TemplateArgument
 {
 }
