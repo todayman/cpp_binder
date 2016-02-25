@@ -1,4 +1,4 @@
 module unknown;
 
-extern(C++) extern int function(int) func;
+extern(C++) public extern int function(int) func;
 

@@ -1061,25 +1061,20 @@ class FunctionType : Type
     Type returnType;
 
     bool varargs;
-    Type[] arguments;
+    Argument[] arguments; // They just won't have names
 
     override pure
     std.d.ast.Type buildConcreteType() const
     {
-        assert(0);
-    }
-}
+        auto result = returnType.buildConcreteType().deepDup;
+        auto suffix = new std.d.ast.TypeSuffix();
+        suffix.delegateOrFunction = Token(tok!"function", "", 0, 0, 0);
+        suffix.parameters = new std.d.ast.Parameters();
+        suffix.parameters.parameters = arguments.map!(a => a.buildConcreteArgument()).array;
+        result.typeSuffixes ~= [suffix];
 
-// FIXME combine with argument declaration
-class ArgumentType : Type
-{
-    Type type;
-    Flag!"ref_" ref_;
-
-    override pure
-    std.d.ast.Type buildConcreteType() const
-    {
-        assert(0);
+        // TODO varargs
+        return result;
     }
 }
 

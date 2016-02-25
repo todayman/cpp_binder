@@ -770,7 +770,7 @@ private dlang_decls.FunctionType replaceFunction(unknown.FunctionType cppType)
     result.varargs = false;
     foreach (unknown.Type arg_type; cppType.getArgumentRange())
     {
-        auto param = new dlang_decls.ArgumentType();
+        auto param = new dlang_decls.Argument();
         try {
             param.type = translateType(arg_type, QualifierSet.init);
         }
