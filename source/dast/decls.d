@@ -657,7 +657,12 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
     override pure
     std.d.ast.TemplateParameter buildTemplateParameter() const
     {
-        assert(0);
+        auto result = new std.d.ast.TemplateParameter();
+        result.templateValueParameter = new std.d.ast.TemplateValueParameter();
+        result.templateValueParameter.type = type.buildConcreteType();
+        result.templateValueParameter.identifier = tokenFromString(name);
+        // TODO deal with defaultValue
+        return result;
     }
 }
 
