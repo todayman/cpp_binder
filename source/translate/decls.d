@@ -517,7 +517,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     dast.decls.InterfaceDeclaration buildInterface(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.decls.TemplateArgumentDeclaration[] template_params)
+            dast.decls.TemplateArgumentList template_params)
     {
         auto result = CHECK_FOR_DECL!(dast.decls.InterfaceDeclaration)(cppDecl);
         if (result is null)

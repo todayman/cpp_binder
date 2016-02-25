@@ -704,8 +704,7 @@ class InterfaceDeclaration : Declaration, Type
     LinkageAttribute linkage;
     InterfaceDeclaration bases;
 
-    // FIXME Need to distinguish between no list and length 0 list
-    TemplateArgumentDeclaration[] templateArguments;
+    TemplateArgumentList templateArguments;
 
     MethodDeclaration[] methods;
 
