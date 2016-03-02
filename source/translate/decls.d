@@ -25,7 +25,7 @@ import std.typecons : Flag, Yes, No;
 import std.experimental.logger;
 
 static import binder;
-static import dast.decls;
+static import dast;
 import dlang_decls : makeIdentifierChain, rootPackage;
 static import unknown;
 import log_controls;
@@ -33,8 +33,8 @@ import manual_types;
 import translate.types;
 import translate.expr;
 
-private dast.decls.Declaration[void*] translated;
-private int[dast.decls.Declaration] placedDeclarations;
+private dast.Declaration[void*] translated;
+private int[dast.Declaration] placedDeclarations;
 
 Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
 {
@@ -47,21 +47,21 @@ Result CHECK_FOR_DECL(Result, Input)(Input cppDecl)
     return null;
 }
 
-private dast.decls.LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
+private dast.LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_path)
 {
     immutable clang.LanguageLinkage linkage = cppDecl.getLinkLanguage();
     if (linkage == manual_types.LanguageLinkage.CLanguageLinkage)
     {
-        return new dast.decls.CLinkageAttribute();
+        return new dast.CLinkageAttribute();
     }
     else if (linkage == clang.LanguageLinkage.CXXLanguageLinkage)
     {
-        return new dast.decls.CppLinkageAttribute(namespace_path);
+        return new dast.CppLinkageAttribute(namespace_path);
     }
     else if (cppDecl.getLinkLanguage() == clang.LanguageLinkage.NoLanguageLinkage)
     {
         warning(warnIfNoLinkage, "WARNING: \"", namespace_path, "::", binder.toDString(cppDecl.getSourceName()), "\" has no language linkage.  Assuming C++.");
-        return new dast.decls.CppLinkageAttribute(namespace_path);
+        return new dast.CppLinkageAttribute(namespace_path);
     }
     else {
         throw new Exception("Didn't recognize linkage");
@@ -80,22 +80,22 @@ private string nameFromDecl(unknown.Declaration cppDecl)
     return binder.toDString(cppDecl.getTargetName());
 }
 
-private dast.decls.Visibility translateVisibility(T)(T cppDecl)
+private dast.Visibility translateVisibility(T)(T cppDecl)
 {
     final switch (cppDecl.getVisibility())
     {
         case unknown.Visibility.UNSET:
             throw new Exception("Unset visibility");
         case unknown.Visibility.PUBLIC:
-            return dast.decls.Visibility.Public;
+            return dast.Visibility.Public;
         case unknown.Visibility.PRIVATE:
-            return dast.decls.Visibility.Private;
+            return dast.Visibility.Private;
         case unknown.Visibility.PROTECTED:
-            return dast.decls.Visibility.Protected;
+            return dast.Visibility.Protected;
         case unknown.Visibility.EXPORT:
-            return dast.decls.Visibility.Export;
+            return dast.Visibility.Export;
         case unknown.Visibility.PACKAGE:
-            return dast.decls.Visibility.Package;
+            return dast.Visibility.Package;
     }
 }
 
@@ -107,7 +107,7 @@ class OverloadedOperatorError : Exception
     }
 }
 
-private dast.decls.Module moduleForDeclaration(unknown.Declaration cppDecl)
+private dast.Module moduleForDeclaration(unknown.Declaration cppDecl)
 {
     if (cppDecl.shouldEmit)
     {
@@ -131,7 +131,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     string namespace_path;
 
     public:
-    dast.decls.Declaration last_result;
+    dast.Declaration last_result;
 
     public:
     this()
@@ -146,7 +146,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    dast.decls.Declaration visit(unknown.Declaration cppDecl)
+    dast.Declaration visit(unknown.Declaration cppDecl)
     {
         try {
             cppDecl.visit(this);
@@ -162,12 +162,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dast.decls.FunctionDeclaration translateFunction(unknown.FunctionDeclaration cppDecl)
+    dast.FunctionDeclaration translateFunction(unknown.FunctionDeclaration cppDecl)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.FunctionDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.FunctionDeclaration)(cppDecl);
         if (result !is null) return result;
 
-        result = registerDeclaration!(dast.decls.FunctionDeclaration)(cppDecl);
+        result = registerDeclaration!(dast.FunctionDeclaration)(cppDecl);
         // Set the linkage attributes for this function
         result.linkage = translateLinkage(cppDecl, namespace_path);
 
@@ -262,7 +262,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     private void addCppLinkageAttribute(T)(T declaration)
     {
-        declaration.linkage = new dast.decls.CppLinkageAttribute(namespace_path);
+        declaration.linkage = new dast.CppLinkageAttribute(namespace_path);
     }
 
     class IsRecord : unknown.DeclarationVisitor
@@ -389,7 +389,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     {
                         // catch when visibility is unset.
                         // FIXME is this the right thing?
-                        visitor.last_result.visibility = dast.decls.Visibility.Public;
+                        visitor.last_result.visibility = dast.Visibility.Public;
                     }
                     result.addDeclaration(visitor.last_result);
                 }
@@ -402,7 +402,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    void translateAllBaseClasses(unknown.RecordDeclaration cppDecl, dast.decls.InterfaceDeclaration result)
+    void translateAllBaseClasses(unknown.RecordDeclaration cppDecl, dast.InterfaceDeclaration result)
     {
         foreach (superclass; cppDecl.getSuperclassRange())
         {
@@ -420,7 +420,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             // Do the translation before checking if it's an interface because
             // the translation will force the type to pick a strategy
-            dast.decls.Type superType = translateType(superclass.base, QualifierSet.init);
+            dast.Type superType = translateType(superclass.base, QualifierSet.init);
             // FIXME cannot handle arbitrary replacement of superclasses
             if (superclass.base.getStrategy() != unknown.Strategy.INTERFACE
                     && superclass.base.getStrategy() != unknown.Strategy.REPLACE)
@@ -433,15 +433,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dast.decls.StructDeclaration buildStruct(
+    dast.StructDeclaration buildStruct(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.decls.TemplateArgumentList template_params)
+            dast.TemplateArgumentList template_params)
     {
         trace("Entering");
         scope(exit) trace("Exiting");
 
-        auto result = CHECK_FOR_DECL!(dast.decls.StructDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.StructDeclaration)(cppDecl);
         if (result !is null)
         {
             info("Short-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
@@ -449,7 +449,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         else
         {
             info("Long-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
-            result = registerDeclaration!(dast.decls.StructDeclaration)(cppDecl);
+            result = registerDeclaration!(dast.StructDeclaration)(cppDecl);
         }
         info("Building struct @0x", cast(void*)result);
 
@@ -481,20 +481,20 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             {
                 throw new Exception("Don't know how to translate virtual inheritance of structs.");
             }
-            dast.decls.Type superType = translateType(superclass.base, QualifierSet.init);
+            dast.Type superType = translateType(superclass.base, QualifierSet.init);
             if (superclass.base.getStrategy() != unknown.Strategy.STRUCT)
             {
                 throw new Exception("Superclass of a struct (" ~ binder.toDString(cppDecl.getSourceName()) ~ ") is not a struct.");
             }
 
-            auto fieldDeclaration = new dast.decls.VariableDeclaration();
+            auto fieldDeclaration = new dast.VariableDeclaration();
             fieldDeclaration.name = "_superclass";
             fieldDeclaration.type = superType;
             result.addField(fieldDeclaration);
 
             if (superclass.visibility == unknown.Visibility.PUBLIC)
             {
-                auto baseAlias = new dast.decls.AliasThisDeclaration();
+                auto baseAlias = new dast.AliasThisDeclaration();
                 baseAlias.target = fieldDeclaration;
                 result.addClassLevelDeclaration(baseAlias);
             }
@@ -514,15 +514,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
-    dast.decls.InterfaceDeclaration buildInterface(
+    dast.InterfaceDeclaration buildInterface(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.decls.TemplateArgumentList template_params)
+            dast.TemplateArgumentList template_params)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.InterfaceDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.InterfaceDeclaration)(cppDecl);
         if (result is null)
         {
-            result = registerDeclaration!(dast.decls.InterfaceDeclaration)(cppDecl);
+            result = registerDeclaration!(dast.InterfaceDeclaration)(cppDecl);
         }
 
         result.name = name;
@@ -543,7 +543,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void buildRecord(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.decls.TemplateArgumentList template_params)
+            dast.TemplateArgumentList template_params)
     {
         trace("Entering");
         scope(exit) trace("Exiting");
@@ -580,7 +580,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         string name = nameFromDecl(cppDecl);
         info("Translating record named ", name, " for cppDecl @", cast(void*)cppDecl);
 
-        buildRecord(cppDecl, name, dast.decls.TemplateArgumentList());
+        buildRecord(cppDecl, name, dast.TemplateArgumentList());
         // Records using the replacement strategy don't produce a result
         auto ptr = cast(void*)cppDecl in translated;
         if (ptr && (!((*ptr) in placedDeclarations) || placedDeclarations[*ptr] == 0))
@@ -593,7 +593,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
     {
         string name = nameFromDecl(cppDecl);
-        dast.decls.TemplateArgumentList templateParameters = translateTemplateParameters(cppDecl);
+        dast.TemplateArgumentList templateParameters = translateTemplateParameters(cppDecl);
 
         {
             buildRecord(cppDecl, name, templateParameters);
@@ -627,20 +627,20 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         // See note in visitRecordTemplate about why these are not emitted
         // via last_result
-        auto template_inst = new dast.decls.SpecializedStructDeclaration();
+        auto template_inst = new dast.SpecializedStructDeclaration();
         template_inst.name = nameFromDecl(cppDecl);
         template_inst.templateArguments = translateTemplateArguments(cppDecl);
 
         // FIXME this call
-        buildRecord(cppDecl, nameFromDecl(cppDecl), dast.decls.TemplateArgumentList());
+        buildRecord(cppDecl, nameFromDecl(cppDecl), dast.TemplateArgumentList());
     }
 
-    dast.decls.AliasTypeDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
+    dast.AliasTypeDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.AliasTypeDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.AliasTypeDeclaration)(cppDecl);
         if (result is null)
         {
-            result = registerDeclaration!(dast.decls.AliasTypeDeclaration)(cppDecl);
+            result = registerDeclaration!(dast.AliasTypeDeclaration)(cppDecl);
         }
 
         addCppLinkageAttribute(result);
@@ -666,7 +666,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         string name = nameFromDecl(cppDecl);
         trace("Translating UsingAliasTemplateDeclaration: ", name);
         // FIXME templateParameters is unused!!
-        dast.decls.TemplateArgumentDeclaration[] templateParameters = translateTemplateParameters(cppDecl);
+        dast.TemplateArgumentDeclaration[] templateParameters = translateTemplateParameters(cppDecl);
 
         {
             translateTypedef(cppDecl);
@@ -678,12 +678,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dast.decls.EnumDeclaration translateEnum(unknown.EnumDeclaration cppDecl)
+    dast.EnumDeclaration translateEnum(unknown.EnumDeclaration cppDecl)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.EnumDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.EnumDeclaration)(cppDecl);
         if (result !is null) return result;
 
-        result = registerDeclaration!(dast.decls.EnumDeclaration)(cppDecl);
+        result = registerDeclaration!(dast.EnumDeclaration)(cppDecl);
 
         result.name = nameFromDecl(cppDecl);
 
@@ -712,16 +712,16 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = translated[cast(void*)cppDecl];
     }
 
-    dast.decls.EnumMember translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
+    dast.EnumMember translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
     {
         // FIXME why are these two lines commented out?
         /*auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumMember)(cppDecl);
         if (short_circuit !is null) return short_circuit.enumMember;*/
         // TODO insert into translated AA
-        auto result = new dast.decls.EnumMember();
+        auto result = new dast.EnumMember();
         result.name = nameFromDecl(cppDecl); // TODO remove prefix
 
-        result.value = new dast.decls.IntegerLiteralExpression(cppDecl.getLLValue);
+        result.value = new dast.IntegerLiteralExpression(cppDecl.getLLValue);
 
         return result;
     }
@@ -741,12 +741,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Error("Attempted to translate a field directly, instead of via a record.");
     }
 
-    dast.decls.UnionDeclaration translateUnion(unknown.UnionDeclaration cppDecl)
+    dast.UnionDeclaration translateUnion(unknown.UnionDeclaration cppDecl)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.UnionDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.UnionDeclaration)(cppDecl);
         if (result is null)
         {
-            result = registerDeclaration!(dast.decls.UnionDeclaration)(cppDecl);
+            result = registerDeclaration!(dast.UnionDeclaration)(cppDecl);
         }
         if (!cppDecl.isAnonymous)
         {
@@ -796,13 +796,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         // the C++ interface page on dlang.org says that D cannot call destructors
     }
 
-    dast.decls.Argument translateArgument(unknown.ArgumentDeclaration cppDecl)
+    dast.Argument translateArgument(unknown.ArgumentDeclaration cppDecl)
     {
         /*auto short_circuit = CHECK_FOR_DECL!(std.d.ast.Parameter)(cppDecl);
         if (short_circuit !is null) return short_circuit;*/
         // TODO put into translate AA
 
-        auto arg = new dast.decls.Argument();
+        auto arg = new dast.Argument();
         arg.name = nameFromDecl(cppDecl);
 
         unknown.Type cppType = cppDecl.getType();
@@ -831,12 +831,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Exception("Attempting to translate an argument as if it were top level, but arguments are never top level.");
     }
 
-    dast.decls.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl)
+    dast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.VariableDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.VariableDeclaration)(cppDecl);
         if (result !is null) return result;
 
-        result = registerDeclaration!(dast.decls.VariableDeclaration)(cppDecl);
+        result = registerDeclaration!(dast.VariableDeclaration)(cppDecl);
 
         result.name = nameFromDecl(cppDecl);
 
@@ -857,9 +857,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     // This should only ever be called when putting together the argument list
     // for a template, so we don't need to check for duplicates
-    dast.decls.TemplateTypeArgumentDeclaration translateTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
+    dast.TemplateTypeArgumentDeclaration translateTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
     {
-        auto result = registerDeclaration!(dast.decls.TemplateTypeArgumentDeclaration)(cppDecl);
+        auto result = registerDeclaration!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
         result.name = nameFromDecl(cppDecl);
 
         if (cppDecl.hasDefaultType())
@@ -875,9 +875,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Exception("Attempting to translate a template type argument not via the template itself.");
     }
 
-    dast.decls.TemplateValueArgumentDeclaration translateTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
+    dast.TemplateValueArgumentDeclaration translateTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
     {
-        auto result = new dast.decls.TemplateValueArgumentDeclaration();
+        auto result = new dast.TemplateValueArgumentDeclaration();
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
         result.name = nameFromDecl(cppDecl);
 
@@ -894,7 +894,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         throw new Exception("Attempting to translate a template type argument not via the template itself.");
     }
 
-    dast.decls.TemplateArgumentDeclaration translateTemplateArgument(unknown.TemplateArgumentIterator iter)
+    dast.TemplateArgumentDeclaration translateTemplateArgument(unknown.TemplateArgumentIterator iter)
     {
         final switch (iter.getKind())
         {
@@ -905,9 +905,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dast.decls.TemplateArgumentDeclaration[] translateTemplateParameters(Declaration)(Declaration cppDecl)
+    dast.TemplateArgumentDeclaration[] translateTemplateParameters(Declaration)(Declaration cppDecl)
     {
-        dast.decls.TemplateArgumentDeclaration[] result = [];
+        dast.TemplateArgumentDeclaration[] result = [];
 
         for (unknown.TemplateArgumentIterator iter = cppDecl.getTemplateArgumentBegin(),
                 end = cppDecl.getTemplateArgumentEnd();
@@ -921,22 +921,21 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
-    dast.decls.TemplateArgument[] translateTemplateArguments(Declaration)(Declaration cppDecl)
+    dast.TemplateArgument[] translateTemplateArguments(Declaration)(Declaration cppDecl)
     {
-        dast.decls.TemplateArgument[] result = [];
+        dast.TemplateArgument[] result = [];
 
-        // TODO use the single argument syntax when appropriate
         for (unknown.TemplateArgumentInstanceIterator iter = cppDecl.getTemplateArgumentBegin(),
                 end = cppDecl.getTemplateArgumentEnd();
              !iter.equals(end);
              iter.advance() )
         {
-            dast.decls.TemplateArgument current;
+            dast.TemplateArgument current;
             final switch (iter.getKind())
             {
                 case unknown.TemplateArgumentInstanceIterator.Kind.Type:
                     try {
-                        current = new dast.decls.TemplateTypeArgument(translateType(iter.getType(), QualifierSet.init));
+                        current = new dast.TemplateTypeArgument(translateType(iter.getType(), QualifierSet.init));
                     }
                     catch(RefTypeException e)
                     {
@@ -945,11 +944,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     }
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
-                    auto constant = new dast.decls.IntegerLiteralExpression(iter.getInteger());
-                    current = new dast.decls.TemplateExpressionArgument(constant);
+                    auto constant = new dast.IntegerLiteralExpression(iter.getInteger());
+                    current = new dast.TemplateExpressionArgument(constant);
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
-                    current = new dast.decls.TemplateExpressionArgument(translateExpression(iter.getExpression()));
+                    current = new dast.TemplateExpressionArgument(translateExpression(iter.getExpression()));
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                     iter.dumpPackInfo();
@@ -970,9 +969,9 @@ class GlobalTranslator : TranslatorVisitor
     }
 
     override
-    dast.decls.VariableDeclaration translateVariable(unknown.VariableDeclaration variable)
+    dast.VariableDeclaration translateVariable(unknown.VariableDeclaration variable)
     {
-        dast.decls.VariableDeclaration result = super.translateVariable(variable);
+        dast.VariableDeclaration result = super.translateVariable(variable);
         // If the variable wasn't extern in the C++, it is in the D
         result.extern_ = true;
         return result;
@@ -988,18 +987,18 @@ class InsideNamespaceTranslator : TranslatorVisitor
     }
 
     override
-    dast.decls.VariableDeclaration translateVariable(unknown.VariableDeclaration variable)
+    dast.VariableDeclaration translateVariable(unknown.VariableDeclaration variable)
     {
-        dast.decls.VariableDeclaration result = super.translateVariable(variable);
+        dast.VariableDeclaration result = super.translateVariable(variable);
         // FIXME this is a bit blunt
         result.linkage = null;
         return result;
     }
 
     override
-    dast.decls.FunctionDeclaration translateFunction(unknown.FunctionDeclaration variable)
+    dast.FunctionDeclaration translateFunction(unknown.FunctionDeclaration variable)
     {
-        dast.decls.FunctionDeclaration result = super.translateFunction(variable);
+        dast.FunctionDeclaration result = super.translateFunction(variable);
         // FIXME this is a bit blunt
         result.linkage = null;
         return result;
@@ -1020,16 +1019,16 @@ class StructBodyTranslator
     }
 
     override
-    dast.decls.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl)
+    dast.VariableDeclaration translateVariable(unknown.VariableDeclaration cppDecl)
     {
         auto result = TranslatorVisitor.translateVariable(cppDecl);
         result.static_ = true;
         return result;
     }
 
-    dast.decls.FunctionDeclaration translateMethod(unknown.MethodDeclaration cppDecl)
+    dast.FunctionDeclaration translateMethod(unknown.MethodDeclaration cppDecl)
     {
-        auto result = CHECK_FOR_DECL!(dast.decls.FunctionDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(dast.FunctionDeclaration)(cppDecl);
         if (result !is null) return result;
 
         if (cppDecl.isOverloadedOperator())
@@ -1039,12 +1038,12 @@ class StructBodyTranslator
 
         if (cppDecl.isStatic())
         {
-            result = registerDeclaration!(dast.decls.FunctionDeclaration)(cppDecl);
+            result = registerDeclaration!(dast.FunctionDeclaration)(cppDecl);
             // FIXME add to parent as static method
         }
         else
         {
-            auto method = registerDeclaration!(dast.decls.MethodDeclaration)(cppDecl);
+            auto method = registerDeclaration!(dast.MethodDeclaration)(cppDecl);
             if (cppDecl.isConst())
             {
                 method.const_ = Yes.const_;
@@ -1129,7 +1128,7 @@ class StructBodyTranslator
             return;
         }
 
-        dast.decls.FunctionDeclaration method = translateMethod(cpp_method);
+        dast.FunctionDeclaration method = translateMethod(cpp_method);
 
         bool shouldInsert = true;
         static if (vBehavior != VirtualBehavior.FORBIDDEN)
@@ -1163,13 +1162,13 @@ class StructBodyTranslator
     static if (fieldsAllowed)
     {
         // TODO indicate to parent if this is a class / member variable
-        dast.decls.VariableDeclaration translateField(unknown.FieldDeclaration cppDecl)
+        dast.VariableDeclaration translateField(unknown.FieldDeclaration cppDecl)
         {
-            auto result = CHECK_FOR_DECL!(dast.decls.VariableDeclaration)(cppDecl);
+            auto result = CHECK_FOR_DECL!(dast.VariableDeclaration)(cppDecl);
             if (result !is null) return result;
 
             try {
-                result = registerDeclaration!(dast.decls.VariableDeclaration)(cppDecl);
+                result = registerDeclaration!(dast.VariableDeclaration)(cppDecl);
                 result.type = translateType(cppDecl.getType(), QualifierSet.init);
 
                 result.name = nameFromDecl(cppDecl);
@@ -1198,7 +1197,7 @@ class StructBodyTranslator
     }
 }
 
-private dast.decls.Module findTargetModule(unknown.Declaration declaration)
+private dast.Module findTargetModule(unknown.Declaration declaration)
 {
     string target_module = binder.toDString(declaration.getTargetModule());
     if (target_module.length == 0)
@@ -1220,7 +1219,7 @@ private dast.decls.Module findTargetModule(unknown.Declaration declaration)
 
 private void placeIntoTargetModule(
     unknown.Declaration declaration,
-    dast.decls.Declaration translation,
+    dast.Declaration translation,
     string namespace_path)
 {
     // FIXME sometimes this gets called multiple times on the same declaration,
@@ -1247,11 +1246,11 @@ private void placeIntoTargetModule(
 // This function is responsible for building just enough of a D AST to
 // continue.  That means: it picks the right type of AST node, but doesn't
 // name it or place it anywhere.
-dast.decls.Type startDeclBuild(unknown.Declaration cppDecl)
+dast.Type startDeclBuild(unknown.Declaration cppDecl)
 {
     if (auto decl_ptr = cast(void*)cppDecl in translated)
     {
-        dast.decls.Type result = cast(dast.decls.Type)*decl_ptr;
+        dast.Type result = cast(dast.Type)*decl_ptr;
         assert(result !is null);
         return result;
     }
@@ -1267,7 +1266,7 @@ dast.decls.Type startDeclBuild(unknown.Declaration cppDecl)
 class StarterVisitor : unknown.DeclarationVisitor
 {
     public:
-    dast.decls.Type result;
+    dast.Type result;
 
     extern(C++) void visitFunction(unknown.FunctionDeclaration) { }
     extern(C++) void visitNamespace(unknown.NamespaceDeclaration) { }
@@ -1290,15 +1289,15 @@ class StarterVisitor : unknown.DeclarationVisitor
         {
             case unknown.Strategy.STRUCT:
                 info("Building record using strategy STRUCT.");
-                result = registerDeclaration!(dast.decls.StructDeclaration)(cppDecl);
+                result = registerDeclaration!(dast.StructDeclaration)(cppDecl);
                 break;
             case unknown.Strategy.INTERFACE:
                 info("Building record using strategy INTERFACE.");
-                result = registerDeclaration!(dast.decls.InterfaceDeclaration)(cppDecl);
+                result = registerDeclaration!(dast.InterfaceDeclaration)(cppDecl);
                 break;
             case unknown.Strategy.REPLACE:
                 info("Skipping build because the strategy is REPLACE.");
-                auto replacement = new dast.type.ReplacedType();
+                auto replacement = new dast.ReplacedType();
                 replacement.fullyQualifiedName = makeIdentifierOrTemplateChain!"."(nameFromDecl(cppDecl));
                 assert(replacement.fullyQualifiedName !is null);
                 result = replacement;
@@ -1315,7 +1314,7 @@ class StarterVisitor : unknown.DeclarationVisitor
     }
     extern(C++) void visitTypedef(unknown.TypedefDeclaration cppDecl)
     {
-        result = registerDeclaration!(dast.decls.AliasTypeDeclaration)(cppDecl);
+        result = registerDeclaration!(dast.AliasTypeDeclaration)(cppDecl);
     }
     extern(C++) void visitEnum(unknown.EnumDeclaration)
     {
@@ -1324,7 +1323,7 @@ class StarterVisitor : unknown.DeclarationVisitor
     }
     extern(C++) void visitUnion(unknown.UnionDeclaration cppDecl)
     {
-        result = registerDeclaration!(dast.decls.UnionDeclaration)(cppDecl);
+        result = registerDeclaration!(dast.UnionDeclaration)(cppDecl);
     }
     extern(C++) void visitSpecializedRecord(unknown.SpecializedRecordDeclaration)
     {
@@ -1336,16 +1335,16 @@ class StarterVisitor : unknown.DeclarationVisitor
     extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration) { }
 }
 
-dast.decls.Module destination;
+dast.Module destination;
 
-dast.decls.Module populateDAST(string output_module_name)
+dast.Module populateDAST(string output_module_name)
 {
     // May cause problems because root package won't check for empty path.
     size_t array_len = 0;
     unknown.Declaration* freeDeclarations = null;
     unknown.arrayOfFreeDeclarations(&array_len, &freeDeclarations);
 
-    destination = new dast.decls.Module(output_module_name);
+    destination = new dast.Module(output_module_name);
 
     for (size_t i = 0; i < array_len; ++i)
     {
@@ -1357,13 +1356,13 @@ dast.decls.Module populateDAST(string output_module_name)
 
         if (declaration.shouldEmit())
         {
-            dast.decls.Module mod = findTargetModule(declaration);
+            dast.Module mod = findTargetModule(declaration);
             // FIXME creates the module as a side effect of finding?
         }
 
         auto visitor = new GlobalTranslator();
         try {
-            dast.decls.Declaration translation;
+            dast.Declaration translation;
             if (cast(void*)declaration !in translated)
             {
                 visitor.visit(declaration);

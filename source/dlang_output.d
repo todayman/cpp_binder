@@ -28,9 +28,9 @@ import std.d.ast;
 import std.d.formatter : format;
 import std.d.lexer;
 
-static import dlang_decls;
+static import dast;
 
-void visitModule(const dlang_decls.Module mod, string path_prefix)
+void visitModule(const dast.Module mod, string path_prefix)
 {
     /*if (mod.empty == 0)
     {
@@ -52,7 +52,7 @@ void visitModule(const dlang_decls.Module mod, string path_prefix)
     format(delegate (string s) => (outputFile.write(s)), mod.buildConcreteTree());
 }
 
-void produceOutputForModule(dlang_decls.Module mod, string path_prefix)
+void produceOutputForModule(dast.Module mod, string path_prefix)
 {
     visitModule(mod, path_prefix);
 }

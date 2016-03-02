@@ -24,7 +24,7 @@ static import std.d.ast;
 import std.d.ast : IdentifierChain, IdentifierOrTemplateChain, IdentifierOrTemplateInstance;
 import std.d.lexer : Token, tok;
 
-import dast.decls;
+import dast : Module;
 
 class Package
 {
@@ -39,7 +39,7 @@ class Package
         }
         else
         {
-            Module mod = new Module(path);
+            auto mod = new Module(path);
 
             children[path] = mod;
 

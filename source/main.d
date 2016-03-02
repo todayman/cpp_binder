@@ -26,7 +26,7 @@ import configuration;
 import manual_types;
 import unknown;
 import translate.decls;
-import dlang_decls : rootPackage;
+import dast : Module;
 import dlang_output;
 
 extern(C++) __gshared const(clang.SourceManager)* source_manager = null;
@@ -85,7 +85,7 @@ int main(string[] argv)
         return -1;
     }
 
-    dlang_decls.Module mod;
+    dast.Module mod;
     try {
         mod = populateDAST(args.output_module);
     }
