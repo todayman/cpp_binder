@@ -26,7 +26,7 @@ import std.experimental.logger;
 
 static import binder;
 static import dast.decls;
-import dlang_decls : makeIdentifierChain;
+import dlang_decls : makeIdentifierChain, rootPackage;
 static import unknown;
 import log_controls;
 import manual_types;
@@ -107,7 +107,7 @@ class OverloadedOperatorError : Exception
     }
 }
 
-private dlang_decls.Module moduleForDeclaration(unknown.Declaration cppDecl)
+private dast.decls.Module moduleForDeclaration(unknown.Declaration cppDecl)
 {
     if (cppDecl.shouldEmit)
     {
@@ -1198,7 +1198,7 @@ class StructBodyTranslator
     }
 }
 
-private dlang_decls.Module findTargetModule(unknown.Declaration declaration)
+private dast.decls.Module findTargetModule(unknown.Declaration declaration)
 {
     string target_module = binder.toDString(declaration.getTargetModule());
     if (target_module.length == 0)
@@ -1215,7 +1215,7 @@ private dlang_decls.Module findTargetModule(unknown.Declaration declaration)
             target_module = target_module[1 ..$];
         }
     }
-    return dlang_decls.rootPackage.getOrCreateModulePath(target_module);
+    return rootPackage.getOrCreateModulePath(target_module);
 }
 
 private void placeIntoTargetModule(
@@ -1298,7 +1298,7 @@ class StarterVisitor : unknown.DeclarationVisitor
                 break;
             case unknown.Strategy.REPLACE:
                 info("Skipping build because the strategy is REPLACE.");
-                auto replacement = new dlang_decls.ReplacedType();
+                auto replacement = new dast.type.ReplacedType();
                 replacement.fullyQualifiedName = makeIdentifierOrTemplateChain!"."(nameFromDecl(cppDecl));
                 assert(replacement.fullyQualifiedName !is null);
                 result = replacement;
@@ -1336,16 +1336,16 @@ class StarterVisitor : unknown.DeclarationVisitor
     extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration) { }
 }
 
-dlang_decls.Module destination;
+dast.decls.Module destination;
 
-dlang_decls.Module populateDAST(string output_module_name)
+dast.decls.Module populateDAST(string output_module_name)
 {
     // May cause problems because root package won't check for empty path.
     size_t array_len = 0;
     unknown.Declaration* freeDeclarations = null;
     unknown.arrayOfFreeDeclarations(&array_len, &freeDeclarations);
 
-    destination = new dlang_decls.Module(output_module_name);
+    destination = new dast.decls.Module(output_module_name);
 
     for (size_t i = 0; i < array_len; ++i)
     {
@@ -1357,7 +1357,7 @@ dlang_decls.Module populateDAST(string output_module_name)
 
         if (declaration.shouldEmit())
         {
-            dlang_decls.Module mod = findTargetModule(declaration);
+            dast.decls.Module mod = findTargetModule(declaration);
             // FIXME creates the module as a side effect of finding?
         }
 

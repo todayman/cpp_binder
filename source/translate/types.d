@@ -32,10 +32,11 @@ import translate.decls;
 import translate.expr;
 
 import dast.decls;
+static import dast.type;
 import dlang_decls : concat, makeIdentifierOrTemplateChain, makeInstance;
 
-private dlang_decls.Type[void*] translated_types;
-private dlang_decls.Type[string] types_by_name;
+private dast.type.Type[void*] translated_types;
+private dast.type.Type[string] types_by_name;
 
 package void determineStrategy(unknown.Type cppType)
 {
@@ -167,7 +168,7 @@ struct QualifierSet
     bool const_ = false;
 }
 
-private dlang_decls.Type replaceType(unknown.Type cppType, QualifierSet qualifiers)
+private dast.type.Type replaceType(unknown.Type cppType, QualifierSet qualifiers)
 {
     string replacement_name = binder.toDString(cppType.getReplacement());
     if (replacement_name.length > 0)
@@ -178,7 +179,7 @@ private dlang_decls.Type replaceType(unknown.Type cppType, QualifierSet qualifie
         }
         else
         {
-            auto result = new dlang_decls.ReplacedType();
+            auto result = new dast.type.ReplacedType();
             types_by_name[replacement_name] = result;
             result.fullyQualifiedName = makeIdentifierOrTemplateChain!"."(replacement_name);
             assert(result.fullyQualifiedName !is null);
@@ -198,7 +199,7 @@ private dlang_decls.Type replaceType(unknown.Type cppType, QualifierSet qualifie
             // Make sure that works with recursion
             class TranslateTypeClass : unknown.TypeVisitor
             {
-                public dlang_decls.Type result;
+                public dast.type.Type result;
                 extern(C++) void visit(unknown.InvalidType)
                 {
                     throw new Error("Attempting to translate an Invalid type");
@@ -283,7 +284,7 @@ private dlang_decls.Type replaceType(unknown.Type cppType, QualifierSet qualifie
                         {
                             throw new Exception("Type is dependent on an invalid type.");
                         }
-                        dlang_decls.Type qualifier = resolveOrDefer(qualifierType);
+                        dast.type.Type qualifier = resolveOrDefer(qualifierType);
                         auto deferred = new DeferredSymbolConcatenation(qualifier);
 
                         foreach (string name; identifier_stack.retro)
@@ -322,7 +323,7 @@ class RefTypeException : Exception
     }
 };
 
-private dlang_decls.Type translatePointerOrReference
+private dast.type.Type translatePointerOrReference
     (Flag!"ref" ref_)
     (unknown.PointerOrReferenceType cppType, QualifierSet qualifiers)
 {
@@ -330,7 +331,7 @@ private dlang_decls.Type translatePointerOrReference
     // If a strategy is already picked, then this returns immediately
     determineStrategy(target_type);
 
-    dlang_decls.Type result;
+    dast.type.Type result;
     if (target_type.isReferenceType())
     {
         result = translateType(target_type, qualifiers);
@@ -348,7 +349,7 @@ private dlang_decls.Type translatePointerOrReference
         }
         else
         {
-            dlang_decls.Type translatedTargetType = translateType(target_type, qualifiers);
+            dast.type.Type translatedTargetType = translateType(target_type, qualifiers);
             // Function pointers don't need the '*'
             if (target_type.getKind() == unknown.Type.Kind.Function)
             {
@@ -356,7 +357,7 @@ private dlang_decls.Type translatePointerOrReference
                 return result;
             }
 
-            result = new dlang_decls.PointerType(translatedTargetType);
+            result = new dast.type.PointerType(translatedTargetType);
 
             /+ TODO something with these type constructors!
             if (translatedTargetType.typeConstructors.length > 0)
@@ -382,11 +383,11 @@ private dlang_decls.Type translatePointerOrReference
 }
 
 // TODO Fold these into the strategy visitor
-private dlang_decls.Type translatePointer(unknown.PointerOrReferenceType cppType, QualifierSet qualifiers)
+private dast.type.Type translatePointer(unknown.PointerOrReferenceType cppType, QualifierSet qualifiers)
 {
     return translatePointerOrReference!(Flag!"ref".no)(cppType, qualifiers);
 }
-private dlang_decls.Type translateReference(unknown.ReferenceType cppType, QualifierSet qualifiers)
+private dast.type.Type translateReference(unknown.ReferenceType cppType, QualifierSet qualifiers)
 {
     return translatePointerOrReference!(Flag!"ref".yes)(cppType, qualifiers);
 }
@@ -404,7 +405,7 @@ class UnwrappableTypeDeclaration : Exception
 // TODO Before I made this into a mixin, these checked the kinds of the types
 // passed in to make sure that the correct function was being called.  I.e.
 // check that cppType was a union, enum, etc.
-private dlang_decls.Type resolveOrDefer(Type)(Type cppType)
+private dast.type.Type resolveOrDefer(Type)(Type cppType)
 {
     if (auto type_ptr = (cast(void*)cppType) in translated_types)
     {
@@ -413,7 +414,7 @@ private dlang_decls.Type resolveOrDefer(Type)(Type cppType)
     else
     {
         unknown.Declaration cppDecl = cppType.getDeclaration();
-        dlang_decls.Type result;
+        dast.type.Type result;
         if (cppDecl !is null)
         {
             if (!cppDecl.isWrappable())
@@ -523,7 +524,7 @@ class TemplateArgumentVisitor : unknown.DeclarationVisitor
 }
 
 // FIXME duplication with TranslatorVisitor.translateTemplateArguments
-package dlang_decls.Type resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
+package dast.type.Type resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
 {
     // Since I can't translate variadic templates, make sure that this is not
     // the fixed-argument-length specialization of a variadic template.
@@ -589,7 +590,7 @@ package dlang_decls.Type resolveTemplateSpecializationTypeSymbol(unknown.Templat
 
 // TODO merge this in to the mixin
 // TODO figure out if this is a specific instantation or not
-private dlang_decls.Type resolveOrDeferTemplateArgumentTypeSymbol(unknown.TemplateArgumentType cppType)
+private dast.type.Type resolveOrDeferTemplateArgumentTypeSymbol(unknown.TemplateArgumentType cppType)
 {
     if (auto type_ptr = cast(void*)cppType in translated_types)
     {
@@ -600,7 +601,7 @@ private dlang_decls.Type resolveOrDeferTemplateArgumentTypeSymbol(unknown.Templa
         unknown.TemplateTypeArgumentDeclaration cppDecl = cppType.getTemplateTypeArgumentDeclaration();
         if (cppDecl !is null)
         {
-            auto result = new dlang_decls.TemplateArgumentType();
+            auto result = new dast.type.TemplateArgumentType();
             result.name = binder.toDString(cppDecl.getTargetName());
             // This symbol will be filled in when the declaration is traversed
             translated_types[cast(void*)cppType] = result;
@@ -615,9 +616,9 @@ private dlang_decls.Type resolveOrDeferTemplateArgumentTypeSymbol(unknown.Templa
 
 // TODO maybe this goes away?
 // FIXME qualifiers is ignored
-private dlang_decls.Type resolveOrDeferType(Type)(Type cppType, QualifierSet qualifiers)
+private dast.type.Type resolveOrDeferType(Type)(Type cppType, QualifierSet qualifiers)
 {
-    dlang_decls.Type result = resolveOrDefer(cppType);
+    dast.type.Type result = resolveOrDefer(cppType);
     return result;
 }
 
@@ -627,11 +628,11 @@ private dlang_decls.Type resolveOrDeferType(Type)(Type cppType, QualifierSet qua
 // and ICE in dmd 2.066.1.  It does not ICE in dmd master
 // (37e6395849fd762bcc1ec1ac036fff79db2d2693)
 // FIXME collapse into template
-private dlang_decls.Type translateInterface(unknown.Type cppType, QualifierSet qualifiers)
+private dast.type.Type translateInterface(unknown.Type cppType, QualifierSet qualifiers)
 {
     class RecordTranslationVisitor : unknown.TypeVisitor
     {
-        public dlang_decls.Type result;
+        public dast.type.Type result;
 
         static private string Translate(string T) {
             return "override extern(C++) void visit(unknown."~T~"Type cppType)
@@ -678,11 +679,11 @@ private dlang_decls.Type translateInterface(unknown.Type cppType, QualifierSet q
     cppType.visit(visitor);
     return visitor.result;
 }
-private dlang_decls.Type translateStruct(unknown.Type cppType, QualifierSet qualifiers)
+private dast.type.Type translateStruct(unknown.Type cppType, QualifierSet qualifiers)
 {
     class RecordTranslationVisitor : unknown.TypeVisitor
     {
-        public dlang_decls.Type result;
+        public dast.type.Type result;
 
         static private string Translate(string T) {
             return "override extern(C++) void visit(unknown."~T~"Type cppType)
@@ -741,7 +742,7 @@ std.d.ast.Type clone(std.d.ast.Type t)
 
 // TODO do I still need this function?
 // FIXME this name isn't great
-private dlang_decls.Type resolveOrDeferType
+private dast.type.Type resolveOrDeferType
     (unknown.QualifiedType cppType, QualifierSet qualifiersAlreadyApplied)
 {
     QualifierSet innerQualifiers;
@@ -749,20 +750,20 @@ private dlang_decls.Type resolveOrDeferType
     {
         innerQualifiers.const_ = true;
     }
-    dlang_decls.Type result = translateType(cppType.unqualifiedType(), innerQualifiers);
+    dast.type.Type result = translateType(cppType.unqualifiedType(), innerQualifiers);
 
     // Apply qualifiers that ...?
     if (cppType.isConst() && !qualifiersAlreadyApplied.const_)
     {
-        result = new ConstType(result);
+        result = new dast.type.ConstType(result);
     }
 
     return result;
 }
 
-private dlang_decls.FunctionType replaceFunction(unknown.FunctionType cppType)
+private dast.type.FunctionType replaceFunction(unknown.FunctionType cppType)
 {
-    auto result = new dlang_decls.FunctionType();
+    auto result = new dast.type.FunctionType();
     // Needed for translating function types, but not declarations,
     result.returnType = translateType(cppType.getReturnType(), QualifierSet.init);
 
@@ -792,9 +793,9 @@ private dlang_decls.FunctionType replaceFunction(unknown.FunctionType cppType)
     return result;
 }
 
-private dlang_decls.Type replaceArray(unknown.ArrayType cppType, QualifierSet qualifiers)
+private dast.type.Type replaceArray(unknown.ArrayType cppType, QualifierSet qualifiers)
 {
-    dlang_decls.Type result;
+    dast.type.Type result;
     unknown.Type element_type = cppType.getElementType();
     // If a strategy is already picked, then this returns immediately
     determineStrategy(element_type);
@@ -804,10 +805,10 @@ private dlang_decls.Type replaceArray(unknown.ArrayType cppType, QualifierSet qu
         throw new Exception("ERROR: Do not know how to translate a variable length array of reference types.");
     }
 
-    dlang_decls.Type elementType = translateType(element_type, qualifiers);
+    dast.type.Type elementType = translateType(element_type, qualifiers);
     if (cppType.isFixedLength())
     {
-        auto arrayResult = new dlang_decls.ArrayType();
+        auto arrayResult = new dast.type.ArrayType();
         arrayResult.elementType = elementType;
 
         if (cppType.isDependentLength())
@@ -816,14 +817,14 @@ private dlang_decls.Type replaceArray(unknown.ArrayType cppType, QualifierSet qu
         }
         else
         {
-            arrayResult.length = new dlang_decls.IntegerLiteralExpression(cppType.getLength());
+            arrayResult.length = new dast.expr.IntegerLiteralExpression(cppType.getLength());
         }
 
         result = arrayResult;
     }
     else
     {
-        result = new dlang_decls.PointerType(elementType);
+        result = new dast.type.PointerType(elementType);
     }
 
     // TODO deal with type constructors again!
@@ -877,7 +878,7 @@ class UnwrappableType : Exception
 // Qualifiers are the qualifiers that have already been applied to the type.
 // e.g. when const(int*) does the const * part then calls translateType(int, const)
 // So that const is not applied transitively all the way down
-public dlang_decls.Type translateType(unknown.Type cppType, QualifierSet qualifiers)
+public dast.type.Type translateType(unknown.Type cppType, QualifierSet qualifiers)
 {
     if (cast(void*)cppType in translated_types)
     {
@@ -898,7 +899,7 @@ public dlang_decls.Type translateType(unknown.Type cppType, QualifierSet qualifi
                 throw new UnwrappableType(cppType);
             }
         }
-        dlang_decls.Type result;
+        dast.type.Type result;
         try {
             final switch (cppType.getStrategy())
             {

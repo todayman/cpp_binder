@@ -26,23 +26,23 @@ static import unknown;
 import translate.types;
 import translate.decls;
 
-static import dlang_decls;
+import dast.expr;
 
 private class ExpressionTranslator : unknown.ExpressionVisitor
 {
     public:
-    dlang_decls.Expression result;
+    Expression result;
 
     extern(C++) override
     void visit(unknown.BoolLiteralExpression expr)
     {
-        result = new dlang_decls.BoolLiteralExpression(expr.getValue());
+        result = new BoolLiteralExpression(expr.getValue());
     }
 
     extern(C++) override
     void visit(unknown.IntegerLiteralExpression expr)
     {
-        result = new dlang_decls.IntegerLiteralExpression(expr.getValue());
+        result = new IntegerLiteralExpression(expr.getValue());
     }
 
     extern(C++) override
@@ -84,7 +84,7 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     extern(C++) override
     void visit(unknown.CastExpression expr)
     {
-        auto castExpression = new dlang_decls.CastExpression();
+        auto castExpression = new CastExpression();
         castExpression.type = translateType(expr.getType(), QualifierSet.init);
 
         auto visitor = new ExpressionTranslator();
@@ -99,7 +99,7 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     }
 }
 
-dlang_decls.Expression translateExpression(unknown.Expression expr)
+Expression translateExpression(unknown.Expression expr)
 {
     auto visitor = new ExpressionTranslator();
     expr.visit(visitor);
