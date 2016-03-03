@@ -256,7 +256,8 @@ private dast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers)
                     // TODO should change depending on strategy and type of the actual thing
                     // TODO redo this in the new visitor / typesafe context
                     // Before, it was always a struct
-                    result = resolveTemplateSpecializationTypeSymbol(cppType);
+                    //result = resolveTemplateSpecializationTypeSymbol(cppType);
+                    assert(0);
                 }
 
                 extern(C++) void visit(unknown.DelayedType type)
@@ -523,7 +524,9 @@ class TemplateArgumentVisitor : unknown.DeclarationVisitor
 }
 
 // FIXME duplication with TranslatorVisitor.translateTemplateArguments
-package dast.Type resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecializationType cppType)
+package dast.Type resolveTemplateSpecializationTypeSymbol
+    (TargetType)
+    (unknown.TemplateSpecializationType cppType)
 {
     // Since I can't translate variadic templates, make sure that this is not
     // the fixed-argument-length specialization of a variadic template.
@@ -544,47 +547,35 @@ package dast.Type resolveTemplateSpecializationTypeSymbol(unknown.TemplateSpecia
         }
     }
 
-    /+ TODO figure this out again.
-    // This is dangerously close to recursion
-    // but it isn't because this is the generic template type, not us
-    // (the instantiation)
-    // TODO template_symbol needs a better name
-    auto template_symbol = new DeferredTemplateInstantiation();
-    template_symbol.templateName = resolveOrDeferDeclaredType(cppType.getTemplateDeclaration());
-    assert(template_symbol.templateName !is null);
-    template_symbol.arguments.length = cppType.getTemplateArgumentCount();
+    auto result = new TargetType();
+    // FIXME abusing the startDeclBuild call
+    result.genericParent = cast(typeof(result.genericParent))startDeclBuild(parent);
+
     uint idx = 0;
     for (auto iter = cppType.getTemplateArgumentBegin(),
             finish = cppType.getTemplateArgumentEnd();
             !iter.equals(finish);
             iter.advance(), ++idx )
     {
-        template_symbol.arguments[idx] = new std.d.ast.TemplateArgument();
-        std.d.ast.TemplateArgument current = template_symbol.arguments[idx];
         final switch (iter.getKind())
         {
             case unknown.TemplateArgumentInstanceIterator.Kind.Type:
-                current.type = translateType(iter.getType(), QualifierSet.init);
+                auto argType = translateType(iter.getType(), QualifierSet.init);
+                result.arguments[idx] = new dast.TemplateTypeArgument(argType);
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
-                current.assignExpression = new std.d.ast.AssignExpression();
-                auto constant = new std.d.ast.PrimaryExpression();
-                constant.primary = Token(tok!"longLiteral", to!string(iter.getInteger()), 0, 0, 0);
-                current.assignExpression = constant;
+                dast.Expression e = new dast.IntegerLiteralExpression(iter.getInteger());
+                result.arguments[idx] = new dast.TemplateExpressionArgument(e);
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
-                current.assignExpression = new std.d.ast.AssignExpression();
-                current.assignExpression = translateExpression(iter.getExpression());
+                dast.Expression e = translateExpression(iter.getExpression());
+                result.arguments[idx] = new dast.TemplateExpressionArgument(e);
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                 throw new Exception("Cannot resolve template argument that is a Pack (...)");
         }
     }
-    auto deferred = new DeferredSymbolConcatenation(template_symbol);
-    symbolForType[cast(void*)cppType] = deferred;
-    unresolvedSymbols[deferred] = null;
-    return deferred;+/
-    assert(0);
+    return result;
 }
 
 // TODO merge this in to the mixin
@@ -666,12 +657,13 @@ private dast.Type translateInterface(unknown.Type cppType, QualifierSet qualifie
 
         override public extern(C++) void visit(unknown.TemplateSpecializationType cppType)
         {
-            result = resolveTemplateSpecializationTypeSymbol(cppType);
+            result = resolveTemplateSpecializationTypeSymbol!(dast.SpecializedInterfaceType)(cppType);
         }
 
         override public extern(C++) void visit(unknown.DelayedType cppType)
         {
             // TODO fill in!
+            assert(0);
         }
     }
     auto visitor = new RecordTranslationVisitor();
@@ -715,7 +707,7 @@ private dast.Type translateStruct(unknown.Type cppType, QualifierSet qualifiers)
 
         override public extern(C++) void visit(unknown.TemplateSpecializationType cppType)
         {
-            result = resolveTemplateSpecializationTypeSymbol(cppType);
+            result = resolveTemplateSpecializationTypeSymbol!(dast.SpecializedStructType)(cppType);
         }
 
         override public extern(C++) void visit(unknown.DelayedType cppType)

@@ -154,6 +154,33 @@ class ReplacedType : Type
     }
 }
 
+class SpecializedStructType : Type
+{
+    // FIXME change to StructDeclaration
+    dast.decls.StructDeclaration genericParent;
+
+    TemplateArgument[] arguments;
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        assert(0);
+    }
+}
+class SpecializedInterfaceType : Type
+{
+    // FIXME change to StructDeclaration
+    dast.decls.Declaration genericParent;
+
+    TemplateArgument[] arguments;
+
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        assert(0);
+    }
+}
+
 // Used in the body of a template to refer to a type that is a parameter of the
 // template.  Paul thinks.  Maybe...
 class TemplateArgumentType : Type

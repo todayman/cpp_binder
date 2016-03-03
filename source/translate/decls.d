@@ -1330,9 +1330,18 @@ class StarterVisitor : unknown.DeclarationVisitor
         // TODO fill this one in!
         assert(0);
     }
-    extern(C++) void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration) { }
-    extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration) { }
-    extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration) { }
+    extern(C++) void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
+    {
+        result = registerDeclaration!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
+    }
+    extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration)
+    {
+        assert(0);
+    }
+    extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration)
+    {
+        assert(0);
+    }
 }
 
 dast.Module destination;

@@ -587,7 +587,21 @@ class StructDeclaration : Declaration, Type
     mixin .buildConcreteType!();
 }
 
+// Types of specialized templates are separate from the declarations since they
+// may not actually be declared.
 class SpecializedStructDeclaration : Declaration
+{
+    TemplateArgument[] templateArguments;
+
+    override pure
+    std.d.ast.Declaration buildConcreteDecl() const
+    {
+        assert(0);
+    }
+}
+
+// TODO dedup with SpecializedStructDeclaration
+class SpecializedInterfaceDeclaration : Declaration
 {
     TemplateArgument[] templateArguments;
 
