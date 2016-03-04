@@ -584,6 +584,8 @@ class StructDeclaration : Declaration, Type
         return result;
     }
 
+    // FIXME leaves off the template arguments.
+    // Right now, that's what I want, but probably not what would be expected
     mixin .buildConcreteType!();
 }
 

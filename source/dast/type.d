@@ -58,23 +58,43 @@ class ConstType : Type
 }
 
 // A specific value of a template argument
-class TemplateArgument
+interface TemplateArgument
 {
+    pure std.d.ast.TemplateArgument buildConcreteArgument() const;
 }
 
 class TemplateTypeArgument : TemplateArgument
 {
-    this(Type)
+    Type type;
+    this(Type t)
     {
-        // TODO
+        type = t;
+    }
+
+    override pure
+    std.d.ast.TemplateArgument buildConcreteArgument() const
+    {
+        auto result = new std.d.ast.TemplateArgument();
+        result.type = type.buildConcreteType();
+        return result;
     }
 }
 
 class TemplateExpressionArgument : TemplateArgument
 {
-    this(Expression)
+    Expression exp;
+
+    this(Expression e)
     {
-        // TODO
+        exp = e;
+    }
+
+    override pure
+    std.d.ast.TemplateArgument buildConcreteArgument() const
+    {
+        auto result = new std.d.ast.TemplateArgument();
+        result.assignExpression = exp.buildConcreteExpression();
+        return result;
     }
 }
 
@@ -156,7 +176,6 @@ class ReplacedType : Type
 
 class SpecializedStructType : Type
 {
-    // FIXME change to StructDeclaration
     dast.decls.StructDeclaration genericParent;
 
     TemplateArgument[] arguments;
@@ -164,12 +183,32 @@ class SpecializedStructType : Type
     override pure
     std.d.ast.Type buildConcreteType() const
     {
-        assert(0);
+        // FIXME use the template single argument syntax?
+        auto argList = new std.d.ast.TemplateArgumentList();
+        argList.items = arguments.map!(a => a.buildConcreteArgument()).array;
+        auto args = new std.d.ast.TemplateArguments();
+        args.templateArgumentList = argList;
+        auto inst = new std.d.ast.TemplateInstance();
+        inst.templateArguments = args;
+
+        std.d.ast.Type genericType = genericParent.buildConcreteType();
+        assert(genericType.type2 !is null);
+        assert(genericType.type2.symbol !is null);
+        assert(genericType.type2.symbol.identifierOrTemplateChain !is null);
+
+        std.d.ast.IdentifierOrTemplateInstance lastLink
+            = genericType.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];
+        assert(lastLink.templateInstance is null);
+        inst.identifier = lastLink.identifier;
+        lastLink.identifier = Token.init;
+        lastLink.templateInstance = inst;
+
+        return genericType;
     }
 }
 class SpecializedInterfaceType : Type
 {
-    // FIXME change to StructDeclaration
+    // FIXME change to InterfaceDeclaration
     dast.decls.Declaration genericParent;
 
     TemplateArgument[] arguments;

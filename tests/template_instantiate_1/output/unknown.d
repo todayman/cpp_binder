@@ -5,4 +5,4 @@ extern (C++) struct Template(T)
     public T var;
 }
 
-extern (C++) extern unknown.Template!(int) global;
+extern (C++) public extern unknown.Template!(int) global;

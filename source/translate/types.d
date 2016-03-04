@@ -451,7 +451,7 @@ private dast.Type resolveOrDefer(Type)(Type cppType)
     }
 }
 
-private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDecl)
+/*private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDecl)
 {
     unknown.Type cppType = cppDecl.getType();
 
@@ -488,7 +488,7 @@ private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDe
         }
         return result;
     }
-}
+}*/
 
 class TemplateArgumentVisitor : unknown.DeclarationVisitor
 {
@@ -551,25 +551,25 @@ package dast.Type resolveTemplateSpecializationTypeSymbol
     // FIXME abusing the startDeclBuild call
     result.genericParent = cast(typeof(result.genericParent))startDeclBuild(parent);
 
-    uint idx = 0;
+    // FIXME use an appender or something instead of ~=
     for (auto iter = cppType.getTemplateArgumentBegin(),
             finish = cppType.getTemplateArgumentEnd();
             !iter.equals(finish);
-            iter.advance(), ++idx )
+            iter.advance())
     {
         final switch (iter.getKind())
         {
             case unknown.TemplateArgumentInstanceIterator.Kind.Type:
                 auto argType = translateType(iter.getType(), QualifierSet.init);
-                result.arguments[idx] = new dast.TemplateTypeArgument(argType);
+                result.arguments ~= [new dast.TemplateTypeArgument(argType)];
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
                 dast.Expression e = new dast.IntegerLiteralExpression(iter.getInteger());
-                result.arguments[idx] = new dast.TemplateExpressionArgument(e);
+                result.arguments ~= [new dast.TemplateExpressionArgument(e)];
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
                 dast.Expression e = translateExpression(iter.getExpression());
-                result.arguments[idx] = new dast.TemplateExpressionArgument(e);
+                result.arguments ~= [new dast.TemplateExpressionArgument(e)];
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                 throw new Exception("Cannot resolve template argument that is a Pack (...)");
