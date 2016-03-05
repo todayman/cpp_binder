@@ -653,6 +653,12 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
         result.templateTypeParameter = new std.d.ast.TemplateTypeParameter();
         // TODO deal with default types, specific specializations, etc.
         result.templateTypeParameter.identifier = tokenFromString(name);
+
+        if (defaultType !is null)
+        {
+            result.templateTypeParameter.assignType = defaultType.buildConcreteType();
+        }
+
         return result;
     }
 }
