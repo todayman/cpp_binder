@@ -682,6 +682,14 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
         result.templateValueParameter.type = type.buildConcreteType();
         result.templateValueParameter.identifier = tokenFromString(name);
         // TODO deal with defaultValue
+
+        if (defaultValue !is null)
+        {
+            auto default_ = new std.d.ast.TemplateValueParameterDefault();
+            default_.assignExpression = defaultValue.buildConcreteExpression();
+            result.templateValueParameter.templateValueParameterDefault = default_;
+        }
+
         return result;
     }
 }

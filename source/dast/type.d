@@ -85,7 +85,10 @@ class TemplateExpressionArgument : TemplateArgument
     Expression exp;
 
     this(Expression e)
-    {
+    in {
+        assert (e !is null);
+    }
+    body {
         exp = e;
     }
 
