@@ -701,6 +701,9 @@ extern (C++) interface RecordTemplateDeclaration : unknown.RecordDeclaration
     public unknown.TemplateArgumentIterator getTemplateArgumentEnd() const;
 
     public unknown.SpecializedRecordRange getSpecializationRange();
+
+    // Temporary-ish signature
+    public void addTemplateParameterList(const(clang.TemplateParameterList)* tl);
 }
 
 extern (C++) interface UnionTemplateDeclaration : unknown.UnionDeclaration
@@ -709,6 +712,9 @@ extern (C++) interface UnionTemplateDeclaration : unknown.UnionDeclaration
     public unknown.TemplateArgumentIterator getTemplateArgumentBegin();
 
     public unknown.TemplateArgumentIterator getTemplateArgumentEnd();
+
+    // Temporary-ish signature
+    public void addTemplateParameterList(const(clang.TemplateParameterList)* tl);
 }
 
 extern (C++) interface TemplateTypeArgumentDeclaration : unknown.Declaration

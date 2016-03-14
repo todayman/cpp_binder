@@ -1122,31 +1122,50 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
     };
 
+    // Template argument declarations are not "redeclarable" in the clang AST,
+    // so the declaration of the template arguments in redeclarations of the
+    // template itself are not associated.  See the test forward_template for
+    // an example of this.  The type for "T" in the full declaration has its
+    // declaration in in the forward declaration; the declaration of "T" there
+    // does not have a name, so we need to get "T" from the second argument
+    // list.  This structure holds on to all the argument lists and matches the
+    // arguments up based on their position.  This works because declaring
+    // "template<typename> S;" and "template<int> S;" conflict.
     class TemplateArgumentIterator
     {
         private:
-        clang::TemplateParameterList::iterator cpp_iter;
+        public:
+        const std::vector<const clang::TemplateParameterList*>& lists;
+        size_t arg_index;
 
         public:
-        explicit TemplateArgumentIterator(clang::TemplateParameterList::iterator i)
-            : cpp_iter(i)
+        TemplateArgumentIterator(const std::vector<const clang::TemplateParameterList*>& l, size_t idx)
+            : lists(l), arg_index(idx)
         { }
 
-        void operator++() {
-            cpp_iter++;
+        virtual int getIndex()
+        {
+            return arg_index;
         }
 
-        bool operator==(const TemplateArgumentIterator& other) {
-            return cpp_iter == other.cpp_iter;
+        void operator++()
+        {
+            ++arg_index;
         }
 
-        bool operator!=(const TemplateArgumentIterator& other) {
-            return cpp_iter != other.cpp_iter;
+        bool operator==(const TemplateArgumentIterator& other)
+        {
+            return (arg_index == other.arg_index) && (lists == other.lists);
+        }
+
+        bool operator!=(const TemplateArgumentIterator& other)
+        {
+            return (arg_index != other.arg_index) || (lists != other.lists);
         }
 
         virtual void advance()
         {
-            cpp_iter++;
+            ++arg_index;
         }
 
         virtual bool equals(TemplateArgumentIterator* other)
@@ -1228,6 +1247,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
     {
         protected:
         const clang::ClassTemplateDecl* outer_decl;
+        std::vector<const clang::TemplateParameterList*> allTemplateParameterLists;
 
         public:
         RecordTemplateDeclaration(const clang::ClassTemplateDecl* d)
@@ -1261,12 +1281,9 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
         virtual TemplateArgumentIterator * getTemplateArgumentBegin() const
         {
-            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
+            return new TemplateArgumentIterator(allTemplateParameterLists, 0);
         }
-        virtual TemplateArgumentIterator * getTemplateArgumentEnd() const
-        {
-            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
-        }
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd() const;
 
         virtual void dump() override
         {
@@ -1274,12 +1291,18 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
 
         virtual SpecializedRecordRange* getSpecializationRange();
+
+        virtual void addTemplateParameterList(const clang::TemplateParameterList* tl)
+        {
+            allTemplateParameterLists.push_back(tl);
+        }
     };
 
     class UnionTemplateDeclaration : public UnionDeclaration//, public TemplateDeclaration
     {
         protected:
         const clang::ClassTemplateDecl* outer_decl;
+        std::vector<const clang::TemplateParameterList*> allTemplateParameterLists;
 
         public:
         UnionTemplateDeclaration(const clang::ClassTemplateDecl* d)
@@ -1297,16 +1320,21 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         }
         virtual TemplateArgumentIterator * getTemplateArgumentBegin()
         {
-            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
+            return new TemplateArgumentIterator(allTemplateParameterLists, 0);
         }
         virtual TemplateArgumentIterator * getTemplateArgumentEnd()
         {
-            return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
+            return new TemplateArgumentIterator(allTemplateParameterLists, allTemplateParameterLists.size());
         }
 
         virtual void dump() override
         {
             outer_decl->dump();
+        }
+
+        virtual void addTemplateParameterList(const clang::TemplateParameterList* tl)
+        {
+            allTemplateParameterLists.push_back(tl);
         }
     };
 

@@ -330,6 +330,19 @@ const RecordDeclaration* RecordTemplateDeclaration::getDefinition() const
     return nullptr;
 }
 
+TemplateArgumentIterator* RecordTemplateDeclaration::getTemplateArgumentEnd() const
+{
+    if (allTemplateParameterLists.empty())
+    {
+        return new TemplateArgumentIterator(allTemplateParameterLists, 0);
+    }
+    else
+    {
+        auto template_length = allTemplateParameterLists.front()->size();
+        return new TemplateArgumentIterator(allTemplateParameterLists, template_length);
+    }
+}
+
 SpecializedRecordRange* RecordTemplateDeclaration::getSpecializationRange()
 {
     return new SpecializedRecordRange(outer_decl->specializations());
@@ -501,7 +514,7 @@ bool FunctionDeclaration::isWrappable() const
 
 TemplateArgumentIterator::Kind TemplateArgumentIterator::getKind()
 {
-    const clang::NamedDecl* decl = *cpp_iter;
+    const clang::NamedDecl* decl = lists.front()->getParam(arg_index);
     if (isTemplateTypeParmDecl(decl))
     {
         return TemplateArgumentIterator::Type;
@@ -518,7 +531,7 @@ TemplateArgumentIterator::Kind TemplateArgumentIterator::getKind()
 
 bool TemplateArgumentIterator::isPack()
 {
-    const clang::NamedDecl* decl = *cpp_iter;
+    const clang::NamedDecl* decl = lists.front()->getParam(arg_index);
     if (isTemplateTypeParmDecl(decl))
     {
         return dynamic_cast<const clang::TemplateTypeParmDecl*>(decl)->isParameterPack();
@@ -535,12 +548,15 @@ bool TemplateArgumentIterator::isPack()
 
 TemplateTypeArgumentDeclaration* TemplateArgumentIterator::getType()
 {
+    // TODO figure out which argument list I want, just pulling the first one
+    // for now.
     assert(getKind() == TemplateArgumentIterator::Type);
 
-    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
+    const clang::NamedDecl* cpp_decl = lists.front()->getParam(arg_index);
+    auto search_result = DeclVisitor::getDeclarations().find(cpp_decl);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
+        cpp_decl->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -551,10 +567,11 @@ TemplateNonTypeArgumentDeclaration* TemplateArgumentIterator::getNonType()
 {
     assert(getKind() == TemplateArgumentIterator::NonType);
 
-    auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
+    const clang::NamedDecl* cpp_decl = lists.front()->getParam(arg_index);
+    auto search_result = DeclVisitor::getDeclarations().find(cpp_decl);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
+        cpp_decl->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -629,11 +646,11 @@ unsigned UsingAliasTemplateDeclaration::getTemplateArgumentCount() const
 }
 TemplateArgumentIterator * UsingAliasTemplateDeclaration::getTemplateArgumentBegin() const
 {
-    return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->begin());
+    throw std::logic_error("Not implemented after refactoring TemplateArgumentIterator");
 }
 TemplateArgumentIterator * UsingAliasTemplateDeclaration::getTemplateArgumentEnd() const
 {
-    return new TemplateArgumentIterator(outer_decl->getTemplateParameters()->end());
+    throw std::logic_error("Not implemented after refactoring TemplateArgumentIterator");
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
@@ -946,10 +963,37 @@ bool DeclVisitor::VisitClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
         if (!registerDeclaration(param, false, cppDecl->getTemplateParameters())) return false;
     }
 
-    bool old_top_level = top_level_decls;
+    DeclVisitor subVisitor(print_policy);
+    subVisitor.top_level_decls = false;
+    bool result = subVisitor.TraverseDecl(cppDecl->getTemplatedDecl());
+    if (!result)
+    {
+        return false;
+    }
+    /*bool old_top_level = top_level_decls;
     top_level_decls = false;
     bool result = TraverseDecl(cppDecl->getTemplatedDecl());
-    top_level_decls = old_top_level;
+    top_level_decls = old_top_level;*/
+
+    RecordTemplateDeclaration* rtd = dynamic_cast<RecordTemplateDeclaration*>(decl_in_progress);
+    if (rtd)
+    {
+        rtd->addTemplateParameterList(cppDecl->getTemplateParameters());
+    }
+    else
+    {
+        UnionTemplateDeclaration * utd = dynamic_cast<UnionTemplateDeclaration*>(decl_in_progress);
+        if (utd)
+        {
+            utd->addTemplateParameterList(cppDecl->getTemplateParameters());
+        }
+        else
+        {
+            std::cerr << "Not adding the parameter list\n";
+            std::cerr << "decl_in_progress = " << decl_in_progress << "\n";
+            decl_in_progress->dump();
+        }
+    }
 
     for (auto iter = cppDecl->spec_begin(),
             finish = cppDecl->spec_end();
