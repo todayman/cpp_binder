@@ -221,6 +221,14 @@ class ClangExpressionVisitor : public clang::RecursiveASTVisitor<ClangExpression
         return false;
     }
 
+    bool WalkUpFromSubstNonTypeTemplateParmExpr(clang::SubstNonTypeTemplateParmExpr* expr)
+    {
+        // This is used in a template specialization where we have selected a
+        // particular value for the template parameter.  So just use the
+        // particular value.
+        return wrapClangExpression(expr->getReplacement());
+    }
+
     Expression * getResult()
     {
         return result;
