@@ -23,9 +23,9 @@ import std.conv : to;
 import dast.common;
 import dast.type;
 
-class Expression
+interface Expression
 {
-    abstract pure std.d.ast.ExpressionNode buildConcreteExpression() const;
+    pure std.d.ast.ExpressionNode buildConcreteExpression() const;
 }
 
 class IntegerLiteralExpression : Expression

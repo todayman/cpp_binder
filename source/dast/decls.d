@@ -663,7 +663,7 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
     }
 }
 
-class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
+class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration, Expression
 {
     Type type;
     Expression defaultValue;
@@ -690,6 +690,14 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration
             result.templateValueParameter.templateValueParameterDefault = default_;
         }
 
+        return result;
+    }
+
+    override pure
+    std.d.ast.ExpressionNode buildConcreteExpression() const
+    {
+        auto result = new std.d.ast.PrimaryExpression();
+        result.primary = tokenFromString(name);
         return result;
     }
 }
