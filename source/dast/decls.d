@@ -476,7 +476,34 @@ mixin template buildConcreteType()
     }
 }
 
-alias TemplateArgumentList = Nullable!(TemplateArgumentDeclaration[]);
+struct TemplateArgumentList
+{
+    Nullable!(TemplateArgumentDeclaration[]) args;
+    alias args this;
+
+    this(TemplateArgumentDeclaration[] a)
+    {
+        args = a;
+    }
+
+    pure
+    std.d.ast.TemplateParameters buildConcreteList() const
+    {
+        if (!args.isNull)
+        {
+            auto templateParameters = new std.d.ast.TemplateParameters();
+            templateParameters.templateParameterList = new std.d.ast.TemplateParameterList();
+            auto items = args.get().map!(param => param.buildTemplateParameter()).array;
+            templateParameters.templateParameterList.items = items;
+            return templateParameters;
+        }
+        else
+        {
+            return null;
+        }
+    }
+}
+
 class StructDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
@@ -554,14 +581,7 @@ class StructDeclaration : Declaration, Type
         result.structDeclaration = structDecl;
 
         structDecl.name = tokenFromString(name);
-
-        if (!templateArguments.isNull)
-        {
-            structDecl.templateParameters = new std.d.ast.TemplateParameters();
-            structDecl.templateParameters.templateParameterList = new std.d.ast.TemplateParameterList();
-            auto items = templateArguments.get().map!(param => param.buildTemplateParameter()).array;
-            structDecl.templateParameters.templateParameterList.items = items;
-        }
+        structDecl.templateParameters = templateArguments.buildConcreteList();
 
         structDecl.structBody = new std.d.ast.StructBody();
 
@@ -838,7 +858,7 @@ class UnionDeclaration : Declaration, Type
     LinkageAttribute linkage;
 
     // FIXME Need to distinguish between no list and length 0 list
-    TemplateArgumentDeclaration[] templateArguments;
+    TemplateArgumentList templateArguments;
 
     VariableDeclaration[] fields;
     MethodDeclaration[] methods;
@@ -906,6 +926,8 @@ class UnionDeclaration : Declaration, Type
         {
             unionDecl.name = tokenFromString(name);
         }
+
+        unionDecl.templateParameters = templateArguments.buildConcreteList();
 
         unionDecl.structBody = new std.d.ast.StructBody();
 
