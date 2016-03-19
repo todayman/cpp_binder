@@ -32,10 +32,6 @@ public interface Type
     pure std.d.ast.Type buildConcreteType() const;
 }
 
-class ReturnType
-{
-}
-
 class ConstType : Type
 {
     Type target;
