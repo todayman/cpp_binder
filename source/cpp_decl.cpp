@@ -552,7 +552,7 @@ TemplateTypeArgumentDeclaration* TemplateArgumentIterator::getType()
     // for now.
     assert(getKind() == TemplateArgumentIterator::Type);
 
-    const clang::NamedDecl* cpp_decl = lists.front()->getParam(arg_index);
+    const clang::NamedDecl* cpp_decl = lists.at(list_index)->getParam(arg_index);
     auto search_result = DeclVisitor::getDeclarations().find(cpp_decl);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {

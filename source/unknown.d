@@ -645,6 +645,10 @@ extern (C++) interface TemplateArgumentIterator
 
     public void advance();
 
+    public int getDefinitionCount();
+
+    public void switchDefinition();
+
     public bool equals(unknown.TemplateArgumentIterator other);
 
     public unknown.TemplateArgumentIterator.Kind getKind();

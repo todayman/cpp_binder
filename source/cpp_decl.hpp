@@ -1137,20 +1137,17 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         public:
         const std::vector<const clang::TemplateParameterList*>& lists;
         size_t arg_index;
+        size_t list_index; // Which list we're pulling the current argument from.  Resets upon advancing
 
         public:
         TemplateArgumentIterator(const std::vector<const clang::TemplateParameterList*>& l, size_t idx)
-            : lists(l), arg_index(idx)
+            : lists(l), arg_index(idx), list_index(0)
         { }
-
-        virtual int getIndex()
-        {
-            return arg_index;
-        }
 
         void operator++()
         {
             ++arg_index;
+            list_index = 0;
         }
 
         bool operator==(const TemplateArgumentIterator& other)
@@ -1166,6 +1163,16 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual void advance()
         {
             ++arg_index;
+        }
+
+        virtual int getDefinitionCount()
+        {
+            return lists.size();
+        }
+
+        virtual void switchDefinition()
+        {
+            list_index = (list_index + 1) % lists.size();
         }
 
         virtual bool equals(TemplateArgumentIterator* other)

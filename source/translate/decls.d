@@ -70,6 +70,10 @@ private dast.LinkageAttribute translateLinkage(T)(T cppDecl, string namespace_pa
 
 private T registerDeclaration(T)(unknown.Declaration cppDecl)
 {
+    if (cast(void*)cppDecl in translated)
+    {
+        assert(0);
+    }
     T decl = new T();
     translated[cast(void*)cppDecl] = decl;
     return decl;
@@ -592,6 +596,9 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override
     void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
     {
+        trace("Entering TranslatorVisitor.visitRecordTemplate()");
+        scope(exit) trace("Exiting TranslatorVisit.visitRecordTemplate()");
+
         string name = nameFromDecl(cppDecl);
         dast.TemplateArgumentList templateParameters = translateTemplateParameters(cppDecl);
 
@@ -857,10 +864,27 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     // This should only ever be called when putting together the argument list
     // for a template, so we don't need to check for duplicates
-    dast.TemplateTypeArgumentDeclaration translateTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
+    dast.TemplateTypeArgumentDeclaration translateTemplateTypeArgument(unknown.TemplateArgumentIterator cpp_iter)
     {
-        auto result = registerDeclaration!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
-        result.name = nameFromDecl(cppDecl);
+        trace("Entering TranslatorVisitor.translateTemplateTypeArgument()");
+        scope(exit) trace("Exiting TranslatorVisitor.translateTemplateTypeArgument()");
+
+        unknown.TemplateTypeArgumentDeclaration cppDecl = cpp_iter.getType();
+        auto result = CHECK_FOR_DECL!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
+        }
+        for (int decl_index = 0; decl_index < cpp_iter.getDefinitionCount(); ++decl_index)
+        {
+            unknown.TemplateTypeArgumentDeclaration nameDecl = cpp_iter.getType();
+            translated[cast(void*)nameDecl] = result;
+            if (result.name.length == 0)
+            {
+                result.name = nameFromDecl(nameDecl);
+            }
+            cpp_iter.switchDefinition();
+        }
 
         if (cppDecl.hasDefaultType())
         {
@@ -899,7 +923,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         final switch (iter.getKind())
         {
             case unknown.TemplateArgumentIterator.Kind.Type:
-                return translateTemplateTypeArgument(iter.getType());
+                return translateTemplateTypeArgument(iter);
             case unknown.TemplateArgumentIterator.Kind.NonType:
                 return translateTemplateNonTypeArgument(iter.getNonType());
         }
@@ -1255,10 +1279,14 @@ dast.Type startDeclBuild(unknown.Declaration cppDecl)
         return result;
     }
 
-    info("Starting declaration build for cppDecl 0x", cast(void*)cppDecl);
+    trace("Starting declaration build for cppDecl ", nameFromDecl(cppDecl), " @ 0x", cast(void*)cppDecl);
     auto visitor = new StarterVisitor();
     cppDecl.visit(visitor);
-    assert(visitor.result !is null);
+    if (visitor.result is null)
+    {
+        cppDecl.dump();
+        assert(visitor.result !is null);
+    }
     return visitor.result;
 }
 // Inherit from DeclarationVisitor instead of TranslatorVisitor since we
