@@ -831,6 +831,7 @@ class InterfaceDeclaration : Declaration, Type
         result.interfaceDeclaration = interfaceDecl;
 
         interfaceDecl.name = tokenFromString(name);
+        interfaceDecl.templateParameters = templateArguments.buildConcreteList();
 
         auto body_ = new std.d.ast.StructBody();
 
