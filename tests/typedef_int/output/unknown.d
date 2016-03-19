@@ -1,4 +1,4 @@
 module unknown;
 
-extern(C++) alias IntType = int;
+extern(C++) public alias IntType = int;
 

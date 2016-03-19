@@ -6,4 +6,4 @@ extern(C++) struct Template(T)
     public alias MyType = T;
 }
 
-extern(C++) extern unknown.Template!(int).MyType var;
+extern(C++) public extern unknown.Template!(int).MyType var;

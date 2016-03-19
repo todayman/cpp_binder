@@ -1,3 +1,3 @@
 module unknown;
 
-extern(C++) alias B = A;
+extern(C++) public alias B = A;

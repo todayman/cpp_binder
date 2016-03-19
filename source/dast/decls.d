@@ -973,6 +973,7 @@ class AliasTypeDeclaration : Declaration, Type
         aliasDecl.initializers = [initializer];
 
         addLinkage(result, linkage);
+        addVisibility(result);
 
         return result;
     }
