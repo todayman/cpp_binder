@@ -436,7 +436,7 @@ private dast.Type resolveOrDefer(Type)(Type cppType)
                 throw new Exception("This type is not wrappable.");
             }
 
-            result = startDeclBuild(cppDecl);
+            result = startDeclTypeBuild(cppDecl);
             translated_types[cast(void*)cppDecl.getType()] = result;
         }
         if (result is null)
@@ -548,8 +548,8 @@ package dast.Type resolveTemplateSpecializationTypeSymbol
     }
 
     auto result = new TargetType();
-    // FIXME abusing the startDeclBuild call
-    result.genericParent = cast(typeof(result.genericParent))startDeclBuild(parent);
+    // FIXME abusing the startDeclTypeBuild call
+    result.genericParent = cast(typeof(result.genericParent))startDeclTypeBuild(parent);
 
     // FIXME use an appender or something instead of ~=
     for (auto iter = cppType.getTemplateArgumentBegin(),

@@ -7,4 +7,4 @@ extern (C++) struct Template(int Size)
     public unknown.Inner!(Size) var;
 }
 
-extern (C++) extern unknown.Template!(4) global;
+extern (C++) public extern unknown.Template!(4) global;

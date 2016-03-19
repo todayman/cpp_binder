@@ -49,17 +49,7 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     void visit(unknown.DeclaredExpression expr)
     {
         unknown.Declaration decl = expr.getDeclaration();
-        // TODO need to be careful here...
-        /*if (auto deferred_ptr = cast(void*)decl in exprForDecl)
-        {
-            result = deferred_ptr.getExpression();
-        }
-        else
-        {
-            auto deferred = new DeferredExpression(null);
-            exprForDecl[cast(void*)decl] = deferred;
-            result = deferred.getExpression();
-        }*/
+        result = startDeclExprBuild(decl);
     }
 
     extern(C++) override
@@ -79,6 +69,7 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
             exprForDecl[cast(void*)decl] = deferred;
             result = deferred.getExpression();
         }*/
+        assert(0);
     }
 
     extern(C++) override
@@ -103,5 +94,11 @@ Expression translateExpression(unknown.Expression expr)
 {
     auto visitor = new ExpressionTranslator();
     expr.visit(visitor);
+    if (visitor.result is null)
+    {
+        info("Failed to translate expression:");
+        expr.dump();
+        assert(0);
+    }
     return visitor.result;
 }

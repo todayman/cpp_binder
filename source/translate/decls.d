@@ -901,7 +901,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     dast.TemplateValueArgumentDeclaration translateTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
     {
-        auto result = new dast.TemplateValueArgumentDeclaration();
+        auto result = CHECK_FOR_DECL!(dast.TemplateValueArgumentDeclaration)(cppDecl);
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.TemplateValueArgumentDeclaration)(cppDecl);
+        }
         result.type = translateType(cppDecl.getType(), QualifierSet.init);
         result.name = nameFromDecl(cppDecl);
 
@@ -1270,7 +1274,7 @@ private void placeIntoTargetModule(
 // This function is responsible for building just enough of a D AST to
 // continue.  That means: it picks the right type of AST node, but doesn't
 // name it or place it anywhere.
-dast.Type startDeclBuild(unknown.Declaration cppDecl)
+dast.Type startDeclTypeBuild(unknown.Declaration cppDecl)
 {
     if (auto decl_ptr = cast(void*)cppDecl in translated)
     {
@@ -1361,6 +1365,93 @@ class StarterVisitor : unknown.DeclarationVisitor
     extern(C++) void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
     {
         result = registerDeclaration!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
+    }
+    extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration)
+    {
+        assert(0);
+    }
+    extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration)
+    {
+        assert(0);
+    }
+}
+// This function is responsible for building just enough of a D AST to
+// continue.  That means: it picks the right type of AST node, but doesn't
+// name it or place it anywhere.
+dast.Expression startDeclExprBuild(unknown.Declaration cppDecl)
+{
+    if (auto decl_ptr = cast(void*)cppDecl in translated)
+    {
+        dast.Expression result = cast(dast.Expression)*decl_ptr;
+        assert(result !is null);
+        return result;
+    }
+
+    trace("Starting declaration build for cppDecl ", nameFromDecl(cppDecl), " @ 0x", cast(void*)cppDecl);
+    auto visitor = new ExpressionStarterVisitor();
+    cppDecl.visit(visitor);
+    if (visitor.result is null)
+    {
+        cppDecl.dump();
+        assert(visitor.result !is null);
+    }
+    return visitor.result;
+}
+// Inherit from DeclarationVisitor instead of TranslatorVisitor since we
+// need to replace all the methods
+class ExpressionStarterVisitor : unknown.DeclarationVisitor
+{
+    public:
+    dast.Expression result;
+
+    extern(C++) void visitFunction(unknown.FunctionDeclaration) { assert(0); }
+    extern(C++) void visitNamespace(unknown.NamespaceDeclaration) { assert(0); }
+    extern(C++) void visitField(unknown.FieldDeclaration) { assert(0); }
+    extern(C++) void visitEnumConstant(unknown.EnumConstantDeclaration) { assert(0); }
+    extern(C++) void visitMethod(unknown.MethodDeclaration) { assert(0); }
+    extern(C++) void visitConstructor(unknown.ConstructorDeclaration) { assert(0); }
+    extern(C++) void visitDestructor(unknown.DestructorDeclaration) { assert(0); }
+    extern(C++) void visitArgument(unknown.ArgumentDeclaration) { assert(0); }
+    extern(C++) void visitVariable(unknown.VariableDeclaration) { assert(0); }
+    // FIXME this is going to interact poorly with the fact that all the lists
+    // of template arguments share the same D declaration, I need to find a way
+    // to find which argument list each template argument declaration came
+    // from.
+    extern(C++) void visitTemplateNonTypeArgument(unknown.TemplateNonTypeArgumentDeclaration cppDecl)
+    {
+        result = registerDeclaration!(dast.TemplateValueArgumentDeclaration)(cppDecl);
+    }
+
+    extern(C++) void visitRecord(unknown.RecordDeclaration cppDecl)
+    {
+        assert(0);
+    }
+    extern(C++) void visitRecordTemplate(unknown.RecordTemplateDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitTypedef(unknown.TypedefDeclaration cppDecl)
+    {
+        assert(0);
+    }
+    extern(C++) void visitEnum(unknown.EnumDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitUnion(unknown.UnionDeclaration cppDecl)
+    {
+        assert(0);
+    }
+    extern(C++) void visitSpecializedRecord(unknown.SpecializedRecordDeclaration)
+    {
+        // TODO fill this one in!
+        assert(0);
+    }
+    extern(C++) void visitTemplateTypeArgument(unknown.TemplateTypeArgumentDeclaration cppDecl)
+    {
+        assert(0);
     }
     extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration)
     {
