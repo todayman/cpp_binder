@@ -504,6 +504,11 @@ struct TemplateArgumentList
     }
 }
 
+// If there is a template<typename T>, this struct represents <int>
+struct SpecificTemplateArgumentList
+{
+}
+
 class StructDeclaration : Declaration, Type
 {
     LinkageAttribute linkage;
@@ -611,9 +616,9 @@ class StructDeclaration : Declaration, Type
 
 // Types of specialized templates are separate from the declarations since they
 // may not actually be declared.
-class SpecializedStructDeclaration : Declaration
+class SpecializedStructDeclaration : StructDeclaration
 {
-    TemplateArgument[] templateArguments;
+    SpecificTemplateArgumentList templateArguments;
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
@@ -623,9 +628,9 @@ class SpecializedStructDeclaration : Declaration
 }
 
 // TODO dedup with SpecializedStructDeclaration
-class SpecializedInterfaceDeclaration : Declaration
+class SpecializedInterfaceDeclaration : InterfaceDeclaration
 {
-    TemplateArgument[] templateArguments;
+    SpecificTemplateArgumentList templateArguments;
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
