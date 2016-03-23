@@ -140,7 +140,7 @@ public class Declaration
 {
     // FIXME the fact that this is different than parent is a hack
     Module parentModule;
-    Declaration parent;
+    private Declaration parent;
     // Do all declarations have visibility?
     Visibility visibility;
 
@@ -212,6 +212,21 @@ public class Declaration
             return parent.qualifiedPath() ~ [tokenFromString(name)];
         }
     }
+
+    void setParent(Declaration p)
+    in {
+        assert(p !is this);
+    }
+    body {
+        parent = p;
+    }
+
+    const(Declaration) getParent() inout
+    {
+        return parent;
+    }
+
+    abstract pure string typestring() const;
 }
 
 public class Namespace
@@ -284,6 +299,11 @@ public class VariableDeclaration : Declaration
         addVisibility(result);
 
         return result;
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -409,6 +429,11 @@ class FunctionDeclaration : Declaration
 
         return result;
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class EnumDeclaration : Declaration
@@ -430,6 +455,11 @@ class EnumDeclaration : Declaration
         enumDecl.enumBody.enumMembers = members.map!(m => m.buildEnumMember()).array;
 
         return result;
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -455,6 +485,11 @@ class EnumMember : Declaration
         }
 
         return result;
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -524,26 +559,26 @@ class StructDeclaration : Declaration, Type
     void addField(VariableDeclaration v)
     {
         // TODO
-        v.parent = this;
+        v.setParent(this);
         fields ~= [v];
     }
 
     void addMethod(MethodDeclaration f)
     {
-        f.parent = this;
+        f.setParent(this);
         methods ~= [f];
     }
 
     // TODO make sure that Declaration is appropriate here.
     void addClassLevelDeclaration(Declaration d)
     {
-        d.parent = this;
+        d.setParent(this);
         classDeclarations ~= [d];
     }
 
     void addClassLevelVariable(VariableDeclaration d)
     {
-        d.parent = this;
+        d.setParent(this);
         classDeclarations ~= [d];
         d.static_ = true;
     }
@@ -612,6 +647,11 @@ class StructDeclaration : Declaration, Type
     // FIXME leaves off the template arguments.
     // Right now, that's what I want, but probably not what would be expected
     mixin .buildConcreteType!();
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 // Types of specialized templates are separate from the declarations since they
@@ -625,6 +665,11 @@ class SpecializedStructDeclaration : StructDeclaration
     {
         assert(0);
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 // TODO dedup with SpecializedStructDeclaration
@@ -637,6 +682,11 @@ class SpecializedInterfaceDeclaration : InterfaceDeclaration
     {
         assert(0);
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class AliasThisDeclaration : Declaration
@@ -648,6 +698,11 @@ class AliasThisDeclaration : Declaration
     {
         assert(0);
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 // Maybe these shouldn't be declarations?  We need the "declaration" to be a
@@ -657,6 +712,11 @@ class TemplateArgumentDeclaration : Declaration
 {
     pure abstract
     std.d.ast.TemplateParameter buildTemplateParameter() const;
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
@@ -685,6 +745,11 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
         }
 
         return result;
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -725,6 +790,11 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration, Expression
         result.primary = tokenFromString(name);
         return result;
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class MethodDeclaration : FunctionDeclaration
@@ -756,6 +826,11 @@ class MethodDeclaration : FunctionDeclaration
 
         return result;
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class InterfaceDeclaration : Declaration, Type
@@ -773,20 +848,20 @@ class InterfaceDeclaration : Declaration, Type
 
     void addMethod(MethodDeclaration f)
     {
-        f.parent = this;
+        f.setParent(this);
         methods ~= [f];
     }
 
     // TODO make sure that Declaration is appropriate here.
     void addClassLevelDeclaration(Declaration d)
     {
-        d.parent = this;
+        d.setParent(this);
         classDeclarations ~= [d];
     }
 
     void addClassLevelVariable(VariableDeclaration d)
     {
-        d.parent = this;
+        d.setParent(this);
         classDeclarations ~= [d];
         d.static_ = true;
     }
@@ -857,6 +932,11 @@ class InterfaceDeclaration : Declaration, Type
     }
 
     mixin .buildConcreteType!();
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class UnionDeclaration : Declaration, Type
@@ -873,14 +953,14 @@ class UnionDeclaration : Declaration, Type
     void addField(VariableDeclaration v)
     {
         // TODO
-        v.parent = this;
+        v.setParent(this);
         fields ~= [v];
     }
 
     // TODO should this be method declaration?
     void addMethod(MethodDeclaration f)
     {
-        f.parent = this;
+        f.setParent(this);
         methods ~= [f];
     }
 
@@ -958,6 +1038,11 @@ class UnionDeclaration : Declaration, Type
     {
         assert(0);
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class AliasTypeDeclaration : Declaration, Type
@@ -984,6 +1069,11 @@ class AliasTypeDeclaration : Declaration, Type
     }
 
     mixin .buildConcreteType!();
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 enum Visibility
