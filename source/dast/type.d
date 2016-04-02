@@ -173,22 +173,18 @@ class ReplacedType : Type
     }
 }
 
+// Maybe this should get rolled into SpecializedStructDeclaration?
 class SpecializedStructType : Type
 {
     dast.decls.StructDeclaration genericParent;
 
-    TemplateArgument[] arguments;
+    dast.decls.TemplateArgumentInstanceList arguments;
 
     override pure
     std.d.ast.Type buildConcreteType() const
     {
-        // FIXME use the template single argument syntax?
-        auto argList = new std.d.ast.TemplateArgumentList();
-        argList.items = arguments.map!(a => a.buildConcreteArgument()).array;
-        auto args = new std.d.ast.TemplateArguments();
-        args.templateArgumentList = argList;
         auto inst = new std.d.ast.TemplateInstance();
-        inst.templateArguments = args;
+        inst.templateArguments = arguments.buildConcreteList();
 
         std.d.ast.Type genericType = genericParent.buildConcreteType();
         assert(genericType.type2 !is null);
@@ -210,7 +206,7 @@ class SpecializedInterfaceType : Type
     // FIXME change to InterfaceDeclaration
     dast.decls.Declaration genericParent;
 
-    TemplateArgument[] arguments;
+    dast.decls.TemplateArgumentInstanceList arguments;
 
     override pure
     std.d.ast.Type buildConcreteType() const
