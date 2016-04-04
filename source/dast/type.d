@@ -30,6 +30,8 @@ import dast.expr : Expression;
 public interface Type
 {
     pure std.d.ast.Type buildConcreteType() const;
+
+    pure string typestring() const;
 }
 
 class ConstType : Type
@@ -51,9 +53,12 @@ class ConstType : Type
 
         return result;
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
-
-
 
 class PointerType : Type
 {
@@ -74,6 +79,11 @@ class PointerType : Type
         result.typeSuffixes ~= [starSuffix];
 
         return result;
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -97,6 +107,11 @@ class FunctionType : Type
         // TODO varargs
         return result;
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 class ArrayType : Type
@@ -108,6 +123,11 @@ class ArrayType : Type
     std.d.ast.Type buildConcreteType() const
     {
         assert(0);
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -128,6 +148,11 @@ class ReplacedType : Type
         // FIXME why do I need the template argument on dup?
         result.type2.symbol.identifierOrTemplateChain = fullyQualifiedName.deepDup();
         return result;
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
@@ -158,6 +183,11 @@ class SpecializedStructType : Type
 
         return genericType;
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 class SpecializedInterfaceType : Type
 {
@@ -171,6 +201,11 @@ class SpecializedInterfaceType : Type
     {
         assert(0);
     }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
+    }
 }
 
 // Used in the body of a template to refer to a type that is a parameter of the
@@ -183,6 +218,11 @@ class TemplateArgumentType : Type
     std.d.ast.Type buildConcreteType() const
     {
         assert(0);
+    }
+
+    override pure string typestring() const
+    {
+        return typeof(this).stringof;
     }
 }
 
