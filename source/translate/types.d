@@ -437,6 +437,7 @@ private dast.Type resolveOrDefer(Type)(Type cppType)
             }
 
             result = startDeclTypeBuild(cppDecl);
+            // result can be a ReplacedType, not a decl
             translated_types[cast(void*)cppDecl.getType()] = result;
         }
         if (result is null)
@@ -450,45 +451,6 @@ private dast.Type resolveOrDefer(Type)(Type cppType)
         return result;
     }
 }
-
-/*private DeferredSymbol resolveOrDeferDeclaredType(Declaration)(Declaration cppDecl)
-{
-    unknown.Type cppType = cppDecl.getType();
-
-    if (auto deferred_ptr = cast(void*)cppType in symbolForType)
-    {
-        return (*deferred_ptr);
-    }
-    else
-    {
-        DeferredSymbolConcatenation result = null;
-        if (!cppDecl.isWrappable())
-        {
-            if (dumpBeforeThrowing) cppDecl.dump();
-            throw new UnwrappableTypeDeclaration(cppType, cppDecl);
-        }
-
-        // Don't allow refs here becuase those should go though a different
-        // path, namely the translateReference path.
-        if (!cppType.isWrappable(false))
-        {
-            if (dumpBeforeThrowing) cppDecl.dump();
-            throw new Exception("This type is not wrappable.");
-        }
-        result = new DeferredSymbolConcatenation();
-        // This symbol will be filled in when the declaration is traversed
-        symbolForType[cast(void*)cppDecl.getType()] = result;
-        unresolvedSymbols[result] = cppDecl;
-
-        if (result is null)
-        {
-            stderr.writeln("Could not build DeferredSymbol for ");
-            cppType.dump();
-            assert(result !is null);
-        }
-        return result;
-    }
-}*/
 
 class TemplateArgumentVisitor : unknown.DeclarationVisitor
 {
@@ -551,6 +513,7 @@ package dast.Type resolveTemplateSpecializationTypeSymbol
     // FIXME abusing the startDeclTypeBuild call
     result.genericParent = cast(typeof(result.genericParent))startDeclTypeBuild(parent);
 
+    auto args = dast.TemplateArgumentInstanceList([]);
     // FIXME use an appender or something instead of ~=
     for (auto iter = cppType.getTemplateArgumentBegin(),
             finish = cppType.getTemplateArgumentEnd();
@@ -561,20 +524,21 @@ package dast.Type resolveTemplateSpecializationTypeSymbol
         {
             case unknown.TemplateArgumentInstanceIterator.Kind.Type:
                 auto argType = translateType(iter.getType(), QualifierSet.init);
-                result.arguments ~= [new dast.TemplateTypeArgument(argType)];
+                args.arguments ~= [new dast.TemplateTypeArgumentInstance(argType)];
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
                 dast.Expression e = new dast.IntegerLiteralExpression(iter.getInteger());
-                result.arguments ~= [new dast.TemplateExpressionArgument(e)];
+                args.arguments ~= [new dast.TemplateValueArgumentInstance(e)];
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
                 dast.Expression e = translateExpression(iter.getExpression());
-                result.arguments ~= [new dast.TemplateExpressionArgument(e)];
+                args.arguments ~= [new dast.TemplateValueArgumentInstance(e)];
                 break;
             case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                 throw new Exception("Cannot resolve template argument that is a Pack (...)");
         }
     }
+    result.arguments = args;
     return result;
 }
 

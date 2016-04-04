@@ -352,11 +352,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     {
         foreach (child; cppDecl.getChildren())
         {
-            if (auto ptr = cast(void*)child in translated)
-            {
-                result.addDeclaration(*ptr);
-                continue;
-            }
             try {
                 // FIXME the check for whether or not to bind shouldn't be made
                 // everywhere; there should be a good, common place for it
@@ -374,6 +369,19 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                         continue;
                     }
                 }
+
+                // If we already translated the child, then skip it
+                if (auto ptr = cast(void*)child in translated)
+                {
+                    if (*ptr == result)// If the child is me
+                        // Not really clear on how this happens, but it does
+                    {
+                        continue;
+                    }
+                    result.addDeclaration(*ptr);
+                    continue;
+                }
+
                 auto visitor = new SubdeclarationVisitor(namespace_path);
                 unknown.Declaration decl = child;
                 try {
@@ -437,15 +445,15 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
     }
 
-    dast.StructDeclaration buildStruct(
+    TargetType buildStruct(TargetType, ArgumentListType)(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.TemplateArgumentList template_params)
+            ArgumentListType template_params)
     {
         trace("Entering");
         scope(exit) trace("Exiting");
 
-        auto result = CHECK_FOR_DECL!(dast.StructDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(TargetType)(cppDecl);
         if (result !is null)
         {
             info("Short-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
@@ -453,7 +461,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         else
         {
             info("Long-circuiting building the struct for ", name, " @0x", cast(void*)cppDecl, ".");
-            result = registerDeclaration!(dast.StructDeclaration)(cppDecl);
+            result = registerDeclaration!(TargetType)(cppDecl);
         }
         info("Building struct @0x", cast(void*)result);
 
@@ -507,26 +515,25 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             if (!all_superclasses.empty())
             {
                 throw new Exception("Cannot translate multiple inheritance of structs without multiple alias this.");
-                // FIXME now, I could just put all the components in as fields and generate
+                // FIXME I could just put all the components in as fields and generate
                 // methods that call out to those as a workaround for now.
             }
         }
 
         translateStructBody!(StructBodyTranslator!(VirtualBehavior.FORBIDDEN, Flag!"fields".yes))(cppDecl, result);
-        //info("Added ", result.structBody.declarations.length, " declarations to the body of ", name.text, '.');
 
         return result;
     }
 
-    dast.InterfaceDeclaration buildInterface(
+    TargetType buildInterface(TargetType, ArgumentListType)(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.TemplateArgumentList template_params)
+            ArgumentListType template_params)
     {
-        auto result = CHECK_FOR_DECL!(dast.InterfaceDeclaration)(cppDecl);
+        auto result = CHECK_FOR_DECL!(TargetType)(cppDecl);
         if (result is null)
         {
-            result = registerDeclaration!(dast.InterfaceDeclaration)(cppDecl);
+            result = registerDeclaration!(TargetType)(cppDecl);
         }
 
         result.name = name;
@@ -544,10 +551,55 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
-    void buildRecord(
+    void buildRecord(Flag!"specialized" specialized, ArgumentListType)(
             unknown.RecordDeclaration cppDecl,
             string name,
-            dast.TemplateArgumentList template_params)
+            ArgumentListType template_params)
+    {
+        static if (Yes.specialized == specialized)
+        {
+            alias StructType    = dast.SpecializedStructDeclaration;
+            alias InterfaceType = dast.SpecializedInterfaceDeclaration;
+            static assert(is(dast.SpecificTemplateArgumentList : dast.SpecificTemplateArgumentList));
+        }
+        else
+        {
+            alias StructType    = dast.StructDeclaration;
+            alias InterfaceType = dast.InterfaceDeclaration;
+            static assert(is(dast.TemplateArgumentList : dast.TemplateArgumentList));
+        }
+        trace("Entering");
+        scope(exit) trace("Exiting");
+        if (cppDecl.getDefinition() !is cppDecl)
+        {
+            info("Skipping this cppDecl for ", name, " because it is not a definition.");
+            return;
+        }
+        determineRecordStrategy(cppDecl.getRecordType());
+        switch (cppDecl.getType().getStrategy())
+        {
+            case unknown.Strategy.STRUCT:
+                info("Building record using strategy STRUCT.");
+                buildStruct!(StructType)(cppDecl, name, template_params);
+                break;
+            case unknown.Strategy.INTERFACE:
+                info("Building record using strategy INTERFACE.");
+                buildInterface!InterfaceType(cppDecl, name, template_params);
+                break;
+            case unknown.Strategy.REPLACE:
+                info("Skipping build because the strategy is REPLACE.");
+                break;
+            default:
+                stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
+                throw new Exception("I don't know how to translate records using strategies other than REPLACE, STRUCT, and INTERFACE yet.");
+        }
+
+    }
+
+    void buildSpecializedRecord(
+            unknown.RecordDeclaration cppDecl,
+            string name,
+            dast.TemplateArgumentInstanceList template_params)
     {
         trace("Entering");
         scope(exit) trace("Exiting");
@@ -561,11 +613,11 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             case unknown.Strategy.STRUCT:
                 info("Building record using strategy STRUCT.");
-                buildStruct(cppDecl, name, template_params);
+                buildStruct!(dast.SpecializedStructDeclaration)(cppDecl, name, template_params);
                 break;
             case unknown.Strategy.INTERFACE:
                 info("Building record using strategy INTERFACE.");
-                buildInterface(cppDecl, name, template_params);
+                buildInterface!(dast.SpecializedInterfaceDeclaration)(cppDecl, name, template_params);
                 break;
             case unknown.Strategy.REPLACE:
                 info("Skipping build because the strategy is REPLACE.");
@@ -576,6 +628,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
 
     }
+
     extern(C++) override
     void visitRecord(unknown.RecordDeclaration cppDecl)
     {
@@ -584,7 +637,8 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         string name = nameFromDecl(cppDecl);
         info("Translating record named ", name, " for cppDecl @", cast(void*)cppDecl);
 
-        buildRecord(cppDecl, name, dast.TemplateArgumentList());
+        dast.TemplateArgumentList arg_list;
+        buildRecord!(No.specialized, dast.TemplateArgumentList)(cppDecl, name, arg_list);
         // Records using the replacement strategy don't produce a result
         auto ptr = cast(void*)cppDecl in translated;
         if (ptr && (!((*ptr) in placedDeclarations) || placedDeclarations[*ptr] == 0))
@@ -603,7 +657,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         dast.TemplateArgumentList templateParameters = translateTemplateParameters(cppDecl);
 
         {
-            buildRecord(cppDecl, name, templateParameters);
+            buildRecord!(No.specialized, dast.TemplateArgumentList)(cppDecl, name, templateParameters);
 
             // Records using the replacement strategy don't produce a result
             if (auto ptr = cast(void*)cppDecl in translated)
@@ -639,7 +693,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         template_inst.templateArguments = translateTemplateArguments(cppDecl);
 
         // FIXME this call
-        buildRecord(cppDecl, nameFromDecl(cppDecl), dast.TemplateArgumentList());
+        buildSpecializedRecord(cppDecl, nameFromDecl(cppDecl), template_inst.templateArguments);
     }
 
     dast.AliasTypeDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
@@ -949,21 +1003,22 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         return result;
     }
 
-    dast.TemplateArgument[] translateTemplateArguments(Declaration)(Declaration cppDecl)
+    //Translates a list of specific template argument instances
+    dast.TemplateArgumentInstanceList translateTemplateArguments(Declaration)(Declaration cppDecl)
     {
-        dast.TemplateArgument[] result = [];
+        dast.TemplateArgumentInstance[] result = [];
 
         for (unknown.TemplateArgumentInstanceIterator iter = cppDecl.getTemplateArgumentBegin(),
                 end = cppDecl.getTemplateArgumentEnd();
              !iter.equals(end);
              iter.advance() )
         {
-            dast.TemplateArgument current;
+            dast.TemplateArgumentInstance current;
             final switch (iter.getKind())
             {
                 case unknown.TemplateArgumentInstanceIterator.Kind.Type:
                     try {
-                        current = new dast.TemplateTypeArgument(translateType(iter.getType(), QualifierSet.init));
+                        current = new dast.TemplateTypeArgumentInstance(translateType(iter.getType(), QualifierSet.init));
                     }
                     catch(RefTypeException e)
                     {
@@ -973,10 +1028,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Integer:
                     auto constant = new dast.IntegerLiteralExpression(iter.getInteger());
-                    current = new dast.TemplateExpressionArgument(constant);
+                    current = new dast.TemplateValueArgumentInstance(constant);
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Expression:
-                    current = new dast.TemplateExpressionArgument(translateExpression(iter.getExpression()));
+                    current = new dast.TemplateValueArgumentInstance(translateExpression(iter.getExpression()));
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
                     iter.dumpPackInfo();
@@ -985,7 +1040,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             result ~= [current];
         }
 
-        return result;
+        return dast.TemplateArgumentInstanceList(result);
     }
 }
 
@@ -1291,6 +1346,7 @@ dast.Type startDeclTypeBuild(unknown.Declaration cppDecl)
         cppDecl.dump();
         assert(visitor.result !is null);
     }
+    assert(visitor.result !is null);
     return visitor.result;
 }
 // Inherit from DeclarationVisitor instead of TranslatorVisitor since we
