@@ -540,8 +540,73 @@ struct TemplateArgumentList
 }
 
 // If there is a template<typename T>, this struct represents <int>
-struct SpecificTemplateArgumentList
+struct TemplateArgumentInstanceList
 {
+    Nullable!(TemplateArgumentInstance[]) arguments;
+    alias arguments this;
+
+    this(TemplateArgumentInstance[] a)
+    {
+        arguments = a;
+    }
+
+    pure std.d.ast.TemplateArguments buildConcreteList() const
+    in {
+        assert(!arguments.isNull());
+    }
+    body {
+        // FIXME use the template single argument syntax?
+        auto argList = new std.d.ast.TemplateArgumentList();
+        argList.items = arguments.get().map!(a => a.buildConcreteArgument()).array;
+        auto args = new std.d.ast.TemplateArguments();
+        args.templateArgumentList = argList;
+        return args;
+    }
+}
+
+// A specific value of a template argument
+interface TemplateArgumentInstance
+{
+    pure std.d.ast.TemplateArgument buildConcreteArgument() const;
+}
+
+class TemplateTypeArgumentInstance : TemplateArgumentInstance
+{
+    private Type type;
+
+    this(Type t)
+    {
+        type = t;
+    }
+
+    override pure
+    std.d.ast.TemplateArgument buildConcreteArgument() const
+    {
+        auto result = new std.d.ast.TemplateArgument();
+        result.type = type.buildConcreteType();
+        return result;
+    }
+}
+
+class TemplateValueArgumentInstance : TemplateArgumentInstance
+{
+    private Expression exp;
+
+    this(Expression e)
+    in {
+        assert (e !is null);
+    }
+    body {
+        exp = e;
+    }
+
+    override pure
+    std.d.ast.TemplateArgument buildConcreteArgument() const
+    {
+        auto result = new std.d.ast.TemplateArgument();
+        result.assignExpression = exp.buildConcreteExpression();
+        return result;
+    }
 }
 
 class StructDeclaration : Declaration, Type
@@ -658,7 +723,7 @@ class StructDeclaration : Declaration, Type
 // may not actually be declared.
 class SpecializedStructDeclaration : StructDeclaration
 {
-    SpecificTemplateArgumentList templateArguments;
+    TemplateArgumentInstanceList templateArguments;
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
@@ -675,7 +740,7 @@ class SpecializedStructDeclaration : StructDeclaration
 // TODO dedup with SpecializedStructDeclaration
 class SpecializedInterfaceDeclaration : InterfaceDeclaration
 {
-    SpecificTemplateArgumentList templateArguments;
+    TemplateArgumentInstanceList templateArguments;
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const

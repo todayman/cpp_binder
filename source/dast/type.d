@@ -53,49 +53,7 @@ class ConstType : Type
     }
 }
 
-// A specific value of a template argument
-interface TemplateArgument
-{
-    pure std.d.ast.TemplateArgument buildConcreteArgument() const;
-}
 
-class TemplateTypeArgument : TemplateArgument
-{
-    Type type;
-    this(Type t)
-    {
-        type = t;
-    }
-
-    override pure
-    std.d.ast.TemplateArgument buildConcreteArgument() const
-    {
-        auto result = new std.d.ast.TemplateArgument();
-        result.type = type.buildConcreteType();
-        return result;
-    }
-}
-
-class TemplateExpressionArgument : TemplateArgument
-{
-    Expression exp;
-
-    this(Expression e)
-    in {
-        assert (e !is null);
-    }
-    body {
-        exp = e;
-    }
-
-    override pure
-    std.d.ast.TemplateArgument buildConcreteArgument() const
-    {
-        auto result = new std.d.ast.TemplateArgument();
-        result.assignExpression = exp.buildConcreteExpression();
-        return result;
-    }
-}
 
 class PointerType : Type
 {
