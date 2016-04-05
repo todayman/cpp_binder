@@ -191,25 +191,40 @@ public class Declaration
         result.attributes ~= [attr];
     }
 
-    // FIXME doesn't work for symbols inside a namespace
-    const(Token)[] qualifiedPath() const pure
+    pure std.d.ast.IdentifierOrTemplateInstance unqualifiedName() const
     {
+        auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+        inst.identifier = tokenFromString(name);
+        return inst;
+    }
+
+    // FIXME doesn't work for symbols inside a namespace
+    // Also doesn't work for templates
+    std.d.ast.IdentifierOrTemplateInstance[] qualifiedPath() const pure
+    {
+        import dlang_decls : makeInstance;
+
         if (parent is null)
         {
             if (parentModule !is null)
             {
-                return parentModule.moduleName.identifiers ~ [tokenFromString(name)];
+                return map!(makeInstance)(parentModule.moduleName.identifiers).array ~ [unqualifiedName()];
             }
             else
             {
                 // TODO this means I am in the global namespace There should
                 // probably be a prepended dot on the rendered name.
-                return [tokenFromString(name)];
+                return [unqualifiedName()];
             }
         }
         else
         {
-            return parent.qualifiedPath() ~ [tokenFromString(name)];
+            if (parent is this)
+            {
+                debug{stderr.writeln("name = ", name);}
+                assert(0);
+            }
+            return parent.qualifiedPath() ~ [unqualifiedName()];
         }
     }
 
@@ -505,8 +520,8 @@ mixin template buildConcreteType()
         result.type2.symbol = new std.d.ast.Symbol();
         result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
         result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
-        result.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances
-            = map!(dlang_decls.makeInstance)(qualifiedPath).array;
+        result.type2.symbol.identifierOrTemplateChain
+            = dlang_decls.makeIdentifierOrTemplateChain(qualifiedPath());
         return result;
     }
 }
@@ -731,9 +746,28 @@ class SpecializedStructDeclaration : StructDeclaration
         assert(0);
     }
 
+    override pure
+    std.d.ast.Type buildConcreteType() const
+    {
+        assert(0);
+    }
+
     override pure string typestring() const
     {
         return typeof(this).stringof;
+    }
+
+    override pure
+    std.d.ast.IdentifierOrTemplateInstance unqualifiedName() const
+    {
+        auto inst = new std.d.ast.TemplateInstance();
+        inst.identifier = tokenFromString(name);
+        inst.templateArguments = templateArguments.buildConcreteList();
+
+        auto result = new std.d.ast.IdentifierOrTemplateInstance();
+        result.templateInstance = inst;
+
+        return result;
     }
 }
 

@@ -86,6 +86,14 @@ IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierOrTemplateInst
 }
 
 pure
+IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierOrTemplateInstance[] inst)
+{
+    auto result = new IdentifierOrTemplateChain();
+    result.identifiersOrTemplateInstances = inst;
+    return result;
+}
+
+pure
 IdentifierOrTemplateChain makeIdentifierOrTemplateChain(IdentifierChain idChain)
 {
     auto result = new IdentifierOrTemplateChain();
