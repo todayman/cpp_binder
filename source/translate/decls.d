@@ -18,6 +18,7 @@
 
 module translate.decls;
 
+import std.algorithm : map;
 import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
@@ -135,7 +136,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     string namespace_path;
 
     public:
-    dast.Declaration last_result;
+    dast.Declaration[] last_result;
 
     public:
     this()
@@ -150,7 +151,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         last_result = null;
     }
 
-    dast.Declaration visit(unknown.Declaration cppDecl)
+    dast.Declaration[] visit(unknown.Declaration cppDecl)
     {
         try {
             cppDecl.visit(this);
@@ -222,7 +223,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         }
         else
         {
-            last_result = translateFunction(cppDecl);
+            last_result = [translateFunction(cppDecl)];
         }
     }
 
@@ -392,18 +393,18 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     e.declaration = decl;
                     throw e;
                 }
-                if (visitor.last_result && child.shouldEmit())
+                if (visitor.last_result.length && child.shouldEmit())
                 {
                     try {
-                        visitor.last_result.visibility = translateVisibility(child);
+                        map!(d => d.visibility = translateVisibility(child))(visitor.last_result);
                     }
                     catch (Exception e)
                     {
                         // catch when visibility is unset.
                         // FIXME is this the right thing?
-                        visitor.last_result.visibility = dast.Visibility.Public;
+                        map!(d => d.visibility = dast.Visibility.Public)(visitor.last_result);
                     }
-                    result.addDeclaration(visitor.last_result);
+                    result.addDeclarations(visitor.last_result);
                 }
             }
             catch (Exception exc)
@@ -643,7 +644,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         auto ptr = cast(void*)cppDecl in translated;
         if (ptr && (!((*ptr) in placedDeclarations) || placedDeclarations[*ptr] == 0))
         {
-            last_result = *ptr;
+            last_result = [*ptr];
         }
     }
 
@@ -662,7 +663,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             // Records using the replacement strategy don't produce a result
             if (auto ptr = cast(void*)cppDecl in translated)
             {
-                last_result = *ptr;
+                last_result = [*ptr];
             }
         }
 
@@ -714,7 +715,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     void visitTypedef(unknown.TypedefDeclaration cppDecl)
     {
         translateTypedef(cppDecl);
-        last_result = translated[cast(void*)cppDecl];
+        last_result = [translated[cast(void*)cppDecl]];
     }
 
     // FIXME overlap with visitRecordTemplate
@@ -734,7 +735,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
             if (auto ptr = cast(void*)cppDecl in translated)
             {
-                last_result = *ptr;
+                last_result = [*ptr];
             }
         }
     }
@@ -770,7 +771,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override void visitEnum(unknown.EnumDeclaration cppDecl)
     {
         translateEnum(cppDecl);
-        last_result = translated[cast(void*)cppDecl];
+        last_result = [translated[cast(void*)cppDecl]];
     }
 
     dast.EnumMember translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
@@ -836,7 +837,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     extern(C++) override void visitUnion(unknown.UnionDeclaration cppDecl)
     {
         translateUnion(cppDecl);
-        last_result = translated[cast(void*)cppDecl];
+        last_result = [translated[cast(void*)cppDecl]];
     }
 
 
@@ -909,7 +910,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     }
     extern(C++) override void visitVariable(unknown.VariableDeclaration cppDecl)
     {
-        last_result = translateVariable(cppDecl);
+        last_result = [translateVariable(cppDecl)];
     }
     extern(C++) override void visitUnwrappable(unknown.UnwrappableDeclaration)
     {
@@ -1234,11 +1235,11 @@ class StructBodyTranslator
 
         if (shouldInsert)
         {
-            last_result = method;
+            last_result = [method];
         }
         else
         {
-            last_result = null;
+            last_result = [];
         }
     }
 
@@ -1268,7 +1269,7 @@ class StructBodyTranslator
         extern(C++) override void visitField(unknown.FieldDeclaration cppDecl)
         {
             translateField(cppDecl);
-            last_result = translated[cast(void*)cppDecl];
+            last_result = [translated[cast(void*)cppDecl]];
         }
     }
     else
@@ -1302,27 +1303,30 @@ private dast.Module findTargetModule(unknown.Declaration declaration)
 
 private void placeIntoTargetModule(
     unknown.Declaration declaration,
-    dast.Declaration translation,
+    dast.Declaration[] translation_list,
     string namespace_path)
 {
-    // FIXME sometimes this gets called multiple times on the same declaration,
-    // so it will get output multiple times, which is clearly wrong
-    // It happens because there are multiple declarations of the same type
-    // (e.g. forward and normal), that have the same translation
-    if (translation)
+    foreach (translation; translation_list)
     {
-        if (translation in placedDeclarations)
+        // FIXME sometimes this gets called multiple times on the same declaration,
+        // so it will get output multiple times, which is clearly wrong
+        // It happens because there are multiple declarations of the same type
+        // (e.g. forward and normal), that have the same translation
+        if (translation)
         {
-            info("Already placed cpp decl ", binder.toDString(declaration.getSourceName()), " @", cast(void*)declaration);
-            return;
-        }
+            if (translation in placedDeclarations)
+            {
+                info("Already placed cpp decl ", binder.toDString(declaration.getSourceName()), " @", cast(void*)declaration);
+                return;
+            }
 
-        destination.addDeclaration(translation, namespace_path);
-        placedDeclarations[translation] = 1;
-    }
-    else
-    {
-        info("No translation for declaration @", cast(void*)declaration);
+            destination.addDeclaration(translation, namespace_path);
+            placedDeclarations[translation] = 1;
+        }
+        else
+        {
+            info("No translation for declaration @", cast(void*)declaration);
+        }
     }
 }
 
@@ -1546,7 +1550,7 @@ dast.Module populateDAST(string output_module_name)
 
         auto visitor = new GlobalTranslator();
         try {
-            dast.Declaration translation;
+            dast.Declaration[] translation;
             if (cast(void*)declaration !in translated)
             {
                 visitor.visit(declaration);
@@ -1554,12 +1558,12 @@ dast.Module populateDAST(string output_module_name)
             }
             else
             {
-                translation = translated[cast(void*)declaration];
+                translation = [translated[cast(void*)declaration]];
             }
 
             // some items, such as namespaces, don't need to be placed into a module.
             // visiting them just translates their children and puts them in modules
-            if (translation && declaration.shouldEmit)
+            if (translation.length && declaration.shouldEmit)
             {
                 placeIntoTargetModule(declaration, translation, "");
             }

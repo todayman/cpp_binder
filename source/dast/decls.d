@@ -663,6 +663,14 @@ class StructDeclaration : Declaration, Type
         d.static_ = true;
     }
 
+    void addDeclarations(Declaration[] ds)
+    {
+        foreach (d; ds)
+        {
+            addDeclaration(d);
+        }
+    }
+
     void addDeclaration(Declaration d)
     {
         // TODO
@@ -965,6 +973,14 @@ class InterfaceDeclaration : Declaration, Type
         d.static_ = true;
     }
 
+    void addDeclarations(Declaration[] ds)
+    {
+        foreach (d; ds)
+        {
+            addDeclaration(d);
+        }
+    }
+
     void addDeclaration(Declaration d)
     {
         // TODO
@@ -1068,6 +1084,14 @@ class UnionDeclaration : Declaration, Type
     {
         // TODO
         assert(0);
+    }
+
+    void addDeclarations(Declaration[] ds)
+    {
+        foreach (d; ds)
+        {
+            addDeclaration(d);
+        }
     }
 
     void addDeclaration(Declaration d)
