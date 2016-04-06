@@ -18,7 +18,7 @@
 
 module translate.decls;
 
-import std.algorithm : map;
+import std.algorithm : each;
 import std.array;
 import std.conv : to;
 import std.stdio : stdout, stderr;
@@ -396,13 +396,13 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                 if (visitor.last_result.length && child.shouldEmit())
                 {
                     try {
-                        map!(d => d.visibility = translateVisibility(child))(visitor.last_result);
+                        each!(d => d.visibility = translateVisibility(child))(visitor.last_result[]);
                     }
                     catch (Exception e)
                     {
                         // catch when visibility is unset.
                         // FIXME is this the right thing?
-                        map!(d => d.visibility = dast.Visibility.Public)(visitor.last_result);
+                        each!(d => d.visibility = dast.Visibility.Public)(visitor.last_result[]);
                     }
                     result.addDeclarations(visitor.last_result);
                 }
