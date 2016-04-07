@@ -597,7 +597,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     }
 
-    void buildSpecializedRecord(
+    dast.Declaration buildSpecializedRecord(
             unknown.RecordDeclaration cppDecl,
             string name,
             dast.TemplateArgumentInstanceList template_params)
@@ -607,22 +607,24 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         if (cppDecl.getDefinition() !is cppDecl)
         {
             info("Skipping this cppDecl for ", name, " because it is not a definition.");
-            return;
+            return null; // TODO?
         }
         determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
                 info("Building record using strategy STRUCT.");
-                buildStruct!(dast.SpecializedStructDeclaration)(cppDecl, name, template_params);
-                break;
+                auto result = buildStruct!(dast.SpecializedStructDeclaration)(cppDecl, name, template_params);
+                result.shouldEmit_ = false;
+                return result;
             case unknown.Strategy.INTERFACE:
                 info("Building record using strategy INTERFACE.");
-                buildInterface!(dast.SpecializedInterfaceDeclaration)(cppDecl, name, template_params);
-                break;
+                auto result = buildInterface!(dast.SpecializedInterfaceDeclaration)(cppDecl, name, template_params);
+                result.shouldEmit_ = false;
+                return result;
             case unknown.Strategy.REPLACE:
                 info("Skipping build because the strategy is REPLACE.");
-                break;
+                return null; // TODO?
             default:
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
                 throw new Exception("I don't know how to translate records using strategies other than REPLACE, STRUCT, and INTERFACE yet.");
@@ -673,7 +675,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         foreach (unknown.SpecializedRecordDeclaration special; cppDecl.getSpecializationRange())
         {
             try {
-                visitSpecializedRecord(special);
+                last_result ~= [translateSpecializedRecord(special)];
             }
             catch(Exception e)
             {
@@ -684,17 +686,20 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     }
 
-    extern(C++) override
-    void visitSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
+    dast.Declaration translateSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
     {
         // See note in visitRecordTemplate about why these are not emitted
         // via last_result
-        auto template_inst = new dast.SpecializedStructDeclaration();
-        template_inst.name = nameFromDecl(cppDecl);
-        template_inst.templateArguments = translateTemplateArguments(cppDecl);
+        auto templateArguments = translateTemplateArguments(cppDecl);
 
         // FIXME this call
-        buildSpecializedRecord(cppDecl, nameFromDecl(cppDecl), template_inst.templateArguments);
+        return buildSpecializedRecord(cppDecl, nameFromDecl(cppDecl), templateArguments);
+    }
+
+    extern(C++) override
+    void visitSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
+    {
+        translateSpecializedRecord(cppDecl);
     }
 
     dast.AliasTypeDeclaration translateTypedef(unknown.TypedefDeclaration cppDecl)
