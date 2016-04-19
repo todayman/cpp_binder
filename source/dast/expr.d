@@ -20,6 +20,9 @@ module dast.expr;
 
 import std.conv : to;
 
+static import std.d.ast;
+import std.d.lexer : tok, Token;
+
 import dast.common;
 import dast.type;
 

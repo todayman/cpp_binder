@@ -1378,6 +1378,8 @@ class StarterVisitor : unknown.DeclarationVisitor
 
     extern(C++) void visitRecord(unknown.RecordDeclaration cppDecl)
     {
+        import dlang_decls : makeIdentifierOrTemplateChain;
+
         // FIXME copied from TranslatorVisitor.buildRecord
         trace("Entering");
         scope(exit) trace("Exiting");

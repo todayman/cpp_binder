@@ -19,6 +19,7 @@
 module main;
 
 import std.stdio;
+import std.string : toStringz;
 import std.experimental.logger;
 
 import cli;
@@ -85,7 +86,7 @@ int main(string[] argv)
         return -1;
     }
 
-    dast.Module mod;
+    Module mod;
     try {
         mod = populateDAST(args.output_module);
     }
