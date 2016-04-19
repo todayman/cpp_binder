@@ -20,9 +20,9 @@ import std.algorithm : map, filter, splitter;
 import std.array : array;
 import std.typecons : Flag, No;
 
-static import std.d.ast;
-import std.d.ast : IdentifierChain, IdentifierOrTemplateChain, IdentifierOrTemplateInstance;
-import std.d.lexer : Token, tok;
+static import dparse.ast;
+import dparse.ast : IdentifierChain, IdentifierOrTemplateChain, IdentifierOrTemplateInstance;
+import dparse.lexer : Token, tok;
 
 import dast : Module;
 

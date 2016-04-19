@@ -21,15 +21,15 @@ module dast.type;
 import std.algorithm : map;
 import std.array : array;
 
-static import std.d.ast;
-import std.d.lexer : tok, Token;
+static import dparse.ast;
+import dparse.lexer : tok, Token;
 
 import dast.decls : Argument;
 import dast.expr : Expression;
 
 public interface Type
 {
-    pure std.d.ast.Type buildConcreteType() const;
+    pure dparse.ast.Type buildConcreteType() const;
 
     pure string typestring() const;
 }
@@ -44,10 +44,10 @@ class ConstType : Type
     }
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
-        auto result = new std.d.ast.Type();
-        result.type2 = new std.d.ast.Type2();
+        auto result = new dparse.ast.Type();
+        result.type2 = new dparse.ast.Type2();
         result.type2.typeConstructor = tok!"const";
         result.type2.type = target.buildConcreteType();
 
@@ -70,11 +70,11 @@ class PointerType : Type
     }
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         auto result = targetType.buildConcreteType();
 
-        auto starSuffix = new std.d.ast.TypeSuffix();
+        auto starSuffix = new dparse.ast.TypeSuffix();
         starSuffix.star = Token(tok!"*", "", 0, 0, 0);
         result.typeSuffixes ~= [starSuffix];
 
@@ -95,12 +95,12 @@ class FunctionType : Type
     Argument[] arguments; // They just won't have names
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         auto result = returnType.buildConcreteType();
-        auto suffix = new std.d.ast.TypeSuffix();
+        auto suffix = new dparse.ast.TypeSuffix();
         suffix.delegateOrFunction = Token(tok!"function", "", 0, 0, 0);
-        suffix.parameters = new std.d.ast.Parameters();
+        suffix.parameters = new dparse.ast.Parameters();
         suffix.parameters.parameters = arguments.map!(a => a.buildConcreteArgument()).array;
         result.typeSuffixes ~= [suffix];
 
@@ -120,7 +120,7 @@ class ArrayType : Type
     Expression length;
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         assert(0);
     }
@@ -135,16 +135,16 @@ class ArrayType : Type
 class ReplacedType : Type
 {
     // TODO do I really want to be using this type?
-    std.d.ast.IdentifierOrTemplateChain fullyQualifiedName;
+    dparse.ast.IdentifierOrTemplateChain fullyQualifiedName;
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
-        auto result = new std.d.ast.Type();
-        result.type2 = new std.d.ast.Type2();
-        result.type2.symbol = new std.d.ast.Symbol();
+        auto result = new dparse.ast.Type();
+        result.type2 = new dparse.ast.Type2();
+        result.type2.symbol = new dparse.ast.Symbol();
         result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
-        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
+        result.type2.symbol.identifierOrTemplateChain = new dparse.ast.IdentifierOrTemplateChain();
         // FIXME why do I need the template argument on dup?
         result.type2.symbol.identifierOrTemplateChain = fullyQualifiedName.deepDup();
         return result;
@@ -164,17 +164,17 @@ class SpecializedStructType : Type
     dast.decls.TemplateArgumentInstanceList arguments;
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
-        auto inst = new std.d.ast.TemplateInstance();
+        auto inst = new dparse.ast.TemplateInstance();
         inst.templateArguments = arguments.buildConcreteList();
 
-        std.d.ast.Type genericType = genericParent.buildConcreteType();
+        dparse.ast.Type genericType = genericParent.buildConcreteType();
         assert(genericType.type2 !is null);
         assert(genericType.type2.symbol !is null);
         assert(genericType.type2.symbol.identifierOrTemplateChain !is null);
 
-        std.d.ast.IdentifierOrTemplateInstance lastLink
+        dparse.ast.IdentifierOrTemplateInstance lastLink
             = genericType.type2.symbol.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];
         assert(lastLink.templateInstance is null);
         inst.identifier = lastLink.identifier;
@@ -197,7 +197,7 @@ class SpecializedInterfaceType : Type
     dast.decls.TemplateArgumentInstanceList arguments;
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         assert(0);
     }
@@ -215,7 +215,7 @@ class TemplateArgumentType : Type
     string name;
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         assert(0);
     }
@@ -226,23 +226,23 @@ class TemplateArgumentType : Type
     }
 }
 
-std.d.ast.Type deepDup(const(std.d.ast.Type) src) pure
+dparse.ast.Type deepDup(const(dparse.ast.Type) src) pure
 {
     if (src is null)
     {
         return null;
     }
 
-    auto result = new std.d.ast.Type();
+    auto result = new dparse.ast.Type();
     result.typeConstructors = src.typeConstructors.dup;
     result.typeSuffixes = src.typeSuffixes.map!(deepDup).array;
     result.type2 = deepDup(src.type2);
     return result;
 }
 
-std.d.ast.TypeSuffix deepDup(const(std.d.ast.TypeSuffix) src) pure
+dparse.ast.TypeSuffix deepDup(const(dparse.ast.TypeSuffix) src) pure
 {
-    auto result = new std.d.ast.TypeSuffix();
+    auto result = new dparse.ast.TypeSuffix();
     result.delegateOrFunction = src.delegateOrFunction;
     result.star = src.star;
     result.array = src.array;
@@ -255,9 +255,9 @@ std.d.ast.TypeSuffix deepDup(const(std.d.ast.TypeSuffix) src) pure
     return result;
 }
 
-std.d.ast.Type2 deepDup(const(std.d.ast.Type2) src) pure
+dparse.ast.Type2 deepDup(const(dparse.ast.Type2) src) pure
 {
-    auto result = new std.d.ast.Type2();
+    auto result = new dparse.ast.Type2();
     result.builtinType = src.builtinType;
     result.symbol = deepDup(src.symbol);
     assert(src.typeofExpression is null);
@@ -269,36 +269,36 @@ std.d.ast.Type2 deepDup(const(std.d.ast.Type2) src) pure
     return result;
 }
 
-std.d.ast.Symbol deepDup(const(std.d.ast.Symbol) src) pure
+dparse.ast.Symbol deepDup(const(dparse.ast.Symbol) src) pure
 {
     if (src is null)
     {
         return null;
     }
-    auto result = new std.d.ast.Symbol();
+    auto result = new dparse.ast.Symbol();
     result.identifierOrTemplateChain = deepDup(src.identifierOrTemplateChain);
     result.dot = src.dot;
     return result;
 }
 
-std.d.ast.IdentifierOrTemplateChain deepDup(const(std.d.ast.IdentifierOrTemplateChain) src) pure
+dparse.ast.IdentifierOrTemplateChain deepDup(const(dparse.ast.IdentifierOrTemplateChain) src) pure
 {
     if (src is null)
     {
         return null;
     }
 
-    auto result = new std.d.ast.IdentifierOrTemplateChain();
+    auto result = new dparse.ast.IdentifierOrTemplateChain();
     result.identifiersOrTemplateInstances = deepDup(src.identifiersOrTemplateInstances);
     return result;
 }
 
-std.d.ast.IdentifierOrTemplateInstance[] deepDup(const(std.d.ast.IdentifierOrTemplateInstance)[] arr) pure
+dparse.ast.IdentifierOrTemplateInstance[] deepDup(const(dparse.ast.IdentifierOrTemplateInstance)[] arr) pure
 {
-    auto result = new std.d.ast.IdentifierOrTemplateInstance[arr.length];
+    auto result = new dparse.ast.IdentifierOrTemplateInstance[arr.length];
     foreach (index, const a; arr)
     {
-        result[index] = new std.d.ast.IdentifierOrTemplateInstance();
+        result[index] = new dparse.ast.IdentifierOrTemplateInstance();
         result[index].identifier = a.identifier;
         if (a.templateInstance)
         {
@@ -309,26 +309,26 @@ std.d.ast.IdentifierOrTemplateInstance[] deepDup(const(std.d.ast.IdentifierOrTem
     return result;
 }
 
-std.d.ast.TemplateInstance deepDup(const(std.d.ast.TemplateInstance) src) pure
+dparse.ast.TemplateInstance deepDup(const(dparse.ast.TemplateInstance) src) pure
 {
-    auto result = new std.d.ast.TemplateInstance();
+    auto result = new dparse.ast.TemplateInstance();
     result.identifier = src.identifier;
     result.templateArguments = deepDup(src.templateArguments);
     return result;
 }
 
-std.d.ast.TemplateArguments deepDup(const(std.d.ast.TemplateArguments) src) pure
+dparse.ast.TemplateArguments deepDup(const(dparse.ast.TemplateArguments) src) pure
 {
-    auto result = new std.d.ast.TemplateArguments();
+    auto result = new dparse.ast.TemplateArguments();
     result.templateArgumentList = deepDup(src.templateArgumentList);
     result.templateSingleArgument = deepDup(src.templateSingleArgument);
     return result;
 }
 
-std.d.ast.TemplateArgumentList deepDup(const(std.d.ast.TemplateArgumentList) src) pure
+dparse.ast.TemplateArgumentList deepDup(const(dparse.ast.TemplateArgumentList) src) pure
 {
-    auto result = new std.d.ast.TemplateArgumentList();
-    result.items = new std.d.ast.TemplateArgument[src.items.length];
+    auto result = new dparse.ast.TemplateArgumentList();
+    result.items = new dparse.ast.TemplateArgument[src.items.length];
     foreach (index, const item; src.items)
     {
         result.items[index] = deepDup(item);
@@ -336,17 +336,17 @@ std.d.ast.TemplateArgumentList deepDup(const(std.d.ast.TemplateArgumentList) src
     return result;
 }
 
-std.d.ast.TemplateArgument deepDup(const(std.d.ast.TemplateArgument) src) pure
+dparse.ast.TemplateArgument deepDup(const(dparse.ast.TemplateArgument) src) pure
 {
-    auto result = new std.d.ast.TemplateArgument();
+    auto result = new dparse.ast.TemplateArgument();
     result.type = null; // TODO fill in
     result.assignExpression = null; // TODO fill in
     return result;
 }
 
-std.d.ast.TemplateSingleArgument deepDup(const(std.d.ast.TemplateSingleArgument) src) pure
+dparse.ast.TemplateSingleArgument deepDup(const(dparse.ast.TemplateSingleArgument) src) pure
 {
-    auto result = new std.d.ast.TemplateSingleArgument();
+    auto result = new dparse.ast.TemplateSingleArgument();
     result.token = src.token;
     return result;
 }

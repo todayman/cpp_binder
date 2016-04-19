@@ -18,7 +18,7 @@
 
 module dast.common;
 
-import std.d.lexer : Token, tok;
+import dparse.lexer : Token, tok;
 
 // FIXME cannot have protection level "package", because then it cannot be used as an argument to map
 

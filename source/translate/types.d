@@ -24,6 +24,8 @@ import std.stdio : stderr;
 import std.typecons : Flag, Yes;
 import std.experimental.logger;
 
+import dparse.ast;
+
 static import binder;
 static import unknown;
 
@@ -289,11 +291,11 @@ private dast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers)
 
                         foreach (string name; identifier_stack.retro)
                         {
-                            std.d.ast.IdentifierOrTemplateInstance instance = makeInstance(name);
+                            dparse.ast.IdentifierOrTemplateInstance instance = makeInstance(name);
                             deferred.append(instance);
                         }
-                        result = new std.d.ast.Type();
-                        result.type2 = new std.d.ast.Type2();
+                        result = new dparse.ast.Type();
+                        result.type2 = new dparse.ast.Type2();
                         result.type2.symbol = deferred.answer;
 
                         qualifier.addDependency(deferred);+/
@@ -686,9 +688,9 @@ private dast.Type translateStruct(unknown.Type cppType, QualifierSet qualifiers)
 }
 
 // I tried to call this dup, but then I couldn't use dup on the inside
-std.d.ast.Type clone(std.d.ast.Type t)
+dparse.ast.Type clone(dparse.ast.Type t)
 {
-    auto result = new std.d.ast.Type();
+    auto result = new dparse.ast.Type();
     if (t.typeConstructors !is null) result.typeConstructors = t.typeConstructors.dup;
     if (t.typeSuffixes !is null) result.typeSuffixes = t.typeSuffixes.dup;
     result.type2 = t.type2;
@@ -989,7 +991,7 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
     (SourceDeclaration)
     (SourceDeclaration cppDecl, Token targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
 {
-    auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+    auto inst = new dparse.ast.IdentifierOrTemplateInstance();
     inst.identifier = targetName;
     return makeSymbolForTypeDecl(cppDecl, inst, package_name, internal_path, namespace_path);
 }
@@ -997,7 +999,7 @@ package DeferredSymbolConcatenation makeSymbolForTypeDecl
     (SourceDeclaration)
     (SourceDeclaration cppDecl, TemplateInstance targetName, IdentifierChain package_name, DeferredSymbol internal_path, string namespace_path)
 {
-    auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+    auto inst = new dparse.ast.IdentifierOrTemplateInstance();
     inst.templateInstance = targetName;
     return makeSymbolForTypeDecl(cppDecl, inst, package_name, internal_path, namespace_path);
 }
@@ -1007,16 +1009,16 @@ interface Resolvable
 {
     public void resolve();
 
-    public std.d.ast.IdentifierOrTemplateInstance[] getChain();
+    public dparse.ast.IdentifierOrTemplateInstance[] getChain();
 }
 class DeferredSymbol : Resolvable
 {
     public:
-    std.d.ast.Symbol answer;
+    dparse.ast.Symbol answer;
 
     this() pure
     {
-        answer = new std.d.ast.Symbol();
+        answer = new dparse.ast.Symbol();
     }
 
     abstract void resolve();
@@ -1073,8 +1075,8 @@ class DeferredTemplateInstantiation : DeferredSymbol
     public:
     DeferredSymbol templateName;
     // TODO non-type arguments
-    // Check out std.d.ast.TemplateArgument
-    std.d.ast.TemplateArgument[] arguments;
+    // Check out dparse.ast.TemplateArgument
+    dparse.ast.TemplateArgument[] arguments;
 
     this() pure
     {
@@ -1085,7 +1087,7 @@ class DeferredTemplateInstantiation : DeferredSymbol
     override void resolve()
     {
         if (resolved) return;
-        auto chain = new std.d.ast.IdentifierOrTemplateChain();
+        auto chain = new dparse.ast.IdentifierOrTemplateChain();
         answer.identifierOrTemplateChain = chain;
 
         templateName.resolve();
@@ -1099,15 +1101,15 @@ class DeferredTemplateInstantiation : DeferredSymbol
         chain.identifiersOrTemplateInstances = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[0 .. $-1];
         auto lastIorT = templateName.answer.identifierOrTemplateChain.identifiersOrTemplateInstances[$-1];
 
-        auto iorT = new std.d.ast.IdentifierOrTemplateInstance();
+        auto iorT = new dparse.ast.IdentifierOrTemplateInstance();
         chain.identifiersOrTemplateInstances ~= [iorT];
-        std.d.ast.TemplateInstance templateInstance = new TemplateInstance();
+        dparse.ast.TemplateInstance templateInstance = new TemplateInstance();
         iorT.templateInstance = templateInstance;
 
         Token name = lastIorT.identifier;
         templateInstance.identifier = name;
-        templateInstance.templateArguments = new std.d.ast.TemplateArguments();
-        templateInstance.templateArguments.templateArgumentList = new std.d.ast.TemplateArgumentList();
+        templateInstance.templateArguments = new dparse.ast.TemplateArguments();
+        templateInstance.templateArguments.templateArgumentList = new dparse.ast.TemplateArgumentList();
         auto temp_arg_list = templateInstance.templateArguments.templateArgumentList;
         temp_arg_list.items.length = arguments.length;
 
@@ -1176,7 +1178,7 @@ class DeferredSymbolConcatenation : DeferredSymbol
     override void resolve()
     {
         if (resolved) return;
-        auto chain = new std.d.ast.IdentifierOrTemplateChain();
+        auto chain = new dparse.ast.IdentifierOrTemplateChain();
         answer.identifierOrTemplateChain = chain;
 
         if (components.length == 0)
@@ -1187,8 +1189,8 @@ class DeferredSymbolConcatenation : DeferredSymbol
         foreach (DeferredSymbol dependency; components)
         {
             dependency.resolve();
-            std.d.ast.Symbol symbol = dependency.answer;
-            std.d.ast.IdentifierOrTemplateChain sub_chain = symbol.identifierOrTemplateChain;
+            dparse.ast.Symbol symbol = dependency.answer;
+            dparse.ast.IdentifierOrTemplateChain sub_chain = symbol.identifierOrTemplateChain;
             chain.identifiersOrTemplateInstances ~= sub_chain.identifiersOrTemplateInstances;
         }
         resolved = true;

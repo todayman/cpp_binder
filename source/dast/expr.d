@@ -20,15 +20,15 @@ module dast.expr;
 
 import std.conv : to;
 
-static import std.d.ast;
-import std.d.lexer : tok, Token;
+static import dparse.ast;
+import dparse.lexer : tok, Token;
 
 import dast.common;
 import dast.type;
 
 interface Expression
 {
-    pure std.d.ast.ExpressionNode buildConcreteExpression() const;
+    pure dparse.ast.ExpressionNode buildConcreteExpression() const;
 }
 
 class IntegerLiteralExpression : Expression
@@ -40,9 +40,9 @@ class IntegerLiteralExpression : Expression
     }
 
     override pure
-    std.d.ast.ExpressionNode buildConcreteExpression() const
+    dparse.ast.ExpressionNode buildConcreteExpression() const
     {
-        auto result = new std.d.ast.PrimaryExpression();
+        auto result = new dparse.ast.PrimaryExpression();
         result.primary = tokenFromString(to!string(value));
         return result;
     }
@@ -58,9 +58,9 @@ class BoolLiteralExpression : Expression
     }
 
     override pure
-    std.d.ast.ExpressionNode buildConcreteExpression() const
+    dparse.ast.ExpressionNode buildConcreteExpression() const
     {
-        auto result = new std.d.ast.PrimaryExpression();
+        auto result = new dparse.ast.PrimaryExpression();
         result.primary = Token((value ? tok!"true" : tok!"false"), "", 0, 0, 0);
         return result;
     }
@@ -72,7 +72,7 @@ class CastExpression : Expression
     Expression argument;
 
     override pure
-    std.d.ast.ExpressionNode buildConcreteExpression() const
+    dparse.ast.ExpressionNode buildConcreteExpression() const
     {
         assert(0);
     }

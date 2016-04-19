@@ -24,9 +24,9 @@ import std.stdio;
 
 import std.experimental.logger;
 
-import std.d.ast;
-import std.d.formatter : format;
-import std.d.lexer;
+import dparse.ast;
+import dparse.formatter : format;
+import dparse.lexer;
 
 static import dast;
 

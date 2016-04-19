@@ -24,8 +24,8 @@ import std.conv : to;
 import std.stdio;
 import std.typecons : Flag, No, Nullable;
 
-static import std.d.ast;
-import std.d.lexer;
+static import dparse.ast;
+import dparse.lexer;
 
 static import dlang_decls;
 import dast.common;
@@ -35,7 +35,7 @@ import dast.expr;
 class Module
 {
     protected:
-    immutable std.d.ast.IdentifierChain moduleName;
+    immutable dparse.ast.IdentifierChain moduleName;
     Namespace[string] namespaces;
     Declaration[] declarations;
 
@@ -82,7 +82,7 @@ class Module
                 {
                     auto next_namespace = new Namespace();
                     namespaces[current_name] = next_namespace;
-                    next_namespace.name = new std.d.ast.IdentifierChain();
+                    next_namespace.name = new dparse.ast.IdentifierChain();
                     next_namespace.name.identifiers = namespace_chain[0 .. nsDepth+1].map!(tokenFromString).array;
 
                     // FIXME I'm not a huge fan of conditions that only apply
@@ -110,22 +110,22 @@ class Module
         return namespaces.length == 0 && declarations.length == 0;
     }
 
-    immutable(std.d.ast.IdentifierChain) name() const
+    immutable(dparse.ast.IdentifierChain) name() const
     {
         return moduleName;
     }
 
-    std.d.ast.Module buildConcreteTree() const
+    dparse.ast.Module buildConcreteTree() const
     {
-        auto result = new std.d.ast.Module();
-        result.moduleDeclaration = new std.d.ast.ModuleDeclaration();
-        result.moduleDeclaration.moduleName = new std.d.ast.IdentifierChain();
+        auto result = new dparse.ast.Module();
+        result.moduleDeclaration = new dparse.ast.ModuleDeclaration();
+        result.moduleDeclaration.moduleName = new dparse.ast.IdentifierChain();
         result.moduleDeclaration.moduleName.identifiers = name.identifiers.dup;
 
         foreach (const Declaration decl; declarations)
         {
             if (!decl.shouldEmit) continue;
-            std.d.ast.Declaration concrete = decl.buildConcreteDecl();
+            dparse.ast.Declaration concrete = decl.buildConcreteDecl();
             result.declarations ~= [concrete];
         }
 
@@ -147,7 +147,9 @@ public class Declaration
 
     string name;
 
-    abstract pure std.d.ast.Declaration buildConcreteDecl() const;
+    // Should be pure, but dparse.ast.Declaration accessors / setters aren't
+    // pure because methods on std.Variant aren't pure.
+    abstract dparse.ast.Declaration buildConcreteDecl() const;
 
     bool isNested() const pure
     {
@@ -156,7 +158,7 @@ public class Declaration
         return parent !is null;
     }
 
-    private void addLinkage(std.d.ast.Declaration result, const(LinkageAttribute) linkage) const pure
+    private void addLinkage(dparse.ast.Declaration result, const(LinkageAttribute) linkage) const pure
     {
         // TODO should we always have a linkage?
         // TODO should check the scenarios where we cannot have linkage, e.g. methods?
@@ -167,9 +169,9 @@ public class Declaration
         }
     }
 
-    private void addVisibility(std.d.ast.Declaration result) const pure
+    private void addVisibility(dparse.ast.Declaration result) const pure
     {
-        auto attr = new std.d.ast.Attribute();
+        auto attr = new dparse.ast.Attribute();
 
         final switch (visibility)
         {
@@ -192,16 +194,16 @@ public class Declaration
         result.attributes ~= [attr];
     }
 
-    pure std.d.ast.IdentifierOrTemplateInstance unqualifiedName() const
+    pure dparse.ast.IdentifierOrTemplateInstance unqualifiedName() const
     {
-        auto inst = new std.d.ast.IdentifierOrTemplateInstance();
+        auto inst = new dparse.ast.IdentifierOrTemplateInstance();
         inst.identifier = tokenFromString(name);
         return inst;
     }
 
     // FIXME doesn't work for symbols inside a namespace
     // Also doesn't work for templates
-    std.d.ast.IdentifierOrTemplateInstance[] qualifiedPath() const pure
+    dparse.ast.IdentifierOrTemplateInstance[] qualifiedPath() const pure
     {
         import dlang_decls : makeInstance;
 
@@ -255,22 +257,21 @@ public class Declaration
 
 public class Namespace
 {
-    std.d.ast.IdentifierChain name;
+    dparse.ast.IdentifierChain name;
     Declaration[] declarations;
 
-    pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     in {
         assert (name !is null);
     }
     body {
-        auto result = new std.d.ast.Declaration();
+        auto result = new dparse.ast.Declaration();
         // FIXME convert to linkage attribute
-        auto linkAttr = new std.d.ast.Attribute();
-        linkAttr.linkageAttribute = new std.d.ast.LinkageAttribute();
+        auto linkAttr = new dparse.ast.Attribute();
+        linkAttr.linkageAttribute = new dparse.ast.LinkageAttribute();
         linkAttr.linkageAttribute.identifier = tokenFromString("C");
         linkAttr.linkageAttribute.hasPlusPlus = true;
-        linkAttr.linkageAttribute.identifierChain = new std.d.ast.IdentifierChain();
+        linkAttr.linkageAttribute.identifierChain = new dparse.ast.IdentifierChain();
         linkAttr.linkageAttribute.identifierChain.identifiers = name.identifiers.dup;
         result.attributes ~= [linkAttr];
 
@@ -291,16 +292,16 @@ public class VariableDeclaration : Declaration
     bool static_;
     LinkageAttribute linkage; // language linkage
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
-        auto varDecl = new std.d.ast.VariableDeclaration();
+        auto result = new dparse.ast.Declaration();
+        auto varDecl = new dparse.ast.VariableDeclaration();
         result.variableDeclaration = varDecl;
 
         varDecl.type = type.buildConcreteType();
 
-        auto declarator = new std.d.ast.Declarator();
+        auto declarator = new dparse.ast.Declarator();
         declarator.name = tokenFromString(name);
         varDecl.declarators = [declarator];
 
@@ -308,14 +309,14 @@ public class VariableDeclaration : Declaration
 
         if (extern_)
         {
-            auto sc = new std.d.ast.StorageClass();
+            auto sc = new dparse.ast.StorageClass();
             sc.token = Token(tok!"extern", "", 0, 0, 0);
             varDecl.storageClasses ~= [sc];
         }
 
         if (static_)
         {
-            auto sc = new std.d.ast.StorageClass();
+            auto sc = new dparse.ast.StorageClass();
             sc.token = Token(tok!"static", "", 0, 0, 0);
             varDecl.storageClasses ~= [sc];
         }
@@ -336,7 +337,7 @@ public class FieldDeclaration : Declaration
     Type type;
 
     override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
@@ -344,16 +345,16 @@ public class FieldDeclaration : Declaration
 
 class LinkageAttribute
 {
-    public abstract pure std.d.ast.Attribute buildConcreteAttribute() const;
+    public abstract pure dparse.ast.Attribute buildConcreteAttribute() const;
 }
 
 class CLinkageAttribute : LinkageAttribute
 {
     override pure
-    public std.d.ast.Attribute buildConcreteAttribute() const
+    public dparse.ast.Attribute buildConcreteAttribute() const
     {
-        auto result = new std.d.ast.Attribute();
-        result.linkageAttribute = new std.d.ast.LinkageAttribute();
+        auto result = new dparse.ast.Attribute();
+        result.linkageAttribute = new dparse.ast.LinkageAttribute();
         result.linkageAttribute.identifier = tokenFromString("C");
 
         return result;
@@ -376,16 +377,16 @@ class CppLinkageAttribute : LinkageAttribute
     }
 
     override pure
-    public std.d.ast.Attribute buildConcreteAttribute() const
+    public dparse.ast.Attribute buildConcreteAttribute() const
     {
-        auto result = new std.d.ast.Attribute();
-        result.linkageAttribute = new std.d.ast.LinkageAttribute();
+        auto result = new dparse.ast.Attribute();
+        result.linkageAttribute = new dparse.ast.LinkageAttribute();
         result.linkageAttribute.identifier = tokenFromString("C");
         result.linkageAttribute.hasPlusPlus = true;
 
         if (namespacePath.length > 0)
         {
-            auto chain = new std.d.ast.IdentifierChain();
+            auto chain = new dparse.ast.IdentifierChain();
             chain.identifiers = namespacePath
                 .map!(tokenFromString).array;
 
@@ -402,10 +403,10 @@ class Argument
     Type type;
     Flag!"ref_" ref_;
 
-    pure std.d.ast.Parameter buildConcreteArgument() const
+    pure dparse.ast.Parameter buildConcreteArgument() const
     {
         // TODO handle ref
-        auto result = new std.d.ast.Parameter();
+        auto result = new dparse.ast.Parameter();
         result.type = type.buildConcreteType();
         if (name.length > 0)
         {
@@ -431,17 +432,22 @@ class FunctionDeclaration : Declaration
         // TODO deal with ref
     }
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
+        return buildConcreteDecl(null);
+    }
 
-        auto funcDecl = new std.d.ast.FunctionDeclaration();
+    dparse.ast.Declaration buildConcreteDecl(dparse.ast.FunctionDeclaration* outParam) const
+    {
+        auto result = new dparse.ast.Declaration();
+
+        auto funcDecl = new dparse.ast.FunctionDeclaration();
         result.functionDeclaration = funcDecl;
         // TODO deal with ref return type
         funcDecl.returnType = returnType.buildConcreteType();
         funcDecl.name = tokenFromString(name);
-        funcDecl.parameters = new std.d.ast.Parameters();
+        funcDecl.parameters = new dparse.ast.Parameters();
         // TODO deal with varargs
 
         foreach (const Argument arg; arguments)
@@ -450,6 +456,11 @@ class FunctionDeclaration : Declaration
         }
 
         addLinkage(result, linkage);
+
+        if (outParam !is null)
+        {
+            (*outParam) = funcDecl;
+        }
 
         return result;
     }
@@ -466,16 +477,16 @@ class EnumDeclaration : Declaration
 
     EnumMember[] members;
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
-        auto enumDecl = new std.d.ast.EnumDeclaration();
+        auto result = new dparse.ast.Declaration();
+        auto enumDecl = new dparse.ast.EnumDeclaration();
         result.enumDeclaration = enumDecl;
 
         enumDecl.name = tokenFromString(name);
         enumDecl.type = type.buildConcreteType();
-        enumDecl.enumBody = new std.d.ast.EnumBody();
+        enumDecl.enumBody = new dparse.ast.EnumBody();
         enumDecl.enumBody.enumMembers = members.map!(m => m.buildEnumMember()).array;
 
         return result;
@@ -491,16 +502,16 @@ class EnumMember : Declaration
 {
     Expression value;
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
 
     pure
-    std.d.ast.EnumMember buildEnumMember() const
+    dparse.ast.EnumMember buildEnumMember() const
     {
-        auto result = new std.d.ast.EnumMember();
+        auto result = new dparse.ast.EnumMember();
         result.name = tokenFromString(name);
 
         if (value !is null)
@@ -522,13 +533,13 @@ class EnumMember : Declaration
 mixin template buildConcreteType()
 {
     pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
-        auto result = new std.d.ast.Type();
-        result.type2 = new std.d.ast.Type2();
-        result.type2.symbol = new std.d.ast.Symbol();
+        auto result = new dparse.ast.Type();
+        result.type2 = new dparse.ast.Type2();
+        result.type2.symbol = new dparse.ast.Symbol();
         result.type2.symbol.dot = false; // TODO maybe it shouldn't always be?
-        result.type2.symbol.identifierOrTemplateChain = new std.d.ast.IdentifierOrTemplateChain();
+        result.type2.symbol.identifierOrTemplateChain = new dparse.ast.IdentifierOrTemplateChain();
         result.type2.symbol.identifierOrTemplateChain
             = dlang_decls.makeIdentifierOrTemplateChain(qualifiedPath());
         return result;
@@ -546,12 +557,12 @@ struct TemplateArgumentList
     }
 
     pure
-    std.d.ast.TemplateParameters buildConcreteList() const
+    dparse.ast.TemplateParameters buildConcreteList() const
     {
         if (!args.isNull)
         {
-            auto templateParameters = new std.d.ast.TemplateParameters();
-            templateParameters.templateParameterList = new std.d.ast.TemplateParameterList();
+            auto templateParameters = new dparse.ast.TemplateParameters();
+            templateParameters.templateParameterList = new dparse.ast.TemplateParameterList();
             auto items = args.get().map!(param => param.buildTemplateParameter()).array;
             templateParameters.templateParameterList.items = items;
             return templateParameters;
@@ -574,15 +585,15 @@ struct TemplateArgumentInstanceList
         arguments = a;
     }
 
-    pure std.d.ast.TemplateArguments buildConcreteList() const
+    pure dparse.ast.TemplateArguments buildConcreteList() const
     in {
         assert(!arguments.isNull());
     }
     body {
         // FIXME use the template single argument syntax?
-        auto argList = new std.d.ast.TemplateArgumentList();
+        auto argList = new dparse.ast.TemplateArgumentList();
         argList.items = arguments.get().map!(a => a.buildConcreteArgument()).array;
-        auto args = new std.d.ast.TemplateArguments();
+        auto args = new dparse.ast.TemplateArguments();
         args.templateArgumentList = argList;
         return args;
     }
@@ -591,7 +602,7 @@ struct TemplateArgumentInstanceList
 // A specific value of a template argument
 interface TemplateArgumentInstance
 {
-    pure std.d.ast.TemplateArgument buildConcreteArgument() const;
+    pure dparse.ast.TemplateArgument buildConcreteArgument() const;
 }
 
 class TemplateTypeArgumentInstance : TemplateArgumentInstance
@@ -604,9 +615,9 @@ class TemplateTypeArgumentInstance : TemplateArgumentInstance
     }
 
     override pure
-    std.d.ast.TemplateArgument buildConcreteArgument() const
+    dparse.ast.TemplateArgument buildConcreteArgument() const
     {
-        auto result = new std.d.ast.TemplateArgument();
+        auto result = new dparse.ast.TemplateArgument();
         result.type = type.buildConcreteType();
         return result;
     }
@@ -625,9 +636,9 @@ class TemplateValueArgumentInstance : TemplateArgumentInstance
     }
 
     override pure
-    std.d.ast.TemplateArgument buildConcreteArgument() const
+    dparse.ast.TemplateArgument buildConcreteArgument() const
     {
-        auto result = new std.d.ast.TemplateArgument();
+        auto result = new dparse.ast.TemplateArgument();
         result.assignExpression = exp.buildConcreteExpression();
         return result;
     }
@@ -710,17 +721,17 @@ class StructDeclaration : Declaration, Type
         }
     }
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
-        auto structDecl = new std.d.ast.StructDeclaration();
+        auto result = new dparse.ast.Declaration();
+        auto structDecl = new dparse.ast.StructDeclaration();
         result.structDeclaration = structDecl;
 
         structDecl.name = tokenFromString(name);
         structDecl.templateParameters = templateArguments.buildConcreteList();
 
-        structDecl.structBody = new std.d.ast.StructBody();
+        structDecl.structBody = new dparse.ast.StructBody();
 
         foreach (field; fields)
         {
@@ -767,13 +778,13 @@ class SpecializedStructDeclaration : StructDeclaration
         return shouldEmit_;
     }
     override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         assert(0);
     }
@@ -784,13 +795,13 @@ class SpecializedStructDeclaration : StructDeclaration
     }
 
     override pure
-    std.d.ast.IdentifierOrTemplateInstance unqualifiedName() const
+    dparse.ast.IdentifierOrTemplateInstance unqualifiedName() const
     {
-        auto inst = new std.d.ast.TemplateInstance();
+        auto inst = new dparse.ast.TemplateInstance();
         inst.identifier = tokenFromString(name);
         inst.templateArguments = templateArguments.buildConcreteList();
 
-        auto result = new std.d.ast.IdentifierOrTemplateInstance();
+        auto result = new dparse.ast.IdentifierOrTemplateInstance();
         result.templateInstance = inst;
 
         return result;
@@ -811,7 +822,7 @@ class SpecializedInterfaceDeclaration : InterfaceDeclaration
     }
 
     override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
@@ -827,7 +838,7 @@ class AliasThisDeclaration : Declaration
     Declaration target;
 
     override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
@@ -839,12 +850,12 @@ class AliasThisDeclaration : Declaration
 }
 
 // Maybe these shouldn't be declarations?  We need the "declaration" to be a
-// std.d.ast.TemplateParameter, so I've added a method here.  But now the
+// dparse.ast.TemplateParameter, so I've added a method here.  But now the
 // Declaration part of this type isn't used anymore.
 class TemplateArgumentDeclaration : Declaration
 {
     pure abstract
-    std.d.ast.TemplateParameter buildTemplateParameter() const;
+    dparse.ast.TemplateParameter buildTemplateParameter() const;
 
     override pure string typestring() const
     {
@@ -857,7 +868,7 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
     Type defaultType;
 
     override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
@@ -865,10 +876,10 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
     mixin .buildConcreteType!();
 
     override pure
-    std.d.ast.TemplateParameter buildTemplateParameter() const
+    dparse.ast.TemplateParameter buildTemplateParameter() const
     {
-        auto result = new std.d.ast.TemplateParameter();
-        result.templateTypeParameter = new std.d.ast.TemplateTypeParameter();
+        auto result = new dparse.ast.TemplateParameter();
+        result.templateTypeParameter = new dparse.ast.TemplateTypeParameter();
         // TODO deal with default types, specific specializations, etc.
         result.templateTypeParameter.identifier = tokenFromString(name);
 
@@ -892,23 +903,23 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration, Expression
     Expression defaultValue;
 
     override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
     }
 
     override pure
-    std.d.ast.TemplateParameter buildTemplateParameter() const
+    dparse.ast.TemplateParameter buildTemplateParameter() const
     {
-        auto result = new std.d.ast.TemplateParameter();
-        result.templateValueParameter = new std.d.ast.TemplateValueParameter();
+        auto result = new dparse.ast.TemplateParameter();
+        result.templateValueParameter = new dparse.ast.TemplateValueParameter();
         result.templateValueParameter.type = type.buildConcreteType();
         result.templateValueParameter.identifier = tokenFromString(name);
         // TODO deal with defaultValue
 
         if (defaultValue !is null)
         {
-            auto default_ = new std.d.ast.TemplateValueParameterDefault();
+            auto default_ = new dparse.ast.TemplateValueParameterDefault();
             default_.assignExpression = defaultValue.buildConcreteExpression();
             result.templateValueParameter.templateValueParameterDefault = default_;
         }
@@ -917,9 +928,9 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration, Expression
     }
 
     override pure
-    std.d.ast.ExpressionNode buildConcreteExpression() const
+    dparse.ast.ExpressionNode buildConcreteExpression() const
     {
-        auto result = new std.d.ast.PrimaryExpression();
+        auto result = new dparse.ast.PrimaryExpression();
         result.primary = tokenFromString(name);
         return result;
     }
@@ -935,15 +946,15 @@ class MethodDeclaration : FunctionDeclaration
     Flag!"const_" const_;
     Flag!"virtual_" virtual_;
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = FunctionDeclaration.buildConcreteDecl();
-        auto methodDecl = result.functionDeclaration;
+        dparse.ast.FunctionDeclaration methodDecl;
+        dparse.ast.Declaration result = FunctionDeclaration.buildConcreteDecl(&methodDecl);
         assert(methodDecl !is null);
         if (const_)
         {
-            auto attr = new std.d.ast.MemberFunctionAttribute();
+            auto attr = new dparse.ast.MemberFunctionAttribute();
             attr.tokenType = tok!"const";
             methodDecl.memberFunctionAttributes ~= [attr];
         }
@@ -952,7 +963,7 @@ class MethodDeclaration : FunctionDeclaration
 
         if (!virtual_)
         {
-            auto attr = new std.d.ast.Attribute();
+            auto attr = new dparse.ast.Attribute();
             attr.attribute = Token(tok!"final", "", 0, 0, 0);
             result.attributes ~= [attr];
         }
@@ -1044,17 +1055,17 @@ class InterfaceDeclaration : Declaration, Type
     }
 
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
-        auto interfaceDecl = new std.d.ast.InterfaceDeclaration();
+        auto result = new dparse.ast.Declaration();
+        auto interfaceDecl = new dparse.ast.InterfaceDeclaration();
         result.interfaceDeclaration = interfaceDecl;
 
         interfaceDecl.name = tokenFromString(name);
         interfaceDecl.templateParameters = templateArguments.buildConcreteList();
 
-        auto body_ = new std.d.ast.StructBody();
+        auto body_ = new dparse.ast.StructBody();
 
         foreach (method; methods)
         {
@@ -1150,11 +1161,11 @@ class UnionDeclaration : Declaration, Type
         }
     }
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
-        auto unionDecl = new std.d.ast.UnionDeclaration();
+        auto result = new dparse.ast.Declaration();
+        auto unionDecl = new dparse.ast.UnionDeclaration();
         result.unionDeclaration = unionDecl;
 
         if (name.length)
@@ -1164,7 +1175,7 @@ class UnionDeclaration : Declaration, Type
 
         unionDecl.templateParameters = templateArguments.buildConcreteList();
 
-        unionDecl.structBody = new std.d.ast.StructBody();
+        unionDecl.structBody = new dparse.ast.StructBody();
 
         foreach (field; fields)
         {
@@ -1183,7 +1194,7 @@ class UnionDeclaration : Declaration, Type
     }
 
     override pure
-    std.d.ast.Type buildConcreteType() const
+    dparse.ast.Type buildConcreteType() const
     {
         assert(0);
     }
@@ -1199,14 +1210,14 @@ class AliasTypeDeclaration : Declaration, Type
     LinkageAttribute linkage;
     Type type;
 
-    override pure
-    std.d.ast.Declaration buildConcreteDecl() const
+    override
+    dparse.ast.Declaration buildConcreteDecl() const
     {
-        auto result = new std.d.ast.Declaration();
-        auto aliasDecl = new std.d.ast.AliasDeclaration();
+        auto result = new dparse.ast.Declaration();
+        auto aliasDecl = new dparse.ast.AliasDeclaration();
         result.aliasDeclaration = aliasDecl;
 
-        auto initializer = new std.d.ast.AliasInitializer();
+        auto initializer = new dparse.ast.AliasInitializer();
         initializer.name = tokenFromString(name);
         initializer.type = type.buildConcreteType();
         aliasDecl.initializers = [initializer];
