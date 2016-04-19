@@ -124,6 +124,7 @@ class Module
 
         foreach (const Declaration decl; declarations)
         {
+            if (!decl.shouldEmit) continue;
             std.d.ast.Declaration concrete = decl.buildConcreteDecl();
             result.declarations ~= [concrete];
         }
@@ -242,6 +243,14 @@ public class Declaration
     }
 
     abstract pure string typestring() const;
+
+    // Things like specialized template declarations may not need to be emitted
+    // if they are just instantiations of a template and not a distinct
+    // specialization.  Default is to emit everything.
+    pure bool shouldEmit() const
+    {
+        return true;
+    }
 }
 
 public class Namespace
@@ -744,10 +753,19 @@ class StructDeclaration : Declaration, Type
 
 // Types of specialized templates are separate from the declarations since they
 // may not actually be declared.
+// We need these around so that we can reference declarations inside of them
+// and use them in names and stuff, but they may not be emitted.
 class SpecializedStructDeclaration : StructDeclaration
 {
     TemplateArgumentInstanceList templateArguments;
 
+    bool shouldEmit_ = true;
+
+    override pure
+    bool shouldEmit() const
+    {
+        return shouldEmit_;
+    }
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
     {
@@ -783,6 +801,14 @@ class SpecializedStructDeclaration : StructDeclaration
 class SpecializedInterfaceDeclaration : InterfaceDeclaration
 {
     TemplateArgumentInstanceList templateArguments;
+
+    bool shouldEmit_ = true;
+
+    override pure
+    bool shouldEmit() const
+    {
+        return shouldEmit_;
+    }
 
     override pure
     std.d.ast.Declaration buildConcreteDecl() const
