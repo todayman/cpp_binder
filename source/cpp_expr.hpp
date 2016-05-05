@@ -19,14 +19,20 @@
 #ifndef __CPP_EXPR_HPP__
 #define __CPP_EXPR_HPP__
 
+#include "string.hpp"
+
 namespace clang
 {
+    class BinaryOperator;
     class CastExpr;
     class CXXBoolLiteralExpr;
+    class CXXOperatorCallExpr;
     class DeclRefExpr;
     class Expr;
     class IntegerLiteral;
     class DependentScopeDeclRefExpr;
+    class ParenExpr;
+    class UnaryOperator;
 }
 
 class BoolLiteralExpression;
@@ -38,6 +44,9 @@ class Expression;
 class ExpressionVisitor;
 class IntegerLiteralExpression;
 class Type;
+class ParenExpression;
+class BinaryExpression;
+class UnaryExpression;
 class UnwrappableExpression;
 
 class ExpressionVisitor
@@ -48,6 +57,9 @@ class ExpressionVisitor
     virtual void visit(DeclaredExpression& expr) = 0;
     virtual void visit(DelayedExpression& expr) = 0;
     virtual void visit(IntegerLiteralExpression& expr) = 0;
+    virtual void visit(ParenExpression& expr) = 0;
+    virtual void visit(BinaryExpression& expr) = 0;
+    virtual void visit(UnaryExpression& expr) = 0;
     virtual void visit(UnwrappableExpression& expr) = 0;
 };
 
@@ -128,6 +140,7 @@ class DelayedExpression : public Expression
         visitor.visit(*this);
     }
 
+    // Returns the parent declaration of this value
     Declaration* getDeclaration() const;
 };
 
@@ -145,6 +158,104 @@ class CastExpression : public Expression
     Type* getType();
 
     Expression * getSubExpression();
+};
+
+class ParenExpression : public Expression
+{
+    clang::ParenExpr* expr;
+
+    public:
+    explicit ParenExpression(clang::ParenExpr* e);
+
+    virtual void dump() const override;
+
+    virtual void visit(ExpressionVisitor& visitor) override;
+
+    Type* getType();
+
+    Expression * getSubExpression();
+};
+
+class BinaryExpression : public Expression
+{
+    public:
+    virtual void visit(ExpressionVisitor& visitor) override;
+
+    virtual binder::string* getOperator() = 0;
+    //Type* getType();
+
+    virtual Expression* getLeftExpression() = 0;
+    virtual Expression* getRightExpression() = 0;
+};
+
+class TwoSidedBinaryExpression : public BinaryExpression
+{
+    clang::BinaryOperator* expr;
+
+    public:
+    explicit TwoSidedBinaryExpression(clang::BinaryOperator* e);
+
+    virtual void dump() const override;
+
+    virtual binder::string* getOperator() override;
+    //Type* getType();
+
+    virtual Expression* getLeftExpression() override;
+    virtual Expression* getRightExpression() override;
+};
+
+class ExplicitOperatorBinaryExpression : public BinaryExpression
+{
+    clang::CXXOperatorCallExpr* expr;
+
+    public:
+    explicit ExplicitOperatorBinaryExpression(clang::CXXOperatorCallExpr* e);
+
+    virtual void dump() const override;
+
+    virtual binder::string* getOperator() override;
+    //Type* getType();
+
+    virtual Expression* getLeftExpression() override;
+    virtual Expression* getRightExpression() override;
+};
+
+class UnaryExpression : public Expression
+{
+    public:
+    virtual void visit(ExpressionVisitor& visitor) override;
+
+    virtual binder::string* getOperator() = 0;
+
+    virtual Expression* getSubExpression() = 0;
+};
+
+class OneSidedUnaryExpression : public UnaryExpression
+{
+    clang::UnaryOperator* expr;
+
+    public:
+    explicit OneSidedUnaryExpression(clang::UnaryOperator* e);
+
+    virtual void dump() const override;
+
+    virtual binder::string* getOperator() override;
+
+    virtual Expression* getSubExpression() override;
+};
+
+class ExplicitOperatorUnaryExpression : public UnaryExpression
+{
+    clang::CXXOperatorCallExpr* expr;
+
+    public:
+    explicit ExplicitOperatorUnaryExpression(clang::CXXOperatorCallExpr* e);
+
+    virtual void dump() const override;
+
+    virtual binder::string* getOperator() override;
+
+    virtual Expression* getSubExpression() override;
 };
 
 class UnwrappableExpression : public Expression

@@ -22,6 +22,7 @@ import std.conv : to;
 import std.experimental.logger;
 
 static import unknown;
+static import binder;
 
 import translate.types;
 import translate.decls;
@@ -56,6 +57,8 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     void visit(unknown.DelayedExpression expr)
     {
         unknown.Declaration decl = expr.getDeclaration();
+        expr.dump();
+        dast.Declaration parent = startDeclBuild(decl);
         // TODO need to be careful here...
         /*if (auto deferred_ptr = cast(void*)decl in exprForDecl)
         {
@@ -69,7 +72,9 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
             exprForDecl[cast(void*)decl] = deferred;
             result = deferred.getExpression();
         }*/
-        assert(0);
+        result = new dast.DependentExpression(parent);
+        /*expr.dump();
+        assert(0);*/
     }
 
     extern(C++) override
@@ -85,8 +90,51 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     }
 
     extern(C++) override
+    void visit(unknown.ParenExpression expr)
+    {
+        auto parenExpression = new ParenExpression();
+
+        auto visitor = new ExpressionTranslator();
+        expr.getSubExpression().visit(visitor);
+        parenExpression.body_ = visitor.result;
+        result = parenExpression;
+    }
+
+    extern(C++) override
+    void visit(unknown.BinaryExpression expr)
+    {
+        auto binExpression = new BinaryExpression();
+
+        binExpression.op = binder.toDString(expr.getOperator());
+
+        auto visitor = new ExpressionTranslator();
+        expr.getLeftExpression().visit(visitor);
+        binExpression.lhs = visitor.result;
+
+        visitor = new ExpressionTranslator();
+        expr.getRightExpression().visit(visitor);
+        binExpression.rhs = visitor.result;
+
+        result = binExpression;
+    }
+
+    extern(C++) override
+    void visit(unknown.UnaryExpression expr)
+    {
+        auto unaryExpression = new UnaryExpression();
+
+        unaryExpression.op = binder.toDString(expr.getOperator());
+
+        auto visitor = new ExpressionTranslator();
+        expr.getSubExpression().visit(visitor);
+        unaryExpression.expr = visitor.result;
+    }
+
+    extern(C++) override
     void visit(unknown.UnwrappableExpression expr)
     {
+        info("Unwrappable expression");
+        expr.dump();
     }
 }
 

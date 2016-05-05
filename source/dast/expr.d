@@ -24,6 +24,7 @@ static import dparse.ast;
 import dparse.lexer : tok, Token;
 
 import dast.common;
+import dast.decls;
 import dast.type;
 
 interface Expression
@@ -70,6 +71,92 @@ class CastExpression : Expression
 {
     Type type;
     Expression argument;
+
+    override pure
+    dparse.ast.ExpressionNode buildConcreteExpression() const
+    {
+        assert(0);
+    }
+}
+
+class ParenExpression : Expression
+{
+    Expression body_;
+
+    override pure
+    dparse.ast.ExpressionNode buildConcreteExpression() const
+    {
+        assert(body_ !is null); // in contract doesn't work b/c inheritance
+        auto result = new dparse.ast.PrimaryExpression();
+        auto expr = new dparse.ast.Expression();
+        expr.items = [body_.buildConcreteExpression()];
+        result.expression = expr;
+        return result;
+    }
+}
+
+class BinaryExpression : Expression
+{
+    string op;
+    Expression lhs, rhs;
+
+    override pure
+    dparse.ast.ExpressionNode buildConcreteExpression() const
+    {
+        dparse.ast.ExpressionNode result;
+        // TODO add a ton of parens to make sure that the precedence is right
+        switch (op)
+        {
+            case "<":
+                auto translation = new dparse.ast.RelExpression();
+                translation.operator = tok!"<";
+                translation.left = lhs.buildConcreteExpression();
+                translation.right = rhs.buildConcreteExpression();
+                result = translation;
+                break;
+            case ">":
+                auto translation = new dparse.ast.RelExpression();
+                translation.operator = tok!">";
+                translation.left = lhs.buildConcreteExpression();
+                translation.right = rhs.buildConcreteExpression();
+                result = translation;
+                break;
+            default:
+                assert(0);
+        }
+
+        return result;
+    }
+}
+
+class UnaryExpression : Expression
+{
+    string op;
+    Expression expr;
+
+    override pure
+    dparse.ast.ExpressionNode buildConcreteExpression() const
+    {
+        dparse.ast.ExpressionNode result;
+        // TODO add a ton of parens to make sure that the precedence is right
+        switch (op)
+        {
+            default:
+                assert(0);
+        }
+
+        //return result;
+    }
+}
+
+class DependentExpression : Expression
+{
+    Declaration parent;
+
+    this(Declaration p)
+    {
+        parent = p;
+    }
 
     override pure
     dparse.ast.ExpressionNode buildConcreteExpression() const

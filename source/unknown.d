@@ -770,6 +770,12 @@ extern (C++) interface ExpressionVisitor
 
     public void visit(unknown.IntegerLiteralExpression expr);
 
+    public void visit(unknown.ParenExpression expr);
+
+    public void visit(unknown.BinaryExpression expr);
+
+    public void visit(unknown.UnaryExpression expr);
+
     public void visit(unknown.UnwrappableExpression expr);
 }
 
@@ -809,6 +815,29 @@ extern (C++) interface CastExpression : unknown.Expression
     final public unknown.Type getType();
 
     final public unknown.Expression getSubExpression();
+}
+
+extern (C++) interface ParenExpression : unknown.Expression
+{
+    final public unknown.Type getType();
+
+    final public unknown.Expression getSubExpression();
+}
+
+extern (C++) interface BinaryExpression : unknown.Expression
+{
+    public binder.binder.string getOperator();
+
+    public unknown.Expression getLeftExpression();
+
+    public unknown.Expression getRightExpression();
+}
+
+extern (C++) interface UnaryExpression : unknown.Expression
+{
+    public binder.binder.string getOperator();
+
+    public unknown.Expression getSubExpression();
 }
 
 extern (C++) interface UnwrappableExpression : unknown.Expression {}
