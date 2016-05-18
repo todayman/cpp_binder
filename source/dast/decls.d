@@ -1001,7 +1001,8 @@ class InterfaceDeclaration : Declaration, Type
     // FIXME dedup this class with StructDeclaration
 
     LinkageAttribute linkage;
-    InterfaceDeclaration bases;
+    // TODO should find a way to restrict this to interface types
+    Type[] bases;
 
     TemplateArgumentList templateArguments;
 
@@ -1069,8 +1070,9 @@ class InterfaceDeclaration : Declaration, Type
 
     void addBaseType(Type b)
     {
-        // TODO
-        assert(0);
+        bases ~= [b];
+        // TODO emit them, check that they are interfaces and gracefully handle
+        // the failure case (it could be a replaced type that is the interface)
     }
 
 
