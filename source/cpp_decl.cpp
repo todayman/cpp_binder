@@ -330,6 +330,11 @@ const RecordDeclaration* RecordTemplateDeclaration::getDefinition() const
     return nullptr;
 }
 
+TemplateArgumentIterator * RecordTemplateDeclaration::getTemplateArgumentBegin() const
+{
+    return new TemplateArgumentIterator(allTemplateParameterLists, 0);
+}
+
 TemplateArgumentIterator* RecordTemplateDeclaration::getTemplateArgumentEnd() const
 {
     if (allTemplateParameterLists.empty())
@@ -646,11 +651,19 @@ unsigned UsingAliasTemplateDeclaration::getTemplateArgumentCount() const
 }
 TemplateArgumentIterator * UsingAliasTemplateDeclaration::getTemplateArgumentBegin() const
 {
-    throw std::logic_error("Not implemented after refactoring TemplateArgumentIterator");
+    return new TemplateArgumentIterator(allTemplateParameterLists, 0);
 }
 TemplateArgumentIterator * UsingAliasTemplateDeclaration::getTemplateArgumentEnd() const
 {
-    throw std::logic_error("Not implemented after refactoring TemplateArgumentIterator");
+    if (allTemplateParameterLists.empty())
+    {
+        return new TemplateArgumentIterator(allTemplateParameterLists, 0);
+    }
+    else
+    {
+        auto template_length = allTemplateParameterLists.front()->size();
+        return new TemplateArgumentIterator(allTemplateParameterLists, template_length);
+    }
 }
 
 DeclVisitor::DeclVisitor(const clang::PrintingPolicy* pp)
@@ -891,6 +904,7 @@ UNWRAPPABLE_TRAVERSE(UsingShadow) // FIXME we can probably translate these as al
 UNWRAPPABLE_TRAVERSE(CXXConstructor) // FIXME maybe do this in the future?
 UNWRAPPABLE_TRAVERSE(CXXDestructor) // FIXME maybe do this in the future?
 UNWRAPPABLE_TRAVERSE(CXXConversion)
+UNWRAPPABLE_TRAVERSE(TemplateTemplateParm)
 
 bool DeclVisitor::WalkUpFromFunctionDecl(clang::FunctionDecl* cppDecl)
 {

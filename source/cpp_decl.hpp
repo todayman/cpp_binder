@@ -1162,7 +1162,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual void advance()
         {
-            ++arg_index;
+            ++(*this);
         }
 
         virtual int getDefinitionCount()
@@ -1286,10 +1286,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return outer_decl->getTemplateParameters()->size();
         }
-        virtual TemplateArgumentIterator * getTemplateArgumentBegin() const
-        {
-            return new TemplateArgumentIterator(allTemplateParameterLists, 0);
-        }
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin() const;
         virtual TemplateArgumentIterator * getTemplateArgumentEnd() const;
 
         virtual void dump() override
@@ -1428,6 +1425,8 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
     {
         protected:
         const clang::TypeAliasTemplateDecl* outer_decl;
+        // TODO need to fill in this list!
+        std::vector<const clang::TemplateParameterList*> allTemplateParameterLists;
 
         public:
         UsingAliasTemplateDeclaration(const clang::TypeAliasTemplateDecl* d);
@@ -1599,6 +1598,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         bool TraverseUnresolvedUsingValueDecl(clang::UnresolvedUsingValueDecl* cppDecl);
 
         bool TraverseCXXConversionDecl(clang::CXXConversionDecl* cppDecl);
+        bool TraverseTemplateTemplateParmDecl(clang::TemplateTemplateParmDecl* cppDecl);
 
         bool VisitDecl(clang::Decl* Declaration);
         // Also gets cxx method/ctor/dtor
