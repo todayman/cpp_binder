@@ -88,11 +88,11 @@ package void determineStrategy(unknown.Type cppType)
 
         override extern(C++) void visit(unknown.NonTemplateRecordType cppType)
         {
-            determineRecordStrategy(cppType);
+            determineRecordStrategy!false(cppType);
         }
         override extern(C++) void visit(unknown.TemplateRecordType cppType)
         {
-            determineRecordStrategy(cppType);
+            determineRecordStrategy!true(cppType);
         }
 
         mixin Replace!(unknown.ArrayType);
@@ -125,6 +125,12 @@ package void determineStrategy(unknown.Type cppType)
             // type itself.  We're assuming that all of the specialization will
             // be translated to struct or class together.
             unknown.Type generic_type = parent_template.getType();
+            if (generic_type is null)
+            {
+                stderr.writeln("Parent:");
+                parent_template.dump();
+                assert(0);
+            }
             determineStrategy(generic_type);
             if (generic_type.getStrategy() == unknown.Strategy.REPLACE)
             {
@@ -259,7 +265,8 @@ private dast.Type replaceType(unknown.Type cppType, QualifierSet qualifiers)
                     // TODO redo this in the new visitor / typesafe context
                     // Before, it was always a struct
                     //result = resolveTemplateSpecializationTypeSymbol(cppType);
-                    assert(0);
+                    //determineStrategy(cppType);
+                    result = startDeclTypeBuild(cppType.getTemplateDeclaration());
                 }
 
                 extern(C++) void visit(unknown.DelayedType type)
