@@ -223,6 +223,8 @@ binder::string* TwoSidedBinaryExpression::getOperator()
             return new binder::string("==");
         case clang::BO_NE:
             return new binder::string("!=");
+        case clang::BO_LAnd:
+            return new binder::string("&&");
         case clang::BO_LOr:
             return new binder::string("||");
         // Bitwise operators
@@ -268,6 +270,8 @@ binder::string* ExplicitOperatorBinaryExpression::getOperator()
             return new binder::string("<");
         case clang::OO_GreaterEqual:
             return new binder::string(">=");
+        case clang::OO_Plus:
+            return new binder::string("+");
         case clang::OO_Minus:
             return new binder::string("-");
         case clang::OO_Exclaim:
