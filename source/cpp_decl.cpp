@@ -236,12 +236,19 @@ bool TypedefDeclaration::isWrappable() const
    }
    Type * targetType = getTargetType();
    bool result = targetType->isWrappable(false);
+   //result = result && (_decl->getTypeForDecl() != NULL);
    return result;
 }
 
 Type * TypedefDeclaration::getType() const
 {
-    return Type::get(_decl->getTypeForDecl());
+    const clang::Type* cppType = _decl->getTypeForDecl();
+    Type* result = Type::get(cppType);
+    if (result == NULL)
+    {
+        throw std::runtime_error("Could not find type.");
+    }
+    return result;
 }
 
 void TypedefDeclaration::visit(DeclarationVisitor& visitor)
