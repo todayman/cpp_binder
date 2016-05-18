@@ -751,9 +751,10 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
     dast.EnumDeclaration translateEnum(unknown.EnumDeclaration cppDecl)
     {
         auto result = CHECK_FOR_DECL!(dast.EnumDeclaration)(cppDecl);
-        if (result !is null) return result;
-
-        result = registerDeclaration!(dast.EnumDeclaration)(cppDecl);
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.EnumDeclaration)(cppDecl);
+        }
 
         result.name = nameFromDecl(cppDecl);
 
@@ -784,11 +785,12 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
     dast.EnumMember translateEnumConstant(unknown.EnumConstantDeclaration cppDecl)
     {
-        // FIXME why are these two lines commented out?
-        /*auto short_circuit = CHECK_FOR_DECL!(std.d.ast.EnumMember)(cppDecl);
-        if (short_circuit !is null) return short_circuit.enumMember;*/
-        // TODO insert into translated AA
-        auto result = new dast.EnumMember();
+        auto result = CHECK_FOR_DECL!(dast.EnumMember)(cppDecl);
+        if (result is null)
+        {
+            result = registerDeclaration!(dast.EnumMember)(cppDecl);
+        }
+
         result.name = nameFromDecl(cppDecl); // TODO remove prefix
 
         result.value = new dast.IntegerLiteralExpression(cppDecl.getLLValue);
@@ -1420,10 +1422,9 @@ class StarterVisitor : unknown.DeclarationVisitor
     {
         result = registerDeclaration!(dast.AliasTypeDeclaration)(cppDecl);
     }
-    extern(C++) void visitEnum(unknown.EnumDeclaration)
+    extern(C++) void visitEnum(unknown.EnumDeclaration cppDecl)
     {
-        // TODO fill this one in!
-        assert(0);
+        result = registerDeclaration!(dast.EnumDeclaration)(cppDecl);
     }
     extern(C++) void visitUnion(unknown.UnionDeclaration cppDecl)
     {
@@ -1569,7 +1570,12 @@ class ExpressionStarterVisitor : unknown.DeclarationVisitor
     extern(C++) void visitFunction(unknown.FunctionDeclaration) { assert(0); }
     extern(C++) void visitNamespace(unknown.NamespaceDeclaration) { assert(0); }
     extern(C++) void visitField(unknown.FieldDeclaration) { assert(0); }
-    extern(C++) void visitEnumConstant(unknown.EnumConstantDeclaration) { assert(0); }
+
+    extern(C++) void visitEnumConstant(unknown.EnumConstantDeclaration cppDecl)
+    {
+        result = registerDeclaration!(dast.EnumMember)(cppDecl);
+    }
+
     extern(C++) void visitMethod(unknown.MethodDeclaration) { assert(0); }
     extern(C++) void visitConstructor(unknown.ConstructorDeclaration) { assert(0); }
     extern(C++) void visitDestructor(unknown.DestructorDeclaration) { assert(0); }

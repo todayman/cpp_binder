@@ -471,7 +471,8 @@ class FunctionDeclaration : Declaration
     }
 }
 
-class EnumDeclaration : Declaration
+// TODO Should this be a type? Need to check that the mangling is right
+class EnumDeclaration : Declaration, Type
 {
     Type type;
 
@@ -496,9 +497,15 @@ class EnumDeclaration : Declaration
     {
         return typeof(this).stringof;
     }
+
+    override pure
+    dparse.ast.Type buildConcreteType() const
+    {
+        assert(0);
+    }
 }
 
-class EnumMember : Declaration
+class EnumMember : Declaration, Expression
 {
     Expression value;
 
@@ -525,6 +532,12 @@ class EnumMember : Declaration
     override pure string typestring() const
     {
         return typeof(this).stringof;
+    }
+
+    override pure
+    dparse.ast.ExpressionNode buildConcreteExpression() const
+    {
+        assert(0);
     }
 }
 
