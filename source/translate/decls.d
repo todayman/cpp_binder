@@ -1347,16 +1347,9 @@ private void placeIntoTargetModule(
 // name it or place it anywhere.
 dast.Type startDeclTypeBuild(unknown.Declaration cppDecl)
 {
-    auto decl_ptr = cast(void*)cppDecl in translated;
-    if (decl_ptr is null) decl_ptr = (cast(void*)cppDecl) in needToTranslate;
-    if (decl_ptr !is null)
+    if (auto decl_ptr = cast(void*)cppDecl in translated)
     {
         dast.Type result = cast(dast.Type)*decl_ptr;
-        if (result is null)
-        {
-            stderr.writeln("translated the following cppDecl, but it is not a type.");
-            cppDecl.dump();
-        }
         assert(result !is null);
         return result;
     }
@@ -1370,8 +1363,6 @@ dast.Type startDeclTypeBuild(unknown.Declaration cppDecl)
         assert(visitor.result !is null);
     }
     assert(visitor.result !is null);
-    // FIXME get rid of this cast
-    needToTranslate[cast(void*)cppDecl] = cast(dast.Declaration)visitor.result;
     return visitor.result;
 }
 // Inherit from DeclarationVisitor instead of TranslatorVisitor since we
@@ -1493,9 +1484,7 @@ class StarterVisitor : unknown.DeclarationVisitor
 // name it or place it anywhere.
 dast.Declaration startDeclBuild(unknown.Declaration cppDecl)
 {
-    auto decl_ptr = cast(void*)cppDecl in translated;
-    if (decl_ptr is null) decl_ptr = (cast(void*)cppDecl) in needToTranslate;
-    if (decl_ptr !is null)
+    if (auto decl_ptr = cast(void*)cppDecl in translated)
     {
         return *decl_ptr;
     }
@@ -1508,7 +1497,6 @@ dast.Declaration startDeclBuild(unknown.Declaration cppDecl)
         cppDecl.dump();
         assert(visitor.result !is null);
     }
-    needToTranslate[cast(void*)cppDecl] = visitor.result;
     return visitor.result;
 }
 // Inherit from DeclarationVisitor instead of TranslatorVisitor since we
@@ -1585,9 +1573,7 @@ class DeclarationStarterVisitor : unknown.DeclarationVisitor
 // name it or place it anywhere.
 dast.Expression startDeclExprBuild(unknown.Declaration cppDecl)
 {
-    auto decl_ptr = cast(void*)cppDecl in translated;
-    if (decl_ptr is null) decl_ptr = (cast(void*)cppDecl) in needToTranslate;
-    if (decl_ptr !is null)
+    if (auto decl_ptr = cast(void*)cppDecl in translated)
     {
         dast.Expression result = cast(dast.Expression)*decl_ptr;
         assert(result !is null);
@@ -1602,7 +1588,6 @@ dast.Expression startDeclExprBuild(unknown.Declaration cppDecl)
         cppDecl.dump();
         assert(visitor.result !is null);
     }
-    needToTranslate[cast(void*)cppDecl] = cast(dast.Declaration)visitor.result;
     return visitor.result;
 }
 // Inherit from DeclarationVisitor instead of TranslatorVisitor since we
@@ -1683,7 +1668,6 @@ class ExpressionStarterVisitor : unknown.DeclarationVisitor
 
 dast.Module destination;
 
-dast.Declaration[void*] needToTranslate;
 dast.Module populateDAST(string output_module_name)
 {
     // May cause problems because root package won't check for empty path.
@@ -1696,48 +1680,21 @@ dast.Module populateDAST(string output_module_name)
     for (size_t i = 0; i < array_len; ++i)
     {
         unknown.Declaration declaration = freeDeclarations[i];
-        addDeclToAST(declaration);
-    }
-    while (needToTranslate.length > 0)
-    {
-        const(void*)[] usedDecls = needToTranslate.keys();
-        foreach (declaration; usedDecls)
+        if (!declaration.isWrappable())
         {
-            addDeclToAST(cast(unknown.Declaration)declaration);
+            continue;
         }
-    }
 
-    return destination;
-}
-
-void addDeclToAST(unknown.Declaration declaration)
-{
-    if (!declaration.isWrappable())
-    {
-        stderr.writeln("Skipping");
-        declaration.dump();
-        if (cast(void*)declaration in needToTranslate)
+        if (declaration.shouldEmit())
         {
-            needToTranslate.remove(cast(void*)declaration);
+            dast.Module mod = findTargetModule(declaration);
+            // FIXME creates the module as a side effect of finding?
         }
-        return;
-    }
 
-    if (declaration.shouldEmit())
-    {
-        dast.Module mod = findTargetModule(declaration);
-        // FIXME creates the module as a side effect of finding?
-    }
-
-    auto visitor = new GlobalTranslator();
-    // We're going to try to avoid translating anything, unless we have to.
-    try {
-        if (declaration.shouldEmit || (cast(void*)declaration in needToTranslate))
-        {
-            stderr.writeln("Translating");
-            declaration.dump();
+        auto visitor = new GlobalTranslator();
+        try {
             dast.Declaration[] translation;
-            if (cast(void*)declaration !in translated || cast(void*)declaration in needToTranslate)
+            if (cast(void*)declaration !in translated)
             {
                 visitor.visit(declaration);
                 translation = visitor.last_result;
@@ -1745,10 +1702,6 @@ void addDeclToAST(unknown.Declaration declaration)
             else
             {
                 translation = [translated[cast(void*)declaration]];
-            }
-            if (cast(void*)declaration in needToTranslate)
-            {
-                needToTranslate.remove(cast(void*)declaration);
             }
 
             // some items, such as namespaces, don't need to be placed into a module.
@@ -1758,12 +1711,15 @@ void addDeclToAST(unknown.Declaration declaration)
                 placeIntoTargetModule(declaration, translation, "");
             }
         }
+        catch (Exception exc)
+        {
+            declaration.dump();
+            stderr.writeln("ERROR: ", exc.msg);
+        }
+
     }
-    catch (Exception exc)
-    {
-        declaration.dump();
-        stderr.writeln("ERROR: ", exc.msg);
-    }
+
+    return destination;
 }
 
 void determineRecordStrategy(bool typeIsTemplate)(unknown.RecordType cppType)

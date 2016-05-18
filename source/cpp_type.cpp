@@ -1222,7 +1222,6 @@ bool ClangTypeVisitor::VisitTemplateTypeParmType(clang::TemplateTypeParmType* ty
 }
 
 // A non-instantiated class template
-// Paul is no longer sure that he belives it is non-instantiated
 bool ClangTypeVisitor::WalkUpFromInjectedClassNameType(clang::InjectedClassNameType* type)
 {
     // FIXME what if the template is a union?
