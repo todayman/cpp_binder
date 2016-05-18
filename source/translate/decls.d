@@ -1625,7 +1625,12 @@ class ExpressionStarterVisitor : unknown.DeclarationVisitor
     extern(C++) void visitConstructor(unknown.ConstructorDeclaration) { assert(0); }
     extern(C++) void visitDestructor(unknown.DestructorDeclaration) { assert(0); }
     extern(C++) void visitArgument(unknown.ArgumentDeclaration) { assert(0); }
-    extern(C++) void visitVariable(unknown.VariableDeclaration) { assert(0); }
+
+    extern(C++) void visitVariable(unknown.VariableDeclaration cppDecl)
+    {
+        result = registerDeclaration!(dast.VariableDeclaration)(cppDecl);
+    }
+
     // FIXME this is going to interact poorly with the fact that all the lists
     // of template arguments share the same D declaration, I need to find a way
     // to find which argument list each template argument declaration came

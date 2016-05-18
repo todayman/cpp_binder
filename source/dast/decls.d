@@ -284,7 +284,7 @@ public class Namespace
     }
 }
 
-public class VariableDeclaration : Declaration
+public class VariableDeclaration : Declaration, Expression
 {
     Type type;
     // modifiers
@@ -329,6 +329,12 @@ public class VariableDeclaration : Declaration
     override pure string typestring() const
     {
         return typeof(this).stringof;
+    }
+
+    override pure
+    dparse.ast.ExpressionNode buildConcreteExpression() const
+    {
+        assert(0);
     }
 }
 
