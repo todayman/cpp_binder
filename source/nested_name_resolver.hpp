@@ -19,7 +19,7 @@
 #ifndef __NESTED_NAME_RESOLVER_HPP__
 #define __NESTED_NAME_RESOLVER_HPP__
 
-#include <clang/AST/DataRecursiveASTVisitor.h>
+#include <clang/AST/RecursiveASTVisitor.h>
 
 template<class Inner>
 class NestedNameResolver : public clang::RecursiveASTVisitor<NestedNameResolver<Inner>>
