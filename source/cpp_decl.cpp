@@ -236,6 +236,7 @@ bool TypedefDeclaration::isWrappable() const
    }
    Type * targetType = getTargetType();
    bool result = targetType->isWrappable(false);
+   // getTypeForDecl() returns null when the typedef is not used.
    //result = result && (_decl->getTypeForDecl() != NULL);
    return result;
 }

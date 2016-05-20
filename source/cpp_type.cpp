@@ -81,6 +81,7 @@ std::size_t std::hash<const clang::QualType>::operator()(const clang::QualType q
 
 Type* Type::get(const clang::Type* type, const clang::PrintingPolicy* printPolicy)
 {
+    assert(type != NULL);
     return Type::get(clang::QualType(type, 0), printPolicy);
 }
 
@@ -662,6 +663,12 @@ class InnerNameResolver : public clang::RecursiveASTVisitor<InnerNameResolver>
     }
 
     bool WalkUpFromTypedefDecl(clang::TypedefDecl* decl)
+    {
+        result = Type::get(decl->getUnderlyingType());
+        return false;
+    }
+
+    bool WalkUpFromTypedefNameDecl(clang::TypedefNameDecl* decl)
     {
         result = Type::get(decl->getUnderlyingType());
         return false;

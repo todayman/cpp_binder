@@ -183,6 +183,10 @@ Visibility accessSpecToVisibility(clang::AccessSpecifier as);
         // then apply attributes to their types
         // TODO split into TypeDeclarations and other declarations?
         virtual Type* getType() const = 0;
+        virtual Type* getTargetType() const
+        {
+            return getType();
+        }
 
         virtual void visit(DeclarationVisitor& visitor) = 0;
         //virtual void visit(ConstDeclarationVisitor& visitor) const = 0;
@@ -465,7 +469,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
 
         virtual void visit(DeclarationVisitor& visitor) override;
 
-        Type* getTargetType() const;
+        virtual Type* getTargetType() const override;
 
         virtual void dump() override;
     };

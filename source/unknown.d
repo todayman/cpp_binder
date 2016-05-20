@@ -395,6 +395,8 @@ extern (C++) interface Declaration
 
     public unknown.Type getType() const;
 
+    public unknown.Type getTargetType() const;
+
     public void visit(unknown.DeclarationVisitor visitor);
 
     public void dump();

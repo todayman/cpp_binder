@@ -124,7 +124,8 @@ package void determineStrategy(unknown.Type cppType)
             // generic_type is the type represeting the most general template
             // type itself.  We're assuming that all of the specialization will
             // be translated to struct or class together.
-            unknown.Type generic_type = parent_template.getType();
+            parent_template.dump();
+            unknown.Type generic_type = parent_template.getTargetType();
             if (generic_type is null)
             {
                 stderr.writeln("Parent:");
