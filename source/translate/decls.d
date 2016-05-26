@@ -978,8 +978,19 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
 
         if (cppDecl.hasDefaultArgument())
         {
-            unknown.Expression expr = cppDecl.getDefaultArgument();
-            result.defaultValue = translateExpression(expr);
+            try {
+                unknown.Expression expr = cppDecl.getDefaultArgument();
+                result.defaultValue = translateExpression(expr);
+            }
+            catch (translate.expr.ExpressionTranslationFailure e)
+            {
+                // FIXME If there's a problem translating the default value of
+                // the argument, then we'll just leave it out.  Later
+                // instantiations will have to specify the arguments and code
+                // will break, but I do not anticipate silently changing
+                // anything.
+                result.defaultValue = null;
+            }
         }
 
         return result;

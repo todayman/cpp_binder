@@ -138,15 +138,23 @@ private class ExpressionTranslator : unknown.ExpressionVisitor
     }
 }
 
+class ExpressionTranslationFailure : Exception
+{
+    unknown.Expression exp;
+    this(unknown.Expression e)
+    {
+        super("Failed to translate expression.");
+        exp = e;
+    }
+}
+
 Expression translateExpression(unknown.Expression expr)
 {
     auto visitor = new ExpressionTranslator();
     expr.visit(visitor);
     if (visitor.result is null)
     {
-        info("Failed to translate expression:");
-        expr.dump();
-        assert(0);
+        throw new ExpressionTranslationFailure(expr);
     }
     return visitor.result;
 }
