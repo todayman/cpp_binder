@@ -1486,9 +1486,9 @@ class StarterVisitor : unknown.DeclarationVisitor
     {
         result = registerDeclaration!(dast.TemplateTypeArgumentDeclaration)(cppDecl);
     }
-    extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration)
+    extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration cppDecl)
     {
-        assert(0);
+        result = registerDeclaration!(dast.AliasTypeDeclaration)(cppDecl);
     }
     extern(C++) void visitUnwrappable(unknown.UnwrappableDeclaration)
     {
