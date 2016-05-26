@@ -1265,8 +1265,6 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
             : RecordDeclaration(d->getTemplatedDecl()), outer_decl(d)
         { }
 
-        bool isVariadic() const;
-
         virtual clang::SourceLocation getSourceLocation() const override
         {
             return outer_decl->getLocation();
@@ -1290,20 +1288,20 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         {
             return outer_decl->getTemplateParameters()->size();
         }
-        virtual TemplateArgumentIterator * getTemplateArgumentBegin() const;
-        virtual TemplateArgumentIterator * getTemplateArgumentEnd() const;
 
         virtual void dump() override
         {
             outer_decl->dump();
         }
 
+        bool isVariadic() const;
+
+        virtual TemplateArgumentIterator * getTemplateArgumentBegin() const;
+        virtual TemplateArgumentIterator * getTemplateArgumentEnd() const;
+
         virtual SpecializedRecordRange* getSpecializationRange();
 
-        virtual void addTemplateParameterList(const clang::TemplateParameterList* tl)
-        {
-            allTemplateParameterLists.push_back(tl);
-        }
+        virtual void addTemplateParameterList(const clang::TemplateParameterList* tl);
     };
 
     class UnionTemplateDeclaration : public UnionDeclaration//, public TemplateDeclaration

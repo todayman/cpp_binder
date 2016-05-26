@@ -358,7 +358,24 @@ TemplateArgumentIterator* RecordTemplateDeclaration::getTemplateArgumentEnd() co
 
 SpecializedRecordRange* RecordTemplateDeclaration::getSpecializationRange()
 {
+    /*unsigned specializationCount = 0;
+    for (clang::RedeclarableTemplateDecl* other_decl : outer_decl->redecls())
+    {
+        clang::ClassTemplateDecl* otherTemplate = dynamic_cast<clang::ClassTemplateDecl*>(other_decl);
+        if (otherTemplate)
+        {
+            std::cout << "Adding some specializations from\n";
+            otherTemplate->dump();
+            specializationCount += std::distance(otherTemplate->spec_begin(), otherTemplate->spec_end());
+        }
+    }
+    std::cerr << "There are " << specializationCount << " specializations total in all the redeclarations.\n";*/
     return new SpecializedRecordRange(outer_decl->specializations());
+}
+
+void RecordTemplateDeclaration::addTemplateParameterList(const clang::TemplateParameterList* tl)
+{
+    allTemplateParameterLists.push_back(tl);
 }
 /*template<typename ClangType, typename TranslatorType>
 TranslatorType* Iterator<ClangType, TranslatorType>::operator*()
