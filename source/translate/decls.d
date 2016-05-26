@@ -1789,14 +1789,9 @@ void determineRecordTemplateStrategy(unknown.RecordTemplateDeclaration cppTempla
     else if (!cppTemplateDecl.hasDefinition())
     {
         // Try to decide from the specialization declarations
-        stderr.writeln("looking at specializations of");
-        cppTemplateDecl.dump();
         unknown.SpecializedRecordRange range = cppTemplateDecl.getSpecializationRange();
-        stderr.writeln("range.empty() = ", range.empty());
         foreach (unknown.SpecializedRecordDeclaration special; range)
         {
-            stderr.writeln("Looking at specialization:");
-            special.dump();
             unknown.RecordType specialType = cast(unknown.RecordType)special.getType();
             assert(specialType !is null); // above is not a dynamic_cast, so this always succeeds
             determineRecordStrategy(specialType);
