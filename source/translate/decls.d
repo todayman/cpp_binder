@@ -254,7 +254,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             catch (Exception exc)
             {
-                child.dump();
                 stderr.writeln("ERROR: ", exc.msg);
             }
         }
@@ -412,7 +411,6 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             }
             catch (Exception exc)
             {
-                //child.dump();
                 //stderr.writeln("ERROR: ", exc.msg);
             }
         }
@@ -1511,7 +1509,6 @@ dast.Declaration startDeclBuild(unknown.Declaration cppDecl)
     cppDecl.visit(visitor);
     if (visitor.result is null)
     {
-        cppDecl.dump();
         assert(visitor.result !is null);
     }
     return visitor.result;
@@ -1730,7 +1727,6 @@ dast.Module populateDAST(string output_module_name)
         }
         catch (Exception exc)
         {
-            declaration.dump();
             stderr.writeln("ERROR: ", exc.msg);
         }
 

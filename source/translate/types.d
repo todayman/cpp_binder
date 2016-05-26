@@ -53,7 +53,6 @@ package void determineStrategy(unknown.Type cppType)
         public:
         override extern(C++) void visit(unknown.InvalidType cppType)
         {
-            if (dumpBeforeThrowing) cppType.dump();
             throw new Exception("Attempting to determine strategy for invalid type (cppType=" ~ to!string(cast(void*)cppType)~ ").");
         }
 
@@ -120,21 +119,14 @@ package void determineStrategy(unknown.Type cppType)
             unknown.Declaration parent_template = cppType.getTemplateDeclaration();
             if (!parent_template.isWrappable())
             {
-                stderr.writeln("This specialization:");
-                cppType.dump();
-                stderr.writeln("Parent:");
-                parent_template.dump();
                 throw new Exception("The template for this specialization is not wrappable.");
             }
             // generic_type is the type represeting the most general template
             // type itself.  We're assuming that all of the specialization will
             // be translated to struct or class together.
-            parent_template.dump();
             unknown.Type generic_type = parent_template.getTargetType();
             if (generic_type is null)
             {
-                stderr.writeln("Parent:");
-                parent_template.dump();
                 assert(0);
             }
             trace("determining strategy of parent_template.");
@@ -436,7 +428,6 @@ private dast.Type resolveOrDefer(Type)(Type cppType)
         {
             if (!cppDecl.isWrappable())
             {
-                if (dumpBeforeThrowing) cppDecl.dump();
                 throw new UnwrappableTypeDeclaration(cppType, cppDecl);
             }
             // cppDecl.getType() can be different than cppType
@@ -449,7 +440,6 @@ private dast.Type resolveOrDefer(Type)(Type cppType)
             // path, namely the translateReference path.
             if (!cppType.isWrappable(false))
             {
-                if (dumpBeforeThrowing) cppDecl.dump();
                 throw new Exception("This type is not wrappable.");
             }
 
@@ -838,7 +828,6 @@ class UnwrappableType : Exception
                 string name = binder.toDString(decl.getSourceName());
                 if (name.length == 0)
                 {
-                    type.dump();
                     stderr.writeln("^ unwrappable type.");
                 }
                 msg = "Type (" ~ name ~") is not wrappable.";

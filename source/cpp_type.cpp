@@ -1075,7 +1075,6 @@ bool ClangTypeVisitor::WalkUpFromType(clang::Type* type)
     if( !type_in_progress )
     {
         allocateInvalidType(clang::QualType(type, 0));
-        type->dump();
         throw std::logic_error("Can not wrap type!");
         return false;
     }

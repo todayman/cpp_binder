@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2016 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -463,8 +463,6 @@ ArgumentDeclaration* ArgumentIterator::operator*()
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
-        (*cpp_iter)->getCanonicalDecl()->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -476,7 +474,6 @@ FieldDeclaration* FieldRange::front()
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -488,7 +485,6 @@ MethodDeclaration* MethodRange::front()
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
         std::cerr << "WARNING: Could not find a Declaration for this Decl.  This might be an internal error, or this might be a method that cannot be wrapped (e.g. ctor or dtor).\n";
         return nullptr;
     }
@@ -502,7 +498,6 @@ MethodDeclaration* OverriddenMethodIterator::operator*()
     auto search_result = DeclVisitor::getDeclarations().find(mptr);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -586,7 +581,6 @@ TemplateTypeArgumentDeclaration* TemplateArgumentIterator::getType()
     auto search_result = DeclVisitor::getDeclarations().find(cpp_decl);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        cpp_decl->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -601,7 +595,6 @@ TemplateNonTypeArgumentDeclaration* TemplateArgumentIterator::getNonType()
     auto search_result = DeclVisitor::getDeclarations().find(cpp_decl);
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        cpp_decl->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -613,7 +606,6 @@ SpecializedRecordDeclaration* SpecializedRecordRange::front()
     auto search_result = DeclVisitor::getDeclarations().find((*cpp_iter));
     if( search_result == DeclVisitor::getDeclarations().end() )
     {
-        (*cpp_iter)->dump();
         throw std::runtime_error("Lookup failed!");
     }
     Declaration* decl = search_result->second;
@@ -841,7 +833,6 @@ bool DeclVisitor::WalkUpFromDecl(clang::Decl* cppDecl)
 {
     if( !decl_in_progress )
     {
-        cppDecl->dump();
         throw SkipUnwrappableDeclaration(cppDecl);
     }
     return Super::WalkUpFromDecl(cppDecl);
@@ -1030,7 +1021,6 @@ bool DeclVisitor::VisitClassTemplateDecl(clang::ClassTemplateDecl* cppDecl)
         {
             std::cerr << "Not adding the parameter list\n";
             std::cerr << "decl_in_progress = " << decl_in_progress << "\n";
-            decl_in_progress->dump();
         }
     }
 
