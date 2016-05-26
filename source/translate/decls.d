@@ -564,12 +564,14 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
         {
             alias StructType    = dast.SpecializedStructDeclaration;
             alias InterfaceType = dast.SpecializedInterfaceDeclaration;
+            alias determineStrategyFunc = determineSpecializedRecordStrategy;
             static assert(is(dast.SpecificTemplateArgumentList : dast.SpecificTemplateArgumentList));
         }
         else
         {
             alias StructType    = dast.StructDeclaration;
             alias InterfaceType = dast.InterfaceDeclaration;
+            alias determineStrategyFunc = determineRecordTemplateStrategy;
             static assert(is(dast.TemplateArgumentList : dast.TemplateArgumentList));
         }
         trace("Entering");
@@ -579,7 +581,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             info("Skipping this cppDecl for ", name, " because it is not a definition.");
             return;
         }
-        determineRecordStrategy!(!specialized)(cppDecl.getRecordType());
+        determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
@@ -612,7 +614,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
             info("Skipping this cppDecl for ", name, " because it is not a definition.");
             return null; // TODO?
         }
-        determineRecordStrategy!false(cppDecl.getRecordType());
+        determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
@@ -1058,7 +1060,7 @@ private class TranslatorVisitor : unknown.DeclarationVisitor
                     current = new dast.TemplateValueArgumentInstance(translateExpression(iter.getExpression()));
                     break;
                 case unknown.TemplateArgumentInstanceIterator.Kind.Pack:
-                    iter.dumpPackInfo();
+                    //iter.dumpPackInfo();
                     throw new Exception("Cannot translate template Pack argument");
             }
             result ~= [current];
@@ -1370,10 +1372,9 @@ dast.Type startDeclTypeBuild(unknown.Declaration cppDecl)
     cppDecl.visit(visitor);
     if (visitor.result is null)
     {
-        cppDecl.dump();
+        //cppDecl.dump();
         assert(visitor.result !is null);
     }
-    assert(visitor.result !is null);
     return visitor.result;
 }
 // Inherit from DeclarationVisitor instead of TranslatorVisitor since we
@@ -1401,7 +1402,7 @@ class StarterVisitor : unknown.DeclarationVisitor
         // FIXME copied from TranslatorVisitor.buildRecord
         trace("Entering");
         scope(exit) trace("Exiting");
-        determineRecordStrategy!false(cppDecl.getRecordType());
+        determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
@@ -1429,7 +1430,7 @@ class StarterVisitor : unknown.DeclarationVisitor
         alias StructType    = dast.StructDeclaration;
         alias InterfaceType = dast.InterfaceDeclaration;
         //static assert(is(dast.TemplateArgumentList : dast.TemplateArgumentList));
-        determineRecordStrategy!true(cppDecl.getRecordType());
+        determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
@@ -1439,8 +1440,13 @@ class StarterVisitor : unknown.DeclarationVisitor
                 result = registerDeclaration!(InterfaceType)(cppDecl);
                 break;
             case unknown.Strategy.REPLACE:
-                cppDecl.dump();
-                assert(0);
+                //cppDecl.dump();
+                // Let's see if treating it as a struct works...
+                // The plan is to not fill it in, but that pointers to it
+                // should be "T*" rather than just "T" as for interfaces
+                result = registerDeclaration!(StructType)(cppDecl);
+                //assert(0);
+                break;
             default:
                 stderr.writeln("Strategy is: ", cppDecl.getType().getStrategy());
                 throw new Exception("I don't know how to translate records using strategies other than REPLACE, STRUCT, and INTERFACE yet.");
@@ -1460,7 +1466,7 @@ class StarterVisitor : unknown.DeclarationVisitor
     }
     extern(C++) void visitSpecializedRecord(unknown.SpecializedRecordDeclaration cppDecl)
     {
-        determineRecordStrategy!false(cppDecl.getRecordType());
+        determineRecordStrategy(cppDecl.getRecordType());
         switch (cppDecl.getType().getStrategy())
         {
             case unknown.Strategy.STRUCT:
@@ -1733,7 +1739,7 @@ dast.Module populateDAST(string output_module_name)
     return destination;
 }
 
-void determineRecordStrategy(bool typeIsTemplate)(unknown.RecordType cppType)
+void determineRecordStrategy(unknown.RecordType cppType)
 {
     // There are some paths that don't come through determineStrategy,
     // so filter those out.
@@ -1764,47 +1770,8 @@ void determineRecordStrategy(bool typeIsTemplate)(unknown.RecordType cppType)
     {
         if (!cpp_decl.hasDefinition())
         {
-            static if (!typeIsTemplate)
-            {
-                stderr.writeln("WARNING: ", binder.toDString(cpp_decl.getSourceName()), " has no definition, so I cannot determine a translation strategy; choosing REPLACE.");
-                cppType.chooseReplaceStrategy(binder.toBinderString(""));
-            }
-            else
-            {
-                unknown.RecordTemplateDeclaration templateRecord = cast(unknown.RecordTemplateDeclaration)cpp_decl;
-                stderr.writeln("got here!");
-                stderr.writeln("cppType = ");
-                cppType.dump();
-                stderr.writeln("cpp_decl = ", cast(void*)cpp_decl);
-                cpp_decl.dump();
-                stderr.writeln("Template record = ", cast(void*)templateRecord);
-                templateRecord.dump();
-                assert(0);
-                // Try to decide from the specialization declarations
-                /*foreach (unknown.SpecializedRecordDeclaration special; templateRecord.getSpecializationRange())
-                {
-                    unknown.RecordType specialType = cast(unknown.RecordType)special.getType();
-                    assert(specialType !is null);
-                    determineRecordStrategy!(false)(specialType);
-                    if (specialType.getStrategy() == unknown.Strategy.INTERFACE)
-                    {
-                        cppType.setStrategy(unknown.Strategy.INTERFACE);
-                        break;
-                    }
-                    else if (specialType.getStrategy() == unknown.Strategy.STRUCT)
-                    {
-                        cppType.setStrategy(unknown.Strategy.STRUCT);
-                        break;
-                    }
-                    // FIXME should make sure that all specialiations agree on the strategy
-                }
-                // If none of the specializations were either INTERFACE or STRUCT
-                if (cppType.getStrategy() == unknown.Strategy.UNKNOWN)
-                {
-                    stderr.writeln("WARNING: ", binder.toDString(cpp_decl.getSourceName()), " has no definition, so I cannot determine a translation strategy; choosing REPLACE.");
-                    cppType.chooseReplaceStrategy(binder.toBinderString(""));
-                }*/
-            }
+            stderr.writeln("WARNING: ", binder.toDString(cpp_decl.getSourceName()), " has no definition, so I cannot determine a translation strategy; choosing REPLACE.");
+            cppType.chooseReplaceStrategy(binder.toBinderString(""));
         }
         else if(cpp_decl.isDynamicClass())
         {
@@ -1817,10 +1784,113 @@ void determineRecordStrategy(bool typeIsTemplate)(unknown.RecordType cppType)
     }
 }
 
+void determineRecordTemplateStrategy(unknown.RecordTemplateDeclaration cppTemplateDecl)
+{
+    if (!cppTemplateDecl.isCXXRecord()) // Is every template a CXXRecord?
+    {
+        cppTemplateDecl.getType().setStrategy(unknown.Strategy.STRUCT);
+    }
+    else if (!cppTemplateDecl.hasDefinition())
+    {
+        // Try to decide from the specialization declarations
+        stderr.writeln("looking at specializations of");
+        cppTemplateDecl.dump();
+        unknown.SpecializedRecordRange range = cppTemplateDecl.getSpecializationRange();
+        stderr.writeln("range.empty() = ", range.empty());
+        foreach (unknown.SpecializedRecordDeclaration special; range)
+        {
+            stderr.writeln("Looking at specialization:");
+            special.dump();
+            unknown.RecordType specialType = cast(unknown.RecordType)special.getType();
+            assert(specialType !is null); // above is not a dynamic_cast, so this always succeeds
+            determineRecordStrategy(specialType);
+            if (specialType.getStrategy() == unknown.Strategy.INTERFACE)
+            {
+                cppTemplateDecl.getType().setStrategy(unknown.Strategy.INTERFACE);
+                break;
+            }
+            else if (specialType.getStrategy() == unknown.Strategy.STRUCT)
+            {
+                cppTemplateDecl.getType().setStrategy(unknown.Strategy.STRUCT);
+                break;
+            }
+            // FIXME should make sure that all specialiations agree on the strategy
+        }
+        // If none of the specializations were either INTERFACE or STRUCT
+        if (cppTemplateDecl.getType().getStrategy() == unknown.Strategy.UNKNOWN)
+        {
+            stderr.writeln("WARNING: ", binder.toDString(cppTemplateDecl.getSourceName()), " has no definition, so I cannot determine a translation strategy; choosing REPLACE.");
+            cppTemplateDecl.getType().chooseReplaceStrategy(binder.toBinderString(""));
+        }
+        stderr.writeln("Picked ", cppTemplateDecl.getType().getStrategy());
+        //assert(0);
+    }
+    else if (cppTemplateDecl.isDynamicClass())
+    {
+        cppTemplateDecl.getType().setStrategy(unknown.Strategy.INTERFACE);
+    }
+    else
+    {
+        cppTemplateDecl.getType().setStrategy(unknown.Strategy.STRUCT);
+    }
+    /+stderr.writeln("got here!");
+    stderr.writeln("cppType = ");
+    cppType.dump();
+    stderr.writeln("cpp_decl = ", cast(void*)cpp_decl);
+    cpp_decl.dump();
+    stderr.writeln("Template record = ", cast(void*)templateRecord);
+    templateRecord.dump();
+    assert(0);+/
+}
+
 class NoDefinitionException : Exception
 {
     this(unknown.Declaration decl)
     {
       super(to!string(decl.getSourceName().c_str()) ~ " has no definition, so I cannot determine a translation strategy.");
     }
+}
+
+void determineTemplateStrategy(unknown.Declaration genericCppDecl)
+{
+    class StrategyChoiceVisitor : unknown.DeclarationVisitor
+    {
+        public:
+        mixin template assertImpl(string node) {
+            mixin("override extern(C++) void visit"~node~"(unknown."~node~"Declaration cppDecl) { stderr.writeln(\"visiting "~node~"\"); cppDecl.dump(); assert(0); }");
+        }
+        mixin assertImpl!"Function";
+        mixin assertImpl!"Namespace";
+        mixin assertImpl!"Field";
+        mixin assertImpl!"EnumConstant";
+        mixin assertImpl!"Variable";
+        mixin assertImpl!"Constructor";
+        mixin assertImpl!"Destructor";
+        mixin assertImpl!"TemplateTypeArgument";
+        mixin assertImpl!"TemplateNonTypeArgument";
+        mixin assertImpl!"Unwrappable";
+        mixin assertImpl!"Argument";
+        mixin assertImpl!"Method";
+        mixin assertImpl!"Enum";
+        mixin assertImpl!"Union";
+        mixin assertImpl!"Typedef";
+        mixin assertImpl!"Record";
+        mixin assertImpl!"SpecializedRecord";
+        override extern(C++) void visitUsingAliasTemplate(unknown.UsingAliasTemplateDeclaration cppDecl)
+        {
+            unknown.Type targetType = cppDecl.getTargetType();
+            determineStrategy(targetType);
+            //cppDecl.getType().setStrategy(targetType.getStrategy());
+            //assert(0);
+        }
+
+        override extern(C++) void visitRecordTemplate(unknown.RecordTemplateDeclaration cppDecl)
+        {
+            determineRecordTemplateStrategy(cppDecl);
+            //assert(0);
+        }
+    }
+
+    auto visitor = new StrategyChoiceVisitor();
+    genericCppDecl.visit(visitor);
 }

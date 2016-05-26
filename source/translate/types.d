@@ -88,11 +88,16 @@ package void determineStrategy(unknown.Type cppType)
 
         override extern(C++) void visit(unknown.NonTemplateRecordType cppType)
         {
-            determineRecordStrategy!false(cppType);
+            determineRecordStrategy(cppType);
         }
         override extern(C++) void visit(unknown.TemplateRecordType cppType)
         {
-            determineRecordStrategy!true(cppType);
+            // FIXME make sure this cast should succeed
+            // (it always will succeed, because this isn't dynamic_cast
+            auto decl = cast(unknown.RecordTemplateDeclaration)cppType.getDeclaration();
+            //stderr.writeln("Declaration of template record type is:");
+            //decl.dump();
+            determineRecordTemplateStrategy(decl);
         }
 
         mixin Replace!(unknown.ArrayType);
@@ -132,7 +137,9 @@ package void determineStrategy(unknown.Type cppType)
                 parent_template.dump();
                 assert(0);
             }
-            determineStrategy(generic_type);
+            trace("determining strategy of parent_template.");
+            determineTemplateStrategy(parent_template);
+            //determineStrategy(generic_type);
             if (generic_type.getStrategy() == unknown.Strategy.REPLACE)
             {
                 cppType.chooseReplaceStrategy(binder.toBinderString(""));
