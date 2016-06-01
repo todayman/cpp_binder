@@ -287,6 +287,11 @@ TemplateArgumentInstanceIterator* SpecializedRecordDeclaration::getTemplateArgum
     return new TemplateArgumentInstanceIterator(template_decl->getTemplateArgs().data() + getTemplateArgumentCount());
 }
 
+bool SpecializedRecordDeclaration::isExplicit() const
+{
+    return template_decl->isExplicitSpecialization();
+}
+
 bool RecordTemplateDeclaration::isVariadic() const
 {
     TemplateArgumentIterator * end = getTemplateArgumentEnd();
@@ -610,6 +615,18 @@ SpecializedRecordDeclaration* SpecializedRecordRange::front()
     }
     Declaration* decl = search_result->second;
     SpecializedRecordDeclaration* result = dynamic_cast<SpecializedRecordDeclaration*>(decl);
+    return result;
+}
+
+RecordTemplateDeclaration* SpecializedRecordDeclaration::getGenericDeclaration() const
+{
+    auto search_result = DeclVisitor::getDeclarations().find(template_decl->getSpecializedTemplate());
+    if( search_result == DeclVisitor::getDeclarations().end() )
+    {
+        throw std::runtime_error("Lookup failed!");
+    }
+    Declaration* decl = search_result->second;
+    auto result = dynamic_cast<RecordTemplateDeclaration*>(decl);
     return result;
 }
 

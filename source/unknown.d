@@ -685,6 +685,10 @@ extern (C++) interface SpecializedRecordDeclaration : unknown.RecordDeclaration
     public unknown.TemplateArgumentInstanceIterator getTemplateArgumentBegin();
 
     public unknown.TemplateArgumentInstanceIterator getTemplateArgumentEnd();
+
+    public bool isExplicit() const;
+
+    public RecordTemplateDeclaration getGenericDeclaration() const;
 }
 
 extern (C++) interface SpecializedRecordRange

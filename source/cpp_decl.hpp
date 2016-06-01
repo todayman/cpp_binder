@@ -1,6 +1,6 @@
 /*
  *  cpp_binder: an automatic C++ binding generator for D
- *  Copyright (C) 2014-2015 Paul O'Neil <redballoon36@gmail.com>
+ *  Copyright (C) 2014-2016 Paul O'Neil <redballoon36@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -1224,6 +1224,10 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         virtual unsigned getTemplateArgumentCount() const override;
         virtual TemplateArgumentInstanceIterator* getTemplateArgumentBegin();
         virtual TemplateArgumentInstanceIterator* getTemplateArgumentEnd();
+
+        virtual bool isExplicit() const;
+
+        virtual RecordTemplateDeclaration* getGenericDeclaration() const;
     };
 
     class SpecializedRecordRange
@@ -1632,6 +1636,7 @@ DECLARATION_CLASS_2(CXXDestructor, Destructor);
         friend void arrayOfFreeDeclarations(size_t* count, Declaration*** array);
         friend Declaration * getDeclaration(const clang::Decl* decl);
         friend class RecordDeclaration;
+        friend class SpecializedRecordDeclaration;
         friend class DeclarationRange;
         friend class ArgumentIterator;
         friend class FieldRange;

@@ -567,6 +567,7 @@ mixin template buildConcreteType()
 
 struct TemplateArgumentList
 {
+    // FIXME Rename to be consistent with TemplateArgumentInstanceList
     Nullable!(TemplateArgumentDeclaration[]) args;
     alias args this;
 
@@ -596,6 +597,7 @@ struct TemplateArgumentList
 // If there is a template<typename T>, this struct represents <int>
 struct TemplateArgumentInstanceList
 {
+    // FIXME Rename to be consistent with TemplateArgumentList
     Nullable!(TemplateArgumentInstance[]) arguments;
     alias arguments this;
 
@@ -740,6 +742,11 @@ class StructDeclaration : Declaration, Type
         }
     }
 
+    pure dparse.ast.TemplateParameters buildTemplateList() const
+    {
+        return templateArguments.buildConcreteList();
+    }
+
     override
     dparse.ast.Declaration buildConcreteDecl() const
     {
@@ -748,7 +755,7 @@ class StructDeclaration : Declaration, Type
         result.structDeclaration = structDecl;
 
         structDecl.name = tokenFromString(name);
-        structDecl.templateParameters = templateArguments.buildConcreteList();
+        structDecl.templateParameters = buildTemplateList();
 
         structDecl.structBody = new dparse.ast.StructBody();
 
@@ -787,7 +794,7 @@ class StructDeclaration : Declaration, Type
 // and use them in names and stuff, but they may not be emitted.
 class SpecializedStructDeclaration : StructDeclaration
 {
-    TemplateArgumentInstanceList templateArguments;
+    TemplateArgumentInstanceList templateArgumentValues;
 
     bool shouldEmit_ = true;
 
@@ -800,6 +807,26 @@ class SpecializedStructDeclaration : StructDeclaration
     dparse.ast.Declaration buildConcreteDecl() const
     {
         assert(0);
+    }
+    protected override
+    dparse.ast.TemplateParameters buildTemplateList() const
+    {
+        import std.range : zip;
+
+        assert(!templateArguments.args.isNull);
+        assert(!templateArgumentValues.arguments.isNull);
+
+        auto result = new dparse.ast.TemplateParameters();
+        result.templateParameterList = new dparse.ast.TemplateParameterList();
+        foreach (pair; zip(templateArguments.args.get(), templateArgumentValues.arguments.get()))
+        {
+            const(TemplateArgumentDeclaration) argDecl = pair[0];
+            const(TemplateArgumentInstance) argValue = pair[1];
+
+            result.templateParameterList.items ~= [argDecl.buildWithSpecialization(argValue)];
+        }
+
+        return result;
     }
 
     override pure
@@ -818,7 +845,7 @@ class SpecializedStructDeclaration : StructDeclaration
     {
         auto inst = new dparse.ast.TemplateInstance();
         inst.identifier = tokenFromString(name);
-        inst.templateArguments = templateArguments.buildConcreteList();
+        inst.templateArguments = templateArgumentValues.buildConcreteList();
 
         auto result = new dparse.ast.IdentifierOrTemplateInstance();
         result.templateInstance = inst;
@@ -830,7 +857,7 @@ class SpecializedStructDeclaration : StructDeclaration
 // TODO dedup with SpecializedStructDeclaration
 class SpecializedInterfaceDeclaration : InterfaceDeclaration
 {
-    TemplateArgumentInstanceList templateArguments;
+    TemplateArgumentInstanceList templateArgumentValues;
 
     bool shouldEmit_ = true;
 
@@ -840,10 +867,25 @@ class SpecializedInterfaceDeclaration : InterfaceDeclaration
         return shouldEmit_;
     }
 
-    override pure
-    dparse.ast.Declaration buildConcreteDecl() const
+    protected override
+    dparse.ast.TemplateParameters buildTemplateList() const
     {
-        assert(0);
+        import std.range : zip;
+
+        assert(!templateArguments.args.isNull);
+        assert(!templateArgumentValues.arguments.isNull);
+
+        auto result = new dparse.ast.TemplateParameters();
+        result.templateParameterList = new dparse.ast.TemplateParameterList();
+        foreach (pair; zip(templateArguments.args.get(), templateArgumentValues.arguments.get()))
+        {
+            const(TemplateArgumentDeclaration) argDecl = pair[0];
+            const(TemplateArgumentInstance) argValue = pair[1];
+
+            result.templateParameterList.items ~= [argDecl.buildWithSpecialization(argValue)];
+        }
+
+        return result;
     }
 
     override pure string typestring() const
@@ -876,6 +918,9 @@ class TemplateArgumentDeclaration : Declaration
     pure abstract
     dparse.ast.TemplateParameter buildTemplateParameter() const;
 
+    pure abstract
+    dparse.ast.TemplateParameter buildWithSpecialization(const(TemplateArgumentInstance) value) const;
+
     override pure string typestring() const
     {
         return typeof(this).stringof;
@@ -907,6 +952,22 @@ class TemplateTypeArgumentDeclaration : TemplateArgumentDeclaration, Type
             result.templateTypeParameter.assignType = defaultType.buildConcreteType();
         }
 
+        return result;
+    }
+
+    override pure
+    dparse.ast.TemplateParameter buildWithSpecialization(const(TemplateArgumentInstance) unsafeValue) const
+    {
+        const TemplateTypeArgumentInstance value = cast(TemplateTypeArgumentInstance)unsafeValue;
+        if (!value)
+        {
+            throw new Exception("Value for the specialization of a template type argument was not a type.");
+        }
+
+        auto result = new dparse.ast.TemplateParameter();
+        result.templateTypeParameter = new dparse.ast.TemplateTypeParameter();
+        result.templateTypeParameter.identifier = tokenFromString(name);
+        result.templateTypeParameter.colonType = value.type.buildConcreteType();
         return result;
     }
 
@@ -945,6 +1006,24 @@ class TemplateValueArgumentDeclaration : TemplateArgumentDeclaration, Expression
 
         return result;
     }
+
+    override pure
+    dparse.ast.TemplateParameter buildWithSpecialization(const(TemplateArgumentInstance) unsafeValue) const
+    {
+        const value = cast(TemplateValueArgumentInstance)unsafeValue;
+        if (!value)
+        {
+            throw new Exception("Value for the specialization of a template value argument was not a value.");
+        }
+
+        auto result = new dparse.ast.TemplateParameter();
+        result.templateValueParameter = new dparse.ast.TemplateValueParameter();
+        result.templateValueParameter.type = type.buildConcreteType();
+        result.templateValueParameter.identifier = tokenFromString(name);
+        result.templateValueParameter.assignExpression = value.exp.buildConcreteExpression();
+        return result;
+    }
+
 
     override pure
     dparse.ast.ExpressionNode buildConcreteExpression() const
@@ -1075,6 +1154,10 @@ class InterfaceDeclaration : Declaration, Type
         // the failure case (it could be a replaced type that is the interface)
     }
 
+    protected dparse.ast.TemplateParameters buildTemplateList() const
+    {
+        return templateArguments.buildConcreteList();
+    }
 
     override
     dparse.ast.Declaration buildConcreteDecl() const
@@ -1084,7 +1167,7 @@ class InterfaceDeclaration : Declaration, Type
         result.interfaceDeclaration = interfaceDecl;
 
         interfaceDecl.name = tokenFromString(name);
-        interfaceDecl.templateParameters = templateArguments.buildConcreteList();
+        interfaceDecl.templateParameters = buildTemplateList();
 
         auto body_ = new dparse.ast.StructBody();
 
