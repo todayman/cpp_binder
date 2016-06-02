@@ -268,12 +268,16 @@ binder::string* ExplicitOperatorBinaryExpression::getOperator()
     {
         case clang::OO_Less:
             return new binder::string("<");
+        case clang::OO_Greater:
+            return new binder::string(">");
         case clang::OO_GreaterEqual:
             return new binder::string(">=");
         case clang::OO_Plus:
             return new binder::string("+");
         case clang::OO_Minus:
             return new binder::string("-");
+        case clang::OO_EqualEqual:
+            return new binder::string("==");
         case clang::OO_Exclaim:
             throw std::logic_error("Created a binary operator expression object for a unary operator.");
         default:
